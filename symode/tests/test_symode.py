@@ -14,6 +14,11 @@ def analytic1(i, p, a):
     from scipy.special import binom
     return binom(p+i-1, p) * a**(-1-p) * ((a-1)/a)**(i-1)
 
+def timeit(callback, *args, **kwargs):
+    t0 = time.time()
+    result = callback(*args, **kwargs)
+    return time.time() - t0, result
+
 
 def decay_dydt_factory(k):
     # Generates a callback for evaluating a dydt for
@@ -62,26 +67,69 @@ def test_OdeSystem(bands):
     assert np.allclose(out, ref)
 
 
-@pytest.mark.parametrize('bands', [(1, 0), (None, None)])
-def test_long_chain(bands):
-    n, p, a = 42, 1, 42
+# Check solution vs analytic reference:
+def check(vals, n, p, a, atol, rtol, forgiveness=1):
+    for i in range(n-1):
+        val = vals[i]
+        ref = analytic1(i+1, p, a)
+        diff = val - ref
+        acceptance = (atol + abs(val)*rtol)*forgiveness
+        print(val, ref, diff, acceptance)
+        assert abs(diff) < acceptance
+
+@pytest.mark.parametrize('name,forgive', zip(
+    'dopri5 dop853 vode'.split(), (1, 1, 1e6)))
+def test_scipy(name, forgive):
+    n, p, a = 13, 1, 13
     y0 = np.zeros(n)
     y0[0] = 1
     k = [(i+p+1)*math.log(a) for i in range(n-1)]
-    atol, rtol = 1e-11, 1e-11
-    odesys = OdeSystem.from_callback(decay_dydt_factory(k), len(k)+1,
-                                     lband=bands[0], uband=bands[1])
+    atol, rtol = 1e-10, 1e-10
 
-    tim = time.time()
-    out = odesys.integrate_scipy(1, y0, atol=atol, rtol=rtol)
-                              # name='vode', method='adams')
-    print(time.time() - tim)
+    dydt = decay_dydt_factory(k)
+    odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
+    out = odesys_dens.integrate_scipy(
+        1, y0, name=name, atol=atol, rtol=rtol)
+    check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
-    # Check solution vs analytic reference:
-    forgiveness = 1
-    for i in range(n-1):
-        ref = analytic1(i+1, p, a)
-        val = out[-1, i+1]
-        diff = val - ref
-        #print(val, ref, diff, (atol + abs(val)*rtol)*forgiveness)
-        assert abs(diff) < (atol + abs(val)*rtol)*forgiveness
+
+@pytest.mark.parametrize('n,forgive', [(4, 1), (17, 1), (42, 5)])
+def test_long_chain_dense(n, forgive):
+    p = 1
+    a = n
+    y0 = np.zeros(n)
+    y0[0] = 1
+    k = [(i+p+1)*math.log(a) for i in range(n-1)]
+    atol, rtol = 1e-12, 1e-12
+
+    dydt = decay_dydt_factory(k)
+    odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
+    out = odesys_dens.integrate_scipy(1, y0, atol=atol, rtol=rtol)
+    check(out[-1, 1:], n, p, a, atol, rtol, forgive)
+
+
+
+@pytest.mark.parametrize('n', [4])
+def test_long_chain_banded(n):
+    p = 1
+    a = n
+    y0 = np.zeros(n)
+    y0[0] = 1
+    k = [(i+p+1)*math.log(a) for i in range(n-1)]
+    atol, rtol = 1e-7, 1e-7
+
+    dydt = decay_dydt_factory(k)
+    odesys_dens = OdeSystem.from_callback(dydt, n)
+    odesys_band = OdeSystem.from_callback(dydt, n, lband=1, uband=0)
+
+    args = (1, y0)
+    kwargs = dict(atol=atol*1e-6, rtol=rtol*1e-6,
+                  name='vode', method='adams')
+
+    time_dens, out_dens = timeit(odesys_dens.integrate_scipy,
+                                 *args, **kwargs)
+    time_band, out_band = timeit(odesys_band.integrate_scipy,
+                                 *args, **kwargs)
+    check(out_dens[-1, 1:], n, p, a, atol, rtol, 6e3)  # vode poor
+    check(out_band[-1, 1:], n, p, a, atol, rtol, 6e3)  # lsoda
+    assert time_dens > time_band  # will fail sometimes due to load
