@@ -3,6 +3,8 @@
 import numpy as np
 import sympy as sp
 
+from .util import banded_jacobian
+
 
 def _fuse(x, y):
     return np.hstack((np.asarray(x).reshape(len(x), 1),
@@ -27,15 +29,20 @@ class OdeSystem(object):
     # scaling, (variable transformations, then including scaling)
 
     @classmethod
-    def from_callback(cls, cb, n):
+    def from_callback(cls, cb, n, *args, **kwargs):
         x = sp.Symbol('x')
         y = sp.symarray('y', n)
         exprs = cb(x, y)
-        return cls(zip(y, exprs), x)
+        return cls(zip(y, exprs), x, *args, **kwargs)
 
-    def __init__(self, dep_exprs, indep=None):
+    def __init__(self, dep_exprs, indep=None, lband=None, uband=None):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
+        if (lband, uband) != (None, None):
+            if not lband >= 0 or not uband >= 0:
+                raise ValueError("bands needs to be > 0 if provided")
+        self.lband = lband
+        self.uband = uband
 
     @property
     def ny(self):
@@ -52,8 +59,13 @@ class OdeSystem(object):
         return args
 
     def jac(self):
-        f = sp.Matrix(1, self.ny, lambda _, q: self.exprs[q])
-        return f.jacobian(self.dep)
+        if self.lband is None:
+            f = sp.Matrix(1, self.ny, lambda _, q: self.exprs[q])
+            return f.jacobian(self.dep)
+        else:
+            # Banded
+            return banded_jacobian(self.exprs, self.dep,
+                                   self.lband, self.uband)
 
     def get_f_lambda(self):
         return sp.lambdify(self.args(), self.exprs)
@@ -119,6 +131,10 @@ class OdeSystem(object):
         from scipy.integrate import ode
         f, j = self.get_fj_ty_callbacks()
         r = ode(f, jac=j)
+        if 'lband' in kwargs or 'uband' in kwargs:
+            raise ValueError("lband and uband set locally")
+        if self.lband is not None:
+            kwargs['lband'], kwargs['uband'] = self.lband, self.uband
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
         r.set_initial_value(y0, xout[0])
         if len(xout) == 2:
@@ -145,9 +161,10 @@ class OdeSystem(object):
     def _integrate(self, adaptive, predefined, xout, y0,
                    atol=1e-8, rtol=1e-8, first_step=1e-16, **kwargs):
         try:
-            len(xout)
+            nx = len(xout)
         except TypeError:
             xout = (0, xout)
+            nx = 2
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol)
         new_kwargs.update(kwargs)
@@ -161,8 +178,8 @@ class OdeSystem(object):
             jout[:, :] = j(x, y)
             dfdx_out[:] = dfdx(x, y)
 
-        if len(xout) == 2:
-            xsteps, yout = adaptive(_f, _j, y0, xout[0], xout[1], **new_kwargs)
+        if nx == 2:
+            xsteps, yout = adaptive(_f, _j, y0, *xout, **new_kwargs)
             return _fuse(xsteps, yout)
         else:
             yout = predefined(_f, _j, y0, xout, **new_kwargs)

@@ -2,6 +2,7 @@ from __future__ import print_function, absolute_import, division
 
 import numpy as np
 import sympy as sp
+import pytest
 
 from .. import OdeSystem
 from .bateman import bateman_full  # analytic, never mind the details
@@ -29,12 +30,14 @@ def decay_dydt_factory(k):
     return dydt
 
 
-def test_OdeSystem__from_callback():
+@pytest.mark.parametrize('bands', [(1, 0), (None, None)])
+def test_OdeSystem__from_callback(bands):
     # Decay chain of 3 species (2 decays)
     # A --[k0=4]--> B --[k1=3]--> C
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     atol, rtol = 1e-11, 1e-11
-    odesys = OdeSystem.from_callback(decay_dydt_factory(k), len(k)+1)
+    odesys = OdeSystem.from_callback(decay_dydt_factory(k), len(k)+1,
+                                     lband=bands[0], uband=bands[1])
     out = odesys.integrate_scipy(tend, y0, atol=atol, rtol=rtol)
     ref = out.copy()
     ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0],
@@ -42,12 +45,13 @@ def test_OdeSystem__from_callback():
     assert np.allclose(out, ref, rtol=rtol, atol=atol)
 
 
-def test_OdeSystem():
+@pytest.mark.parametrize('bands', [(1, 0), (None, None)])
+def test_OdeSystem(bands):
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
     dydt = decay_dydt_factory(k)
     f = dydt(0, y)
-    odesys = OdeSystem(zip(y, f))
+    odesys = OdeSystem(zip(y, f), lband=bands[0], uband=bands[1])
     out = odesys.integrate_scipy(tend, y0)
     ref = out.copy()
     ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0],
