@@ -5,6 +5,7 @@ import math
 import numpy as np
 import sympy as sp
 import pytest
+import time
 
 from .. import OdeSystem
 from .bateman import bateman_full  # analytic, never mind the details
@@ -63,14 +64,18 @@ def test_OdeSystem(bands):
 
 @pytest.mark.parametrize('bands', [(1, 0), (None, None)])
 def test_long_chain(bands):
-    n, p, a = 13, 1, 13
+    n, p, a = 42, 1, 42
     y0 = np.zeros(n)
     y0[0] = 1
     k = [(i+p+1)*math.log(a) for i in range(n-1)]
     atol, rtol = 1e-11, 1e-11
     odesys = OdeSystem.from_callback(decay_dydt_factory(k), len(k)+1,
                                      lband=bands[0], uband=bands[1])
+
+    tim = time.time()
     out = odesys.integrate_scipy(1, y0, atol=atol, rtol=rtol)
+                              # name='vode', method='adams')
+    print(time.time() - tim)
 
     # Check solution vs analytic reference:
     forgiveness = 1
@@ -78,5 +83,5 @@ def test_long_chain(bands):
         ref = analytic1(i+1, p, a)
         val = out[-1, i+1]
         diff = val - ref
-        print(val, ref, diff, (atol + abs(val)*rtol)*forgiveness)
+        #print(val, ref, diff, (atol + abs(val)*rtol)*forgiveness)
         assert abs(diff) < (atol + abs(val)*rtol)*forgiveness
