@@ -1,5 +1,7 @@
 from __future__ import print_function, absolute_import, division
 
+import math
+
 import numpy as np
 import sympy as sp
 import pytest
@@ -57,3 +59,24 @@ def test_OdeSystem(bands):
     ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0],
                                        exp=np.exp)).T
     assert np.allclose(out, ref)
+
+
+@pytest.mark.parametrize('bands', [(1, 0), (None, None)])
+def test_long_chain(bands):
+    n, p, a = 13, 1, 13
+    y0 = np.zeros(n)
+    y0[0] = 1
+    k = [(i+p+1)*math.log(a) for i in range(n-1)]
+    atol, rtol = 1e-11, 1e-11
+    odesys = OdeSystem.from_callback(decay_dydt_factory(k), len(k)+1,
+                                     lband=bands[0], uband=bands[1])
+    out = odesys.integrate_scipy(1, y0, atol=atol, rtol=rtol)
+
+    # Check solution vs analytic reference:
+    forgiveness = 1
+    for i in range(n-1):
+        ref = analytic1(i+1, p, a)
+        val = out[-1, i+1]
+        diff = val - ref
+        print(val, ref, diff, (atol + abs(val)*rtol)*forgiveness)
+        assert abs(diff) < (atol + abs(val)*rtol)*forgiveness
