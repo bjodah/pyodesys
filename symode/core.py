@@ -120,6 +120,8 @@ class OdeSystem(object):
             return self.integrate_gsl(*args, **kwargs)
         elif solver == 'odeint':
             return self.integrate_odeint(*args, **kwargs)
+        elif solver == 'cvode':
+            return self.integrate_cvode(*args, **kwargs)
         else:
             raise NotImplementedError("Unkown solver %s" % solver)
 
@@ -234,4 +236,12 @@ class OdeSystem(object):
             'method', 'rosenbrock4') in pyodeint.requires_jac
         return self._integrate(pyodeint.integrate_adaptive,
                                pyodeint.integrate_predefined,
+                               *args, **kwargs)
+
+    def integrate_cvode(self, *args, **kwargs):
+        import pycvodes
+        kwargs['with_jacobian'] = kwargs.get(
+            'method', 'bdf') in pycvodes.requires_jac
+        return self._integrate(pycvodes.integrate_adaptive,
+                               pycvodes.integrate_predefined,
                                *args, **kwargs)

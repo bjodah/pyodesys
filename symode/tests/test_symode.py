@@ -93,7 +93,25 @@ def test_scipy(name, forgive):
     check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
 
+@pytest.mark.parametrize('method,forgive', zip(
+    'rosenbrock4 dopri5 bs'.split(), (1, 1, 1)))
+def test_odeint(method, forgive):
+    n, p, a = 13, 1, 13
+    y0 = np.zeros(n)
+    y0[0] = 1
+    k = [(i+p+1)*math.log(a) for i in range(n-1)]
+    atol, rtol = 1e-10, 1e-10
+
+    dydt = decay_dydt_factory(k)
+    odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
+    out = odesys_dens.integrate_odeint(
+        1, y0, method=method, atol=atol, rtol=rtol)
+    check(out[-1, 1:], n, p, a, atol, rtol, forgive)
+
+
+
 @pytest.mark.parametrize('n,forgive', [(4, 1), (17, 1), (42, 5)])
+@pytest.mark.xfail
 def test_long_chain_dense(n, forgive):
     p = 1
     a = n
@@ -110,6 +128,7 @@ def test_long_chain_dense(n, forgive):
 
 
 @pytest.mark.parametrize('n', [4])
+@pytest.mark.xfail
 def test_long_chain_banded(n):
     p = 1
     a = n
