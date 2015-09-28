@@ -91,7 +91,7 @@ def check(vals, n, p, a, atol, rtol, forgiveness=1):
         ref = analytic1(i+1, p, a)
         diff = val - ref
         acceptance = (atol + abs(ref)*rtol)*forgiveness
-o        assert abs(diff) < acceptance
+        assert abs(diff) < acceptance
 
 
 def get_special_chain(n, p, a, **kwargs):
@@ -113,6 +113,14 @@ def test_check(p):
     check(vals, n, p, a, atol=1e-12, rtol=1e-12)
 
 
+@pytest.mark.xfail
+def test_mpmath():
+    n, p, a = 3, 1, 3
+    y0, k, odesys = get_special_chain(n, p, a)
+    out = odesys.integrate_mpmath(1, y0)
+    check(out[-1, 1:], n, p, a, 1e-12, 1e-12)
+
+
 # vode is performs ridiculously bad for this problem
 @pytest.mark.parametrize('name,forgive', zip(
     'dopri5 dop853 vode'.split(), (1, 1, 1e7)))
@@ -120,7 +128,7 @@ def test_scipy(name, forgive):
     n, p, a = 13, 1, 13
     atol, rtol = 1e-10, 1e-10
     y0, k, odesys_dens = get_special_chain(n, p, a)
-    #tout = [0]+[10**i for i in range(-10, 1)] if name == 'vode' else 1
+    # tout = [0]+[10**i for i in range(-10, 1)] if name == 'vode' else 1
     tout = 1
     out = odesys_dens.integrate_scipy(
         tout, y0, name=name, atol=atol, rtol=rtol)
@@ -138,7 +146,8 @@ def test_odeint(method, forgive):
     odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
     out = odesys_dens.integrate_odeint(
-        [10**i for i in range(-15, 1)], y0, method=method, atol=atol, rtol=rtol)
+        [10**i for i in range(-15, 1)], y0, method=method,
+        atol=atol, rtol=rtol)
     check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
 
@@ -149,7 +158,8 @@ def _gsl(tout, method, forgive):
     dydt = decay_dydt_factory(k)
     odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
-    out = odesys_dens.integrate_gsl(tout, y0, method=method, atol=atol, rtol=rtol)
+    out = odesys_dens.integrate_gsl(tout, y0, method=method,
+                                    atol=atol, rtol=rtol)
     check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
 
@@ -172,7 +182,8 @@ def _cvode(tout, method, forgive):
     dydt = decay_dydt_factory(k)
     odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
-    out = odesys_dens.integrate_cvode(tout, y0, method=method, atol=atol, rtol=rtol)
+    out = odesys_dens.integrate_cvode(tout, y0, method=method,
+                                      atol=atol, rtol=rtol)
     check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
 
@@ -212,6 +223,7 @@ def test_long_chain_banded_scipy(n):
     check(out_band[-1, 1:], n, p, a, atol, rtol, .4)
     print(time_dens, time_band)
     assert time_dens > time_band  # will fail sometimes due to load
+
 
 @pytest.mark.parametrize('n', [52])
 def test_long_chain_banded_cvode(n):
