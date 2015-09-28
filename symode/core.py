@@ -103,11 +103,7 @@ class OdeSystem(object):
 
     def get_j_ty_callback(self):
         j_lambda = self.get_jac_lambda()
-        j = lambda x, y: np.asarray(j_lambda(*self.args(x, y)))
-        def j_debug(x, y):
-            print('j', j(x, y)) #DEBUG
-            return j(x, y)
-        return j_debug
+        return lambda x, y: np.asarray(j_lambda(*self.args(x, y)))
 
     def get_dfdx_callback(self):
         dfdx_lambda = self.get_dfdx_lambda()
@@ -163,7 +159,8 @@ class OdeSystem(object):
             j = None
         r = ode(f, jac=j)
         if 'lband' in kwargs or 'uband' in kwargs:
-            raise ValueError("lband and uband set locally")
+            raise ValueError("lband and uband set locally (set at"
+                             " initialization of OdeSystem instead)")
         if self.lband is not None:
             kwargs['lband'], kwargs['uband'] = self.lband, self.uband
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
@@ -209,9 +206,10 @@ class OdeSystem(object):
             j = self.get_j_ty_callback()
             dfdx = self.get_dfdx_callback()
 
-            def _j(x, y, jout, dfdx_out):
+            def _j(x, y, jout, dfdx_out=None, fy=None):
                 jout[:, :] = j(x, y)
-                dfdx_out[:] = dfdx(x, y)
+                if dfdx_out is not None:
+                    dfdx_out[:] = dfdx(x, y)
         else:
             _j = None
 
@@ -242,6 +240,11 @@ class OdeSystem(object):
         import pycvodes
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bdf') in pycvodes.requires_jac
+        if 'lband' in kwargs or 'uband' in kwargs:
+            raise ValueError("lband and uband set locally (set at"
+                             " initialization of OdeSystem instead)")
+        if self.lband is not None:
+            kwargs['lband'], kwargs['uband'] = self.lband, self.uband
         return self._integrate(pycvodes.integrate_adaptive,
                                pycvodes.integrate_predefined,
                                *args, **kwargs)
