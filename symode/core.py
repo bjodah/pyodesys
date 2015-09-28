@@ -121,6 +121,21 @@ class OdeSystem(object):
         else:
             raise NotImplementedError("Unkown solver %s" % solver)
 
+    def integrate_mpmath(self, xout, y0):
+        try:
+            len(xout)
+        except TypeError:
+            xout = (0, xout)
+
+        from mpmath import odefun
+        cb = odefun(lambda x, y: [e.subs(
+            [(self.indep, x)]+list(zip(self.dep, y))
+        ) for e in self.exprs], xout[0], y0)
+        yout = []
+        for x in xout:
+            yout.append(cb(x))
+        return stack_1d_on_left(xout, yout)
+
     def integrate_scipy(self, xout, y0, name='lsoda', atol=1e-8,
                         rtol=1e-8, with_jacobian=None, **kwargs):
         """
@@ -171,7 +186,7 @@ class OdeSystem(object):
             while r.t < xout[1]:
                 r.integrate(xout[1], step=True)
                 if not r.successful:
-                    raise Excpetion("failed")
+                    raise RuntimeError("failed")
                 tstep.append(r.t)
                 yout.append(r.y)
             out = stack_1d_on_left(tstep, yout)
@@ -181,7 +196,7 @@ class OdeSystem(object):
                 print(t)
                 r.integrate(t)
                 if not r.successful:
-                    raise Excpetion("failed")
+                    raise RuntimeError("failed")
                 out[idx, 0] = t
                 out[idx, 1:] = r.y
         return out
