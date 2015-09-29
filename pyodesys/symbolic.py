@@ -9,6 +9,12 @@ from .core import OdeSys
 from .util import banded_jacobian, stack_1d_on_left
 
 
+def lambdify(*args, **kwargs):
+    if 'modules' not in kwargs:
+        kwargs['modules'] = [{'ImmutableMatrix': numpy.array}, 'numpy']
+    return sp.lambdify(*args, **kwargs)
+
+
 class SymbolicSys(OdeSys):
     """
     Parameters
