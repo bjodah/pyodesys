@@ -219,7 +219,7 @@ def test_long_chain_dense(n, forgive):
     check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
 
-@pytest.mark.parametrize('n', [17, 22])
+@pytest.mark.parametrize('n', [27, 30])  # lambdify maxes out at 31
 def test_long_chain_banded_scipy(n):
     p, a = 0, n
     y0, k, odesys_dens = get_special_chain(n, p, a)
