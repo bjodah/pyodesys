@@ -9,6 +9,12 @@ from .core import OdeSys
 from .util import banded_jacobian, stack_1d_on_left
 
 
+def lambdify(*args, **kwargs):
+    if 'modules' not in kwargs:
+        kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
+    return sp.lambdify(*args, **kwargs)
+
+
 class SymbolicSys(OdeSys):
     """
     Parameters
@@ -77,11 +83,11 @@ class SymbolicSys(OdeSys):
             return self._jac
 
     def get_f_lambda(self):
-        return sp.lambdify(self.args(), self.exprs)
+        return lambdify(self.args(), self.exprs)
 
     def get_jac_lambda(self):
-        return sp.lambdify(self.args(), self.get_jac(),
-                           modules={'ImmutableMatrix': np.array})
+        return lambdify(self.args(), self.get_jac(),
+                        modules={'ImmutableMatrix': np.array})
 
     def dfdx(self):
         if self.indep is None:
@@ -90,7 +96,7 @@ class SymbolicSys(OdeSys):
             return [expr.diff(self.indep) for expr in self.exprs]
 
     def get_dfdx_lambda(self):
-        return sp.lambdify(self.args(), self.dfdx())
+        return lambdify(self.args(), self.dfdx())
 
     def get_f_ty_callback(self):
         f_lambda = self.get_f_lambda()

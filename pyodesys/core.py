@@ -8,6 +8,34 @@ from .util import stack_1d_on_left
 
 
 class OdeSys(object):
+    """
+    Object representing odesystem. Provides unified interface to:
+
+    - scipy.integarte.ode
+    - pygslodeiv2
+    - pyodeint
+    - pycvodes
+
+    Adaptive (dense output) or predefined set of data points to report
+    at is chosen automatically.
+
+    Parameters
+    ----------
+    f: callback
+        first derivatives of dependent variables (y) with respect to
+        dependent variable (x). Signature f(x, y)
+    jac: callback
+        Jacobian matrix (dfdy). optional for explicit methods,
+        required for implicit methods
+    lband: int or None (default)
+        If jacobian is banded: number of sub-diagonals
+    uband: int or None (default)
+        If jacobian is banded: number of super-diagonals
+
+    Notes
+    -----
+    banded jacobians are supported by "scipy" and "cvode" solvers
+    """
 
     # Possible future abstractions:
     # scaling, (variable transformations, then including scaling)
@@ -20,11 +48,17 @@ class OdeSys(object):
         self.uband = uband
 
     def integrate(self, solver, *args, **kwargs):
+        """
+        Integrate with ``solver``. Convenience method.
+        """
         return getattr(self, 'integrate_'+solver)(*args, **kwargs)
 
-    def integrate_scipy(self, xout, y0, name='lsoda', atol=1e-8,
-                        rtol=1e-8, with_jacobian=None, **kwargs):
+    def integrate_scipy(self, xout, y0, atol=1e-8,
+                        rtol=1e-8, with_jacobian=None,
+                        name='lsoda', **kwargs):
         """
+        Use scipy.integrate.ode
+
         Parameters
         ----------
         xout: array_like or pair (start and final time) or float
@@ -36,6 +70,19 @@ class OdeSys(object):
             if a float:
                 make it a pair: (0, xout)
         y0: array_like
+            Initial values at xout[0] for the dependent variables.
+        atol: float
+            Absolute tolerance
+        rtol: float
+            Relative tolerance
+        with_jacboian: bool or None (default)
+            Whether to use the jacobian, when None the choice is
+            done automatically (only used when required). This matters
+            when jacobian derived (at high computational cost).
+        name: str (default: 'lsoda')
+            what solver wrapped in scipy.integrate.ode to use.
+        \*\*kwargs:
+            keyword arguments passed onto set_integrator(...)
 
         Returns
         -------
@@ -94,7 +141,6 @@ class OdeSys(object):
 
     def _integrate(self, adaptive, predefined, xout, y0, with_jacobian,
                    atol=1e-8, rtol=1e-8, first_step=1e-16, **kwargs):
-
         try:
             nx = len(xout)
             if nx == 1:
@@ -130,6 +176,7 @@ class OdeSys(object):
             return stack_1d_on_left(xout, yout)
 
     def integrate_gsl(self, *args, **kwargs):
+        """ Use GNU Scientific Library to integrate ODE system. """
         import pygslodeiv2
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bsimp') in pygslodeiv2.requires_jac
@@ -138,6 +185,7 @@ class OdeSys(object):
                                *args, **kwargs)
 
     def integrate_odeint(self, *args, **kwargs):
+        """ Use Boost.Numeric.Odeint to integrate the ODE system. """
         import pyodeint
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'rosenbrock4') in pyodeint.requires_jac
@@ -146,6 +194,8 @@ class OdeSys(object):
                                *args, **kwargs)
 
     def integrate_cvode(self, *args, **kwargs):
+        """ Use CVode (from CVodes in Sundials) to
+        integrate the ODE system. """
         import pycvodes
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bdf') in pycvodes.requires_jac
