@@ -7,7 +7,7 @@ import sympy as sp
 import pytest
 import time
 
-from .. import OdeSystem
+from .. import SymbolicSys
 from .bateman import bateman_full  # analytic, never mind the details
 
 
@@ -44,13 +44,13 @@ def decay_dydt_factory(k):
 # --------------------------------------------
 
 @pytest.mark.parametrize('bands', [(1, 0), (None, None)])
-def test_OdeSystem__from_callback_bateman(bands):
+def test_SymbolicSys__from_callback_bateman(bands):
     # Decay chain of 3 species (2 decays)
     # A --[k0=4]--> B --[k1=3]--> C
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     atol, rtol = 1e-11, 1e-11
-    odesys = OdeSystem.from_callback(decay_dydt_factory(k), len(k)+1,
-                                     lband=bands[0], uband=bands[1])
+    odesys = SymbolicSys.from_callback(decay_dydt_factory(k), len(k)+1,
+                                       lband=bands[0], uband=bands[1])
     out = odesys.integrate_scipy(tend, y0, atol=atol, rtol=rtol)
     ref = out.copy()
     ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0],
@@ -59,12 +59,12 @@ def test_OdeSystem__from_callback_bateman(bands):
 
 
 @pytest.mark.parametrize('bands', [(1, 0), (None, None)])
-def test_OdeSystem_bateman(bands):
+def test_SymbolicSys_bateman(bands):
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
     dydt = decay_dydt_factory(k)
     f = dydt(0, y)
-    odesys = OdeSystem(zip(y, f), lband=bands[0], uband=bands[1])
+    odesys = SymbolicSys(zip(y, f), lband=bands[0], uband=bands[1])
     out = odesys.integrate_scipy(tend, y0)
     ref = out.copy()
     ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0],
@@ -102,7 +102,7 @@ def get_special_chain(n, p, a, **kwargs):
     y0[0] = 1
     k = [(i+p+1)*math.log(a+1) for i in range(n-1)]
     dydt = decay_dydt_factory(k)
-    return y0, k, OdeSystem.from_callback(dydt, n, **kwargs)
+    return y0, k, SymbolicSys.from_callback(dydt, n, **kwargs)
 
 
 @pytest.mark.parametrize('p', [0, 1, 2, 3])
@@ -143,7 +143,7 @@ def test_odeint(method, forgive):
     atol, rtol = 1e-10, 1e-10
     y0, k, odesys_dens = get_special_chain(n, p, a)
     dydt = decay_dydt_factory(k)
-    odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
+    odesys_dens = SymbolicSys.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
     out = odesys_dens.integrate_odeint(
         [10**i for i in range(-15, 1)], y0, method=method,
@@ -156,7 +156,7 @@ def _gsl(tout, method, forgive):
     atol, rtol = 1e-10, 1e-10
     y0, k, odesys_dens = get_special_chain(n, p, a)
     dydt = decay_dydt_factory(k)
-    odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
+    odesys_dens = SymbolicSys.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
     out = odesys_dens.integrate_gsl(tout, y0, method=method,
                                     atol=atol, rtol=rtol)
@@ -180,7 +180,7 @@ def _cvode(tout, method, forgive):
     atol, rtol = 1e-10, 1e-10
     y0, k, odesys_dens = get_special_chain(n, p, a)
     dydt = decay_dydt_factory(k)
-    odesys_dens = OdeSystem.from_callback(dydt, len(k)+1)
+    odesys_dens = SymbolicSys.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
     out = odesys_dens.integrate_cvode(tout, y0, method=method,
                                       atol=atol, rtol=rtol)

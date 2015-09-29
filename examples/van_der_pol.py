@@ -4,14 +4,14 @@
 import sympy as sp
 import numpy as np
 
-from symode import OdeSystem
+from pyodesys import SymbolicSys
 
 
 def main(y0='1,0', mu=1.0, tend=10., nt=2, savefig='None',
          plot=False, savetxt='None', solver='scipy', dpi=100):
     y = sp.symarray('y', 2)
     f = [y[1], -y[0] + mu*y[1]*(1 - y[0]**2)]
-    odesys = OdeSystem(zip(y, f))
+    odesys = SymbolicSys(zip(y, f))
     tout = np.linspace(0, tend, nt)
     y0 = map(float, y0.split(','))
     out = odesys.integrate(solver, tout, y0)

@@ -6,24 +6,24 @@ import shutil
 from distutils.core import setup
 
 
-pkg_name = 'symode'
+pkg_name = 'pyodesys'
 
-SYMODE_RELEASE_VERSION = os.environ.get('SYMODE_RELEASE_VERSION', '')
+PYODESYS_RELEASE_VERSION = os.environ.get('PYODESYS_RELEASE_VERSION', '')
 
 # http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
 if os.environ.get('CONDA_BUILD', '0') == '1':
     try:
-        SYMODE_RELEASE_VERSION = 'v' + open(
+        PYODESYS_RELEASE_VERSION = 'v' + open(
             '__conda_version__.txt', 'rt').readline().rstrip()
     except IOError:
         pass
 
 release_py_path = os.path.join(pkg_name, '_release.py')
 
-if (len(SYMODE_RELEASE_VERSION) > 1 and
-   SYMODE_RELEASE_VERSION[0] == 'v'):
+if (len(PYODESYS_RELEASE_VERSION) > 1 and
+   PYODESYS_RELEASE_VERSION[0] == 'v'):
     TAGGED_RELEASE = True
-    __version__ = SYMODE_RELEASE_VERSION[1:]
+    __version__ = PYODESYS_RELEASE_VERSION[1:]
 else:
     TAGGED_RELEASE = False
     # read __version__ attribute from _release.py:
@@ -38,7 +38,7 @@ classifiers = [
 ]
 
 tests = [
-    'symode.tests',
+    'pyodesys.tests',
 ]
 
 descr = 'Straightforward numerical integration of ODE systems from SymPy.'
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     try:
         if TAGGED_RELEASE:
             # Same commit should generate different sdist
-            # depending on tagged version (set SYMODE_RELEASE_VERSION)
+            # depending on tagged version (set PYODESYS_RELEASE_VERSION)
             # this will ensure source distributions contain the correct version
             shutil.move(release_py_path, release_py_path+'__temp__')
             open(release_py_path, 'wt').write(
