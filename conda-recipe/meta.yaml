@@ -1,0 +1,35 @@
+package:
+    name: pyodesys
+    version: 0.2.0.git
+
+source:
+    path: ../
+
+build:
+    number: 0
+
+requirements:
+    build:
+        - python
+    run:
+        - python
+        - numpy
+        - sympy
+        - scipy
+        - pyodeint
+        - pygslodeiv2
+        - pycvodes
+
+test:
+    imports:
+        - pyodesys
+    requires:
+        - pytest
+        - scipy
+        - pyodeint
+        - pygslodeiv2
+        - pycvodes
+
+about:
+    home: https://github.com/bjodah/pyodesys
+    license: BSD

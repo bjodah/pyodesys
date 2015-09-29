@@ -50,7 +50,7 @@ The classic van der Pol oscillator (see `examples/van_der_pol.py <examples/van_d
    >>> odesys = SymbolicSys(zip(y, f))
    >>> out = odesys.integrate('odeint', 10, [1, 0])  # use pyodeint
    >>> import matplotlib.pyplot as plt
-   >>> plt.plot(out[:, 0], out[:, 1:])
+   >>> plt.plot(out[:, 0], out[:, 1:])  # doctest: +SKIP
 
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/van_der_pol.png
