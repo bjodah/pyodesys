@@ -1,9 +1,8 @@
-image: bjodah/dockerfile-bjodah-scicomp:14.04b
+image: bjodah/dockerfile-bjodah-scicomp:14.04c
 git:
     path: github.com/bjodah/pyodesys
 script:
   - if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then export PYODESYS_RELEASE_VERSION=$DRONE_BRANCH; echo ${PYODESYS_RELEASE_VERSION} | tail -c +2 > __conda_version__.txt; fi
-  - ./scripts/ci_download_and_install_sundials.sh
   - pip install --user pyodeint pycvodes pygslodeiv2
   - pip3 install --user pyodeint pycvodes pygslodeiv2
   - ./scripts/run_tests.sh pyodesys
