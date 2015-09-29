@@ -1,10 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import (absolute_import, division, print_function)
+
+
+"""
+Example:
+$ python pydy_double_pendulum.py --plot --nt 200
+"""
+
 import sympy as sp
 import numpy as np
 
 from pyodesys import SymbolicSys
+
 
 def get_equations(m_val, g_val, l_val):
     # This function body is copyied from:
@@ -58,7 +67,7 @@ def get_equations(m_val, g_val, l_val):
 
 def main(m=1, g=9.81, l=1, q1=.1, q2=.2, u1=0, u2=0, tend=10., nt=2,
          savefig='None', plot=False, savetxt='None', solver='scipy',
-         dpi=100, kwargs=''):
+         dpi=100, kwargs="{'method': 'adams'}"):
     assert nt > 1
     odesys = SymbolicSys(get_equations(m, g, l))
     tout = np.linspace(0, tend, nt)
