@@ -19,7 +19,9 @@ def get_equations(m_val, g_val, l_val):
     # http://www.pydy.org/examples/double_pendulum.html
     # Retrieved 2015-09-29
     from sympy import symbols
-    from sympy.physics.mechanics import *
+    from sympy.physics.mechanics import (
+        dynamicsymbols, ReferenceFrame, Point, Particle, KanesMethod
+    )
 
     q1, q2 = dynamicsymbols('q1 q2')
     q1d, q2d = dynamicsymbols('q1 q2', 1)
@@ -66,12 +68,23 @@ def get_equations(m_val, g_val, l_val):
 
 def main(m=1, g=9.81, l=1, q1=.1, q2=.2, u1=0, u2=0, tend=10., nt=200,
          savefig='None', plot=False, savetxt='None', solver='scipy',
-         dpi=100, kwargs="{'method': 'adams'}"):
+         dpi=100, kwargs=""):
+    if kwargs == '':
+        # Currently there seems to be a bug in sympy.lambdify which
+        # makes the jacobian fail. We use an explicit method instead:
+        if solver in ('scipy', 'cvode'):
+            kwargs = {'method': 'adams'}
+        elif solver == 'odeint':
+            kwargs = {'method': 'dopri5'}
+        elif solver == 'gsl':
+            kwargs = {'method': 'rkck'}
+    else:
+        kwargs = dict(eval(kwargs) if kwargs else {})
+
     assert nt > 1
     odesys = SymbolicSys(get_equations(m, g, l))
     tout = np.linspace(0, tend, nt)
     y0 = [q1, q2, u1, u2]
-    kwargs = dict(eval(kwargs) if kwargs else {})
     out = odesys.integrate(solver, tout, y0, **kwargs)
     if savetxt != 'None':
         np.savetxt(out, savetxt)
