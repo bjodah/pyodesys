@@ -194,7 +194,8 @@ class OdeSys(object):
                                *args, **kwargs)
 
     def integrate_cvode(self, *args, **kwargs):
-        """ Use CVode (from CVodes in Sundials) to integrate the ODE system. """
+        """ Use CVode (from CVodes in Sundials) to
+        integrate the ODE system. """
         import pycvodes
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bdf') in pycvodes.requires_jac

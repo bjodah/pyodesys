@@ -9,7 +9,6 @@ Example:
 $ python pydy_double_pendulum.py --plot --nt 200
 """
 
-import sympy as sp
 import numpy as np
 
 from pyodesys import SymbolicSys
@@ -65,7 +64,7 @@ def get_equations(m_val, g_val, l_val):
     return zip(depv, [expr.subs(subs) for expr in qudots])
 
 
-def main(m=1, g=9.81, l=1, q1=.1, q2=.2, u1=0, u2=0, tend=10., nt=2,
+def main(m=1, g=9.81, l=1, q1=.1, q2=.2, u1=0, u2=0, tend=10., nt=200,
          savefig='None', plot=False, savetxt='None', solver='scipy',
          dpi=100, kwargs="{'method': 'adams'}"):
     assert nt > 1
