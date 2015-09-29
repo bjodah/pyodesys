@@ -20,7 +20,7 @@ class OdeSys(object):
         self.uband = uband
 
     def integrate(self, solver, *args, **kwargs):
-        getattr(self, 'integrate_'+solver)(*args, **kwargs)
+        return getattr(self, 'integrate_'+solver)(*args, **kwargs)
 
     def integrate_scipy(self, xout, y0, name='lsoda', atol=1e-8,
                         rtol=1e-8, with_jacobian=None, **kwargs):
@@ -49,9 +49,13 @@ class OdeSys(object):
             elif name == 'vode':
                 with_jacobian = kwargs.get('method', 'adams') == 'bdf'
         try:
-            len(xout)
+            nx = len(xout)
+            if nx == 1:
+                xout = (0, xout[0])
+                nx = 2
         except TypeError:
             xout = (0, xout)
+            nx = 2
         from scipy.integrate import ode
         f = self.get_f_ty_callback()
         if with_jacobian:
@@ -66,7 +70,7 @@ class OdeSys(object):
             kwargs['lband'], kwargs['uband'] = self.lband, self.uband
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
         r.set_initial_value(y0, xout[0])
-        if len(xout) == 2:
+        if nx == 2:
             yout = [y0]
             tstep = [xout[0]]
             while r.t < xout[1]:
@@ -77,13 +81,14 @@ class OdeSys(object):
                 yout.append(r.y)
             out = stack_1d_on_left(tstep, yout)
         else:
-            out = np.empty((len(xout), 1 + self.ny))
-            for idx, t in enumerate(xout):
-                print(t)
-                r.integrate(t)
+            out = np.empty((nx, 1 + self.ny))
+            out[0, 0] = xout[0]
+            out[0, 1:] = y0
+            for idx in range(1, nx):
+                r.integrate(xout[idx])
                 if not r.successful:
                     raise RuntimeError("failed")
-                out[idx, 0] = t
+                out[idx, 0] = xout[idx]
                 out[idx, 1:] = r.y
         return out
 
@@ -92,6 +97,9 @@ class OdeSys(object):
 
         try:
             nx = len(xout)
+            if nx == 1:
+                xout = (0, xout[0])
+                nx = 2
         except TypeError:
             xout = (0, xout)
             nx = 2

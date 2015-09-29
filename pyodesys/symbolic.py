@@ -41,21 +41,6 @@ class SymbolicSys(OdeSys):
         self.lband = lband
         self.uband = uband
 
-    def integrate_mpmath(self, xout, y0):
-        try:
-            len(xout)
-        except TypeError:
-            xout = (0, xout)
-
-        from mpmath import odefun
-        cb = odefun(lambda x, y: [e.subs(
-            [(self.indep, x)]+list(zip(self.dep, y))
-        ) for e in self.exprs], xout[0], y0)
-        yout = []
-        for x in xout:
-            yout.append(cb(x))
-        return stack_1d_on_left(xout, yout)
-
     @classmethod
     def from_callback(cls, cb, n, *args, **kwargs):
         x = sp.Symbol('x')
@@ -118,3 +103,21 @@ class SymbolicSys(OdeSys):
     def get_dfdx_callback(self):
         dfdx_lambda = self.get_dfdx_lambda()
         return lambda x, y: np.asarray(dfdx_lambda(*self.args(x, y)))
+
+    # Not working yet:
+    def integrate_mpmath(self, xout, y0):
+        """ Not working at the moment, need to fix
+        (low priority - taylor series is a poor method)"""
+        try:
+            len(xout)
+        except TypeError:
+            xout = (0, xout)
+
+        from mpmath import odefun
+        cb = odefun(lambda x, y: [e.subs(
+            [(self.indep, x)]+list(zip(self.dep, y))
+        ) for e in self.exprs], xout[0], y0)
+        yout = []
+        for x in xout:
+            yout.append(cb(x))
+        return stack_1d_on_left(xout, yout)

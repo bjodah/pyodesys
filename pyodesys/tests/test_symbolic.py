@@ -121,19 +121,28 @@ def test_mpmath():
     check(out[-1, 1:], n, p, a, 1e-12, 1e-12)
 
 
-# vode is performs ridiculously bad for this problem
+# adaptive stepsize with vode is performing ridiculously
+# poorly for this problem
 @pytest.mark.parametrize('name,forgive', zip(
-    'dopri5 dop853 vode'.split(), (1, 1, 1e7)))
+    'dopri5 dop853 vode'.split(), (1, 1, (3, 3e6))))
 def test_scipy(name, forgive):
     n, p, a = 13, 1, 13
     atol, rtol = 1e-10, 1e-10
     y0, k, odesys_dens = get_special_chain(n, p, a)
-    # tout = [0]+[10**i for i in range(-10, 1)] if name == 'vode' else 1
-    tout = 1
-    out = odesys_dens.integrate_scipy(
-        tout, y0, name=name, atol=atol, rtol=rtol)
+    if name == 'vode':
+        tout = [0]+[10**i for i in range(-10, 1)] if name == 'vode' else 1
+        out = odesys_dens.integrate_scipy(
+            tout, y0, name=name, atol=atol, rtol=rtol)
+        check(out[-1, 1:], n, p, a, atol, rtol, forgive[0])
 
-    check(out[-1, 1:], n, p, a, atol, rtol, forgive)
+        out = odesys_dens.integrate_scipy(
+            1, y0, name=name, atol=atol, rtol=rtol)
+        check(out[-1, 1:], n, p, a, atol, rtol, forgive[1])
+
+    else:
+        out = odesys_dens.integrate_scipy(
+            1, y0, name=name, atol=atol, rtol=rtol)
+        check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
 
 @pytest.mark.parametrize('method,forgive', zip(
@@ -186,13 +195,12 @@ def _cvode(tout, method, forgive):
                                       atol=atol, rtol=rtol)
     check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
-
 @pytest.mark.parametrize('method,forgive', zip(
     'adams bdf'.split(), (.17, .13)))
 def test_cvode_predefined(method, forgive):
     _cvode([10**i for i in range(-15, 1)], method, forgive)
 
-
+# cvode performs significantly better than vode:
 @pytest.mark.parametrize('method,forgive', zip(
     'adams bdf'.split(), (.18, 2)))
 def test_cvode_adaptive(method, forgive):
