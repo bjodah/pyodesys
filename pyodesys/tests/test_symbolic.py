@@ -195,10 +195,12 @@ def _cvode(tout, method, forgive):
                                       atol=atol, rtol=rtol)
     check(out[-1, 1:], n, p, a, atol, rtol, forgive)
 
+
 @pytest.mark.parametrize('method,forgive', zip(
     'adams bdf'.split(), (.17, .13)))
 def test_cvode_predefined(method, forgive):
     _cvode([10**i for i in range(-15, 1)], method, forgive)
+
 
 # cvode performs significantly better than vode:
 @pytest.mark.parametrize('method,forgive', zip(
