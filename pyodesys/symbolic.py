@@ -9,7 +9,7 @@ from .core import OdeSys
 from .util import banded_jacobian, stack_1d_on_left
 
 
-def lambdify(*args, **kwargs):
+def _lambdify(*args, **kwargs):
     if 'modules' not in kwargs:
         kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
     return sp.lambdify(*args, **kwargs)
@@ -37,7 +37,7 @@ class SymbolicSys(OdeSys):
     """
 
     def __init__(self, dep_exprs, indep=None, jac=True,
-                 lband=None, uband=None):
+                 lband=None, uband=None, lambdify=None):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self._jac = jac
@@ -46,6 +46,7 @@ class SymbolicSys(OdeSys):
                 raise ValueError("bands needs to be > 0 if provided")
         self.lband = lband
         self.uband = uband
+        self.lambdify = lambdify or _lambdify
 
     @classmethod
     def from_callback(cls, cb, n, *args, **kwargs):
@@ -83,11 +84,10 @@ class SymbolicSys(OdeSys):
             return self._jac
 
     def get_f_lambda(self):
-        return lambdify(self.args(), self.exprs)
+        return self.lambdify(self.args(), self.exprs)
 
     def get_jac_lambda(self):
-        return lambdify(self.args(), self.get_jac(),
-                        modules={'ImmutableMatrix': np.array})
+        return self.lambdify(self.args(), self.get_jac())
 
     def dfdx(self):
         if self.indep is None:
@@ -96,7 +96,7 @@ class SymbolicSys(OdeSys):
             return [expr.diff(self.indep) for expr in self.exprs]
 
     def get_dfdx_lambda(self):
-        return lambdify(self.args(), self.dfdx())
+        return self.lambdify(self.args(), self.dfdx())
 
     def get_f_ty_callback(self):
         f_lambda = self.get_f_lambda()
@@ -121,7 +121,8 @@ class SymbolicSys(OdeSys):
 
         from mpmath import odefun
         cb = odefun(lambda x, y: [e.subs(
-            [(self.indep, x)]+list(zip(self.dep, y))
+            ([(self.indep, x)] if self.indep is not None else []) +
+            list(zip(self.dep, y))
         ) for e in self.exprs], xout[0], y0)
         yout = []
         for x in xout:

@@ -150,7 +150,7 @@ class OdeSys(object):
             xout = (0, xout)
             nx = 2
         new_kwargs = dict(dx0=first_step, atol=atol,
-                          rtol=rtol)
+                          rtol=rtol, check_indexing=False)
         new_kwargs.update(kwargs)
         f = self.get_f_ty_callback()
 

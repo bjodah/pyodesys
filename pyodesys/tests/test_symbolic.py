@@ -17,9 +17,32 @@ def timeit(callback, *args, **kwargs):
     return time.time() - t0, result
 
 
+@pytest.mark.parametrize('method', ['bs', 'rosenbrock4'])
+def test_exp(method):
+    x = sp.Symbol('x')
+    symsys = SymbolicSys([(x, sp.exp(x))])
+    tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
+    out = symsys.integrate_odeint(tout, [1], method=method,
+                                  atol=1e-12, rtol=1e-12)
+    e = math.e
+    ref = -math.log(1/e - 0.1)
+    assert abs(out[-1, 1] - ref) < 4e-8
+
+
+# @pytest.mark.xfail
+def _test_mpmath():  # too slow
+    x = sp.Symbol('x')
+    symsys = SymbolicSys([(x, sp.exp(x))])
+    tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
+    # import pudb; pudb.set_trace()
+    out = symsys.integrate_mpmath(tout, [1])
+    e = math.e
+    ref = -math.log(1/e - 0.1)
+    assert abs(out[-1, 1] - ref) < 4e-8
+
+
 # Decay chain
 # ===========
-
 def decay_dydt_factory(k):
     # Generates a callback for evaluating a dydt-callback for
     # a chain of len(k) + 1 species with len(k) decays
@@ -111,14 +134,6 @@ def test_check(p):
     y0, k, _odesys = get_special_chain(n, p, a)
     vals = bateman_full(y0, k+[0], 1, exp=np.exp)
     check(vals, n, p, a, atol=1e-12, rtol=1e-12)
-
-
-@pytest.mark.xfail
-def test_mpmath():
-    n, p, a = 3, 1, 3
-    y0, k, odesys = get_special_chain(n, p, a)
-    out = odesys.integrate_mpmath(1, y0)
-    check(out[-1, 1:], n, p, a, 1e-12, 1e-12)
 
 
 # adaptive stepsize with vode is performing ridiculously
