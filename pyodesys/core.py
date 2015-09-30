@@ -40,12 +40,39 @@ class OdeSys(object):
     # Possible future abstractions:
     # scaling, (variable transformations, then including scaling)
 
-    def __init__(self, f, jac=None, dfdx=None, lband=None, uband=None):
+    _pre_processor = None
+    _post_processor = None
+
+    def __init__(self, f, jac=None, dfdx=None, lband=None, uband=None,
+                 **kwargs):
         self.get_f_ty_callback = lambda: f
         self.get_j_ty_callback = lambda: jac
         self.get_dfdx_callback = lambda: dfdx
         self.lband = lband
         self.uband = uband
+        self._y0 = None
+        self.kwargs = kwargs  # default kwargs for integration
+
+    def pre_process(self, xout, y0):
+        # Should be used by all methods matching "integrate_*"
+        try:
+            nx = len(xout)
+            if nx == 1:
+                xout = (0, xout[0])
+        except TypeError:
+            xout = (0, xout)
+
+        if self._pre_processor is None:
+            return xout, y0
+        else:
+            return self._pre_processor(xout, y0)
+
+    def post_process(self, out):
+        # Should be used by all methods matching "integrate_*"
+        if self._post_processor is None:
+            return out
+        else:
+            return self._post_processor(out)
 
     def integrate(self, solver, *args, **kwargs):
         """
@@ -88,6 +115,8 @@ class OdeSys(object):
         -------
         2-dimensional array (first column indep., rest dep.)
         """
+        xout, y0 = self.pre_process(xout, y0)
+        nx = len(xout)
         if with_jacobian is None:
             if name == 'lsoda':  # lsoda might call jacobian
                 with_jacobian = True
@@ -95,14 +124,6 @@ class OdeSys(object):
                 with_jacobian = False  # explicit steppers
             elif name == 'vode':
                 with_jacobian = kwargs.get('method', 'adams') == 'bdf'
-        try:
-            nx = len(xout)
-            if nx == 1:
-                xout = (0, xout[0])
-                nx = 2
-        except TypeError:
-            xout = (0, xout)
-            nx = 2
         from scipy.integrate import ode
         f = self.get_f_ty_callback()
         if with_jacobian:
@@ -137,18 +158,12 @@ class OdeSys(object):
                     raise RuntimeError("failed")
                 out[idx, 0] = xout[idx]
                 out[idx, 1:] = r.y
-        return out
+        return self.post_process(out)
 
     def _integrate(self, adaptive, predefined, xout, y0, with_jacobian,
                    atol=1e-8, rtol=1e-8, first_step=1e-16, **kwargs):
-        try:
-            nx = len(xout)
-            if nx == 1:
-                xout = (0, xout[0])
-                nx = 2
-        except TypeError:
-            xout = (0, xout)
-            nx = 2
+        xout, y0 = self.pre_process(xout, y0)
+        nx = len(xout)
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol, check_indexing=False)
         new_kwargs.update(kwargs)
@@ -170,10 +185,11 @@ class OdeSys(object):
 
         if nx == 2:
             xsteps, yout = adaptive(_f, _j, y0, *xout, **new_kwargs)
-            return stack_1d_on_left(xsteps, yout)
+            out = stack_1d_on_left(xsteps, yout)
         else:
             yout = predefined(_f, _j, y0, xout, **new_kwargs)
-            return stack_1d_on_left(xout, yout)
+            out = stack_1d_on_left(xout, yout)
+        return self.post_process(out)
 
     def integrate_gsl(self, *args, **kwargs):
         """ Use GNU Scientific Library to integrate ODE system. """
