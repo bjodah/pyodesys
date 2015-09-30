@@ -6,7 +6,10 @@ import numpy as np
 import sympy as sp
 
 from .core import OdeSys
-from .util import banded_jacobian, stack_1d_on_left
+from .util import (
+    banded_jacobian, stack_1d_on_left, transform_exprs_dep,
+    transform_exprs_indep
+)
 
 
 def _lambdify(*args, **kwargs):
@@ -19,13 +22,13 @@ def _Symbol(name):
     return sp.Symbol(name, real=True)
 
 
-def _symarray(key, n):
+def _symarray(prefix, shape, Symbol=None):
     # see https://github.com/sympy/sympy/pull/9939
     # when merged: return sp.symarray(key, n, real=True)
     arr = np.empty(shape, dtype=object)
     for index in np.ndindex(shape):
-        arr[index] = Symbol('%s_%s' % (prefix, '_'.join(map(str, index))),
-                            real=True)
+        arr[index] = (Symbol or _Symbol)('%s_%s' % (
+            prefix, '_'.join(map(str, index))))
     return arr
 
 
@@ -128,11 +131,7 @@ class SymbolicSys(OdeSys):
     def integrate_mpmath(self, xout, y0):
         """ Not working at the moment, need to fix
         (low priority - taylor series is a poor method)"""
-        try:
-            len(xout)
-        except TypeError:
-            xout = (0, xout)
-
+        xout, y0 = self.pre_process(xout, y0)
         from mpmath import odefun
         cb = odefun(lambda x, y: [e.subs(
             ([(self.indep, x)] if self.indep is not None else []) +
@@ -141,38 +140,69 @@ class SymbolicSys(OdeSys):
         yout = []
         for x in xout:
             yout.append(cb(x))
-        return stack_1d_on_left(xout, yout)
-
-
-def transform_exprs_dep(fw, bw, dep_exprs, check=True):
-    if len(fw) != len(dep_exprs) or \
-       len(fw) != len(bw):
-        raise ValueError("Incompatible lengths")
-    dep, exprs = zip(*dep_exprs)
-    if check:
-        for f, b, y in zip(fw, bw, dep):
-            if f.subs(x, b) - x != 0:
-                raise ValueError('Incorrect (did you set real=True?) fw: %s'
-                                 % str(f))
-            if b.subs(x, f) - x != 0:
-                raise ValueError('Incorrect (did you set real=True?) bw: %s'
-                                 % str(b))
-    bw_subs = zip(dep, bw)
-    return [(e*f.diff(y)).subs(bw_subs) for f, y, e in zip(fw, dep, exprs)]
-
-
-def transform_exprs_indep(fw, bw, dep_exprs, indep, check=True):
-    if check:
-        if fw.subs(indep, bw) - indep != 0:
-                raise ValueError('Incorrect (did you set real=True?) fw: %s'
-                                 % str(fw))
-        if bw.subs(x, fw) - indep != 0:
-            raise ValueError('Incorrect (did you set real=True?) bw: %s'
-                             % str(bw))
-    dep, exprs = zip(*dep_exprs)
-    return [(e/fw.diff(indep)).subs(indep, bw) for e in exprs]
-
+        return self.post_process(stack_1d_on_left(xout, yout))
 
 def num_dep_tranformer_factory(fw, bw, dep, lambdify=None):
     lambdify = lambdify or _lambdify
     return lambdify(dep, fw), lambdify(dep, bw)
+
+def num_indep_transformer_factory(fw, bw, indep, lambdify=None):
+    lambdify = lambdify or _lambdify
+    return lambdify(indep, fw), lambdify(indep, bw)
+
+
+class TransformedSys(SymbolicSys):
+
+    def __init__(self, dep_exprs, indep=None,
+                 dep_transf=None, indep_transf=None, **kwargs):
+        dep, exprs = zip(*dep_exprs)
+        if dep_transf is not None:
+            self.dep_fw, self.dep_bw = zip(*dep_transf)
+            exprs = transform_exprs_dep(self.dep_fw, self.dep_bw,
+                                        zip(dep, exprs))
+        else:
+            self.dep_fw, self.dep_bw = None, None
+
+        if indep_transf is not None:
+            self.indep_fw, self.indep_bw = indep_transf
+            exprs = transform_exprs_indep(self.indep_fw, self.indep_bw,
+                                          zip(dep, exprs), indep)
+        else:
+            self.indep_fw, self.indep_bw = None, None
+        super(TransformedSys, self).__init__(zip(dep, exprs), indep, **kwargs)
+
+        f_dep, b_dep = num_dep_tranformer_factory(self.dep_fw, self.dep_bw, dep)
+        f_indep, b_indep = num_indep_transformer_factory(
+            self.indep_fw, self.indep_bw, indep)
+        self._post_processor = self.back_transform_out
+        self._pre_processor = self.forward_transform_xy
+
+    @classmethod
+    def from_callback(cls, cb, n, dep_transf_cbs=None, indep_transf_cbs=None,
+                      **kwargs):
+        x = _Symbol('x')
+        y = _symarray('y', n)
+        exprs = cb(x, y)
+        if dep_transf_cbs is not None:
+            try:
+                dep_transf = [(dep_transf_cbs[idx][0](yi),
+                               dep_transf_cbs[idx][1](yi))
+                              for idx, yi in enumerate(y)]
+            except TypeError:
+                dep_transf = zip(map(dep_transf_cbs[0], y), map(dep_transf_cbs[1], y))
+        else:
+            dep_transf = None
+
+        if indep_transf_cbs is not None:
+            indep_transf = indep_transf_cbs[0](x), indep_transf_cbs[1](x)
+        else:
+            indep_transf = None
+
+        return cls(zip(y, exprs), x, dep_transf, indep_transf, **kwargs)
+
+    def back_transform_out(self, out):
+        return stack_1d_on_left(self.b_indep(out[:, 0]),
+                                np.array(self.b_dep(*out[:, 1:].T)).T)
+
+    def forward_transform_xy(self, x, y):
+        return self.f_indep(x), self.f_dep(*y)
