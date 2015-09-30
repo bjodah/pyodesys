@@ -24,4 +24,4 @@ def banded_jacobian(y, x, ml, mu):
     for ri in range(ny):
         for ci in range(max(0, ri-ml), min(nx, ri+mu+1)):
             set(ri, ci, y[ri].diff(x[ci]))
-    return sp.ImmutableMatrix(packed)
+    return packed

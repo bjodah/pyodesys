@@ -15,6 +15,20 @@ def _lambdify(*args, **kwargs):
     return sp.lambdify(*args, **kwargs)
 
 
+def _Symbol(name):
+    return sp.Symbol(name, real=True)
+
+
+def _symarray(key, n):
+    # see https://github.com/sympy/sympy/pull/9939
+    # when merged: return sp.symarray(key, n, real=True)
+    arr = np.empty(shape, dtype=object)
+    for index in np.ndindex(shape):
+        arr[index] = Symbol('%s_%s' % (prefix, '_'.join(map(str, index))),
+                            real=True)
+    return arr
+
+
 class SymbolicSys(OdeSys):
     """
     Parameters
@@ -50,8 +64,8 @@ class SymbolicSys(OdeSys):
 
     @classmethod
     def from_callback(cls, cb, n, *args, **kwargs):
-        x = sp.Symbol('x')
-        y = sp.symarray('y', n)
+        x = _Symbol('x')
+        y = _symarray('y', n)
         exprs = cb(x, y)
         return cls(zip(y, exprs), x, *args, **kwargs)
 
@@ -76,8 +90,8 @@ class SymbolicSys(OdeSys):
                 return f.jacobian(self.dep)
             else:
                 # Banded
-                return banded_jacobian(self.exprs, self.dep,
-                                       self.lband, self.uband)
+                return sp.ImmutableMatrix(banded_jacobian(
+                    self.exprs, self.dep, self.lband, self.uband))
         elif self._jac is False:
             return False
         else:
@@ -128,3 +142,37 @@ class SymbolicSys(OdeSys):
         for x in xout:
             yout.append(cb(x))
         return stack_1d_on_left(xout, yout)
+
+
+def transform_exprs_dep(fw, bw, dep_exprs, check=True):
+    if len(fw) != len(dep_exprs) or \
+       len(fw) != len(bw):
+        raise ValueError("Incompatible lengths")
+    dep, exprs = zip(*dep_exprs)
+    if check:
+        for f, b, y in zip(fw, bw, dep):
+            if f.subs(x, b) - x != 0:
+                raise ValueError('Incorrect (did you set real=True?) fw: %s'
+                                 % str(f))
+            if b.subs(x, f) - x != 0:
+                raise ValueError('Incorrect (did you set real=True?) bw: %s'
+                                 % str(b))
+    bw_subs = zip(dep, bw)
+    return [(e*f.diff(y)).subs(bw_subs) for f, y, e in zip(fw, dep, exprs)]
+
+
+def transform_exprs_indep(fw, bw, dep_exprs, indep, check=True):
+    if check:
+        if fw.subs(indep, bw) - indep != 0:
+                raise ValueError('Incorrect (did you set real=True?) fw: %s'
+                                 % str(fw))
+        if bw.subs(x, fw) - indep != 0:
+            raise ValueError('Incorrect (did you set real=True?) bw: %s'
+                             % str(bw))
+    dep, exprs = zip(*dep_exprs)
+    return [(e/fw.diff(indep)).subs(indep, bw) for e in exprs]
+
+
+def num_dep_tranformer_factory(fw, bw, dep, lambdify=None):
+    lambdify = lambdify or _lambdify
+    return lambdify(dep, fw), lambdify(dep, bw)
