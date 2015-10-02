@@ -1,6 +1,3 @@
 sympy
 numpy
 scipy
-pygslodeiv2
-pyodeint
-pycvodes

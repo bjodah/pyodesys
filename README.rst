@@ -42,6 +42,11 @@ Simplest way to install pyodesys and its (optional) dependencies is to use the `
    $ conda install -c bjodah pyodesys pytest
    $ python -m pytest --pyargs pyodesys
 
+Optional requirements not listed in requirements.txt:
+
+- pygslodeiv2
+- pyodeint
+- pycvodes
 
 Source distribution is available here:
 `<https://pypi.python.org/pypi/pyodesys>`_
