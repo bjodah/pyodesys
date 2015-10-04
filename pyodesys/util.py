@@ -26,19 +26,23 @@ def banded_jacobian(y, x, ml, mu):
     return packed
 
 
+def check_transforms(fw, bw, symbs):
+    for f, b, y in zip(fw, bw, symbs):
+        if f.subs(y, b) - y != 0:
+            raise ValueError('Incorrect (did you set real=True?) fw: %s'
+                             % str(f))
+        if b.subs(y, f) - y != 0:
+            raise ValueError('Incorrect (did you set real=True?) bw: %s'
+                             % str(b))
+
+
 def transform_exprs_dep(fw, bw, dep_exprs, check=True):
     if len(fw) != len(dep_exprs) or \
        len(fw) != len(bw):
         raise ValueError("Incompatible lengths")
     dep, exprs = zip(*dep_exprs)
     if check:
-        for f, b, y in zip(fw, bw, dep):
-            if f.subs(y, b) - y != 0:
-                raise ValueError('Incorrect (did you set real=True?) fw: %s'
-                                 % str(f))
-            if b.subs(y, f) - y != 0:
-                raise ValueError('Incorrect (did you set real=True?) bw: %s'
-                                 % str(b))
+        check_transforms(fw, bw, dep)
     bw_subs = zip(dep, bw)
     return [(e*f.diff(y)).subs(bw_subs) for f, y, e in zip(fw, dep, exprs)]
 
