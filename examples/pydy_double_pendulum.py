@@ -62,26 +62,15 @@ def get_equations(m_val, g_val, l_val):
     qudots.simplify()
     # Edit:
     depv = [q1, q2, u1, u2]
-    subs = zip([m, g, l], [m_val, g_val, l_val])
+    subs = list(zip([m, g, l], [m_val, g_val, l_val]))
     return zip(depv, [expr.subs(subs) for expr in qudots])
 
 
 def main(m=1, g=9.81, l=1, q1=.1, q2=.2, u1=0, u2=0, tend=10., nt=200,
          savefig='None', plot=False, savetxt='None', solver='scipy',
          dpi=100, kwargs=""):
-    if kwargs == '':
-        # Currently there seems to be a bug in sympy.lambdify which
-        # makes the jacobian fail. We use an explicit method instead:
-        if solver in ('scipy', 'cvode'):
-            kwargs = {'method': 'adams'}
-        elif solver == 'odeint':
-            kwargs = {'method': 'dopri5'}
-        elif solver == 'gsl':
-            kwargs = {'method': 'rkck'}
-    else:
-        kwargs = dict(eval(kwargs) if kwargs else {})
-
     assert nt > 1
+    kwargs = dict(eval(kwargs) if kwargs else {})
     odesys = SymbolicSys(get_equations(m, g, l))
     tout = np.linspace(0, tend, nt)
     y0 = [q1, q2, u1, u2]
