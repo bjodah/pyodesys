@@ -62,7 +62,7 @@ def get_equations(m_val, g_val, l_val):
     qudots.simplify()
     # Edit:
     depv = [q1, q2, u1, u2]
-    subs = zip([m, g, l], [m_val, g_val, l_val])
+    subs = list(zip([m, g, l], [m_val, g_val, l_val]))
     return zip(depv, [expr.subs(subs) for expr in qudots])
 
 

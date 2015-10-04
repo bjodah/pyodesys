@@ -14,7 +14,7 @@ def main(y0='1,0', mu=1.0, tend=10., nt=2, savefig='None', plot=False,
     f = [y[1], -y[0] + mu*y[1]*(1 - y[0]**2)]
     odesys = SymbolicSys(zip(y, f))
     tout = np.linspace(0, tend, nt)
-    y0 = map(float, y0.split(','))
+    y0 = list(map(float, y0.split(',')))
     kwargs = dict(eval(kwargs) if kwargs else {})
     out = odesys.integrate(solver, tout, y0, **kwargs)
     if savetxt != 'None':
