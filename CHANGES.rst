@@ -1,3 +1,7 @@
+v0.1.2
+======
+- added util.check_transforms
+
 v0.1.1
 ======
 - Variable transformations supported
