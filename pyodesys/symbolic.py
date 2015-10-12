@@ -12,31 +12,6 @@ from .util import (
 )
 
 
-def _lambdify(*args, **kwargs):
-    if 'modules' not in kwargs:
-        kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
-    return sp.lambdify(*args, **kwargs)
-
-
-def _num_transformer_factory(fw, bw, dep, lambdify=None):
-    lambdify = lambdify or _lambdify
-    return lambdify(dep, fw), lambdify(dep, bw)
-
-
-def _Symbol(name):
-    return sp.Symbol(name, real=True)
-
-
-def _symarray(prefix, shape, Symbol=None):
-    # see https://github.com/sympy/sympy/pull/9939
-    # when merged: return sp.symarray(key, n, real=True)
-    arr = np.empty(shape, dtype=object)
-    for index in np.ndindex(shape):
-        arr[index] = (Symbol or _Symbol)('%s_%s' % (
-            prefix, '_'.join(map(str, index))))
-    return arr
-
-
 class SymbolicSys(OdeSys):
     """
     Parameters
@@ -68,12 +43,38 @@ class SymbolicSys(OdeSys):
                 raise ValueError("bands needs to be > 0 if provided")
         self.lband = lband
         self.uband = uband
-        self.lambdify = lambdify or _lambdify
+        if lambdify is not None:
+            self.lambdify = lambdify
+
+    @staticmethod
+    def Symbol(name):
+        return sp.Symbol(name, real=True)
+
+    @classmethod
+    def symarray(cls, prefix, shape, Symbol=None):
+        # see https://github.com/sympy/sympy/pull/9939
+        # when released: return sp.symarray(key, n, real=True)
+        arr = np.empty(shape, dtype=object)
+        for index in np.ndindex(shape):
+            arr[index] = (Symbol or cls.Symbol)('%s_%s' % (
+                prefix, '_'.join(map(str, index))))
+        return arr
+
+    @staticmethod
+    def lambdify(*args, **kwargs):
+        if 'modules' not in kwargs:
+            kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
+        return sp.lambdify(*args, **kwargs)
+
+    @classmethod
+    def num_transformer_factory(cls, fw, bw, dep, lambdify=None):
+        lambdify = lambdify or cls.lambdify
+        return lambdify(dep, fw), lambdify(dep, bw)
 
     @classmethod
     def from_callback(cls, cb, n, *args, **kwargs):
-        x = _Symbol('x')
-        y = _symarray('y', n)
+        x = cls.Symbol('x')
+        y = cls.symarray('y', n)
         exprs = cb(x, y)
         return cls(zip(y, exprs), x, *args, **kwargs)
 
@@ -159,9 +160,9 @@ class TransformedSys(SymbolicSys):
             self.indep_fw, self.indep_bw = None, None
         super(TransformedSys, self).__init__(zip(dep, exprs), indep, **kwargs)
 
-        self.f_dep, self.b_dep = _num_transformer_factory(
+        self.f_dep, self.b_dep = self.num_transformer_factory(
             self.dep_fw, self.dep_bw, dep)
-        self.f_indep, self.b_indep = _num_transformer_factory(
+        self.f_indep, self.b_indep = self.num_transformer_factory(
             self.indep_fw, self.indep_bw, indep)
         self._post_processor = self.back_transform_out
         self._pre_processor = self.forward_transform_xy
@@ -169,8 +170,8 @@ class TransformedSys(SymbolicSys):
     @classmethod
     def from_callback(cls, cb, n, dep_transf_cbs=None, indep_transf_cbs=None,
                       **kwargs):
-        x = _Symbol('x')
-        y = _symarray('y', n)
+        x = cls.Symbol('x')
+        y = cls.symarray('y', n)
         exprs = cb(x, y)
         if dep_transf_cbs is not None:
             try:
