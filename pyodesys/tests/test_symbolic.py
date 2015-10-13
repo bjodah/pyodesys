@@ -8,7 +8,57 @@ import pytest
 import time
 
 from .. import SymbolicSys
+from ..symbolic import TransformedSys
 from .bateman import bateman_full  # analytic, never mind the details
+
+
+def identity(x):
+    return x
+
+idty2 = (identity, identity)
+logexp = (sp.log, sp.exp)
+
+
+def decay_rhs(t, y, k):
+    ny = len(y)
+    dydt = [0]*ny
+    for idx in range(ny):
+        if idx < ny-1:
+            dydt[idx] -= y[idx]*k[idx]
+        if idx > 0:
+            dydt[idx] += y[idx-1]*k[idx-1]
+    return dydt
+
+
+def _test_TransformedSys(dep_transf_cbs, indep_transf_cbs):
+    import pudb; pudb.set_trace()
+    rtol, atol = 1e-8, 1e-8
+    k = [7., 3, 2]
+    ts = TransformedSys.from_callback(decay_rhs, len(k)+1, dep_transf_cbs,
+                                      indep_transf_cbs, nparams=len(k))
+    y0 = [1-20]*(len(k)+1)
+    y0[0] = 1
+    out = ts.integrate_scipy([1, 2, 3], y0, np.array(k))
+    ref = out.copy()
+    ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0] - ref[0, 0],
+                                       exp=np.exp)).T
+    assert np.allclose(out, ref, rtol=rtol, atol=atol)
+
+
+def test_TransformedSys_liny_linx():
+    _test_TransformedSys(idty2, idty2)
+
+
+def test_TransformedSys_logy_linx():
+    _test_TransformedSys(logexp, idty2)
+
+
+def test_TransformedSys_liny_logx():
+    _test_TransformedSys(idty2, logexp)
+
+
+def test_TransformedSys_logy_logx():
+    _test_TransformedSys(logexp, logexp)
 
 
 def timeit(callback, *args, **kwargs):
@@ -41,8 +91,6 @@ def _test_mpmath():  # too slow
     assert abs(out[-1, 1] - ref) < 4e-8
 
 
-# Decay chain
-# ===========
 def decay_dydt_factory(k):
     # Generates a callback for evaluating a dydt-callback for
     # a chain of len(k) + 1 species with len(k) decays
@@ -65,7 +113,6 @@ def decay_dydt_factory(k):
 
 # Short decay chains, using Bateman's equation
 # --------------------------------------------
-
 @pytest.mark.parametrize('bands', [(1, 0), (None, None)])
 def test_SymbolicSys__from_callback_bateman(bands):
     # Decay chain of 3 species (2 decays)

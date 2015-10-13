@@ -27,6 +27,9 @@ class OdeSys(object):
     jac: callback
         Jacobian matrix (dfdy). optional for explicit methods,
         required for implicit methods
+    dfdx: callback
+        pass
+
     lband: int or None (default)
         If jacobian is banded: number of sub-diagonals
     uband: int or None (default)
@@ -80,9 +83,8 @@ class OdeSys(object):
         """
         return getattr(self, 'integrate_'+solver)(*args, **kwargs)
 
-    def integrate_scipy(self, xout, y0, atol=1e-8,
-                        rtol=1e-8, with_jacobian=None,
-                        name='lsoda', **kwargs):
+    def integrate_scipy(self, xout, y0, params=None, atol=1e-8, rtol=1e-8,
+                        with_jacobian=None, name='lsoda', **kwargs):
         """
         Use scipy.integrate.ode
 
@@ -115,6 +117,7 @@ class OdeSys(object):
         -------
         2-dimensional array (first column indep., rest dep.)
         """
+        ny = len(y0)
         xout, y0 = self.pre_process(xout, y0)
         nx = len(xout)
         if with_jacobian is None:
@@ -125,18 +128,17 @@ class OdeSys(object):
             elif name == 'vode':
                 with_jacobian = kwargs.get('method', 'adams') == 'bdf'
         from scipy.integrate import ode
-        f = self.get_f_ty_callback()
-        if with_jacobian:
-            j = self.get_j_ty_callback()
-        else:
-            j = None
-        r = ode(f, jac=j)
+        r = ode(self.get_f_ty_callback(),
+                jac=self.get_j_ty_callback() if with_jacobian else None)
         if 'lband' in kwargs or 'uband' in kwargs:
             raise ValueError("lband and uband set locally (set at"
                              " initialization instead)")
         if self.lband is not None:
             kwargs['lband'], kwargs['uband'] = self.lband, self.uband
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
+        if params is not None:
+            r.set_f_params(params)
+            r.set_jac_params(params)
         r.set_initial_value(y0, xout[0])
         if nx == 2:
             yout = [y0]
@@ -149,7 +151,7 @@ class OdeSys(object):
                 yout.append(r.y)
             out = stack_1d_on_left(tstep, yout)
         else:
-            out = np.empty((nx, 1 + self.ny))
+            out = np.empty((nx, 1 + ny))
             out[0, 0] = xout[0]
             out[0, 1:] = y0
             for idx in range(1, nx):

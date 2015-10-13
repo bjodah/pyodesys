@@ -5,7 +5,7 @@ script:
   - if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then export PYODESYS_RELEASE_VERSION=$DRONE_BRANCH; echo ${PYODESYS_RELEASE_VERSION} | tail -c +2 > __conda_version__.txt; fi
   - pip install --user pyodeint pycvodes pygslodeiv2
   - pip3 install --user pyodeint pycvodes pygslodeiv2
-  - PYTHONPATH=$(pwd) ./scripts/run_tests.sh pyodesys
+  - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov pyodesys --cov-report html
   - python2 setup.py sdist
   - ./scripts/generate_docs.sh
   - scp -r doc/ dist/* htmlcov/ pyodesys@hera.physchem.kth.se:~/public_html/

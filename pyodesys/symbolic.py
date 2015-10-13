@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import, division, print_function
 
+from itertools import chain
+
 import numpy as np
 import sympy as sp
 
@@ -33,10 +35,12 @@ class SymbolicSys(OdeSys):
     an upper limit on number of arguments.
     """
 
-    def __init__(self, dep_exprs, indep=None, jac=True,
-                 lband=None, uband=None, lambdify=None):
+    def __init__(self, dep_exprs, indep=None, params=(), jac=True,
+                 lband=None, uband=None, lambdify=None, lambdify_unpack=True,
+                 expand_params=False):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
+        self.params = params
         self._jac = jac
         if (lband, uband) != (None, None):
             if not lband >= 0 or not uband >= 0:
@@ -45,6 +49,8 @@ class SymbolicSys(OdeSys):
         self.uband = uband
         if lambdify is not None:
             self.lambdify = lambdify
+        self.lambdify_unpack = lambdify_unpack
+        self.expand_params = expand_params
 
     @staticmethod
     def Symbol(name):
@@ -72,24 +78,29 @@ class SymbolicSys(OdeSys):
         return lambdify(dep, fw), lambdify(dep, bw)
 
     @classmethod
-    def from_callback(cls, cb, n, *args, **kwargs):
+    def from_callback(cls, cb, n, nparams=-1, *args, **kwargs):
         x = cls.Symbol('x')
         y = cls.symarray('y', n)
-        exprs = cb(x, y)
-        return cls(zip(y, exprs), x, *args, **kwargs)
+        if nparams == -1:
+            p = ()
+            exprs = cb(x, y)
+        else:
+            p = cls.symarray('p', nparams)
+            exprs = cb(x, y, p)
+        return cls(zip(y, exprs), x, p, *args, **kwargs)
 
     @property
     def ny(self):
         return len(self.exprs)
 
-    def args(self, x=None, y=None):
+    def args(self, x=None, y=None, params=()):
         if x is None:
             x = self.indep
         if y is None:
             y = self.dep
         args = tuple(y)
         if self.indep is not None:
-            args = (x,) + args
+            args = (x,) + args + tuple(params)
         return args
 
     def get_jac(self):
@@ -113,16 +124,34 @@ class SymbolicSys(OdeSys):
             return [expr.diff(self.indep) for expr in self.exprs]
 
     def get_f_ty_callback(self):
-        f_lambda = self.lambdify(self.args(), self.exprs)
-        return lambda x, y: np.asarray(f_lambda(*self.args(x, y)))
+        cb = self.lambdify(self.args(params=self.params), self.exprs)
+
+        def f(x, y, *args):
+            if self.lambdify_unpack:
+                return np.asarray(cb(*self.args(x, y, *args)))
+            else:
+                return np.asarray(cb(self.args(x, y, *args)))
+        return f
 
     def get_j_ty_callback(self):
-        j_lambda = self.lambdify(self.args(), self.get_jac())
-        return lambda x, y: np.asarray(j_lambda(*self.args(x, y)))
+        cb = self.lambdify(self.args(params=self.params), self.get_jac())
+
+        def j(x, y, *args):
+            if self.lambdify_unpack:
+                return np.asarray(cb(*self.args(x, y, *args)))
+            else:
+                return np.asarray(cb(self.args(x, y, *args)))
+        return j
 
     def get_dfdx_callback(self):
-        dfdx_lambda = self.lambdify(self.args(), self.dfdx())
-        return lambda x, y: np.asarray(dfdx_lambda(*self.args(x, y)))
+        cb = self.lambdify(self.args(params=self.params), self.dfdx())
+
+        def dfdx(x, y, params=()):
+            if self.lambdify_unpack:
+                return np.asarray(cb(*self.args(x, y, params)))
+            else:
+                return np.asarray(cb(self.args(x, y, params)))
+        return dfdx
 
     # Not working yet:
     def integrate_mpmath(self, xout, y0):
@@ -142,13 +171,13 @@ class SymbolicSys(OdeSys):
 
 class TransformedSys(SymbolicSys):
 
-    def __init__(self, dep_exprs, indep=None,
-                 dep_transf=None, indep_transf=None, **kwargs):
+    def __init__(self, dep_exprs, indep=None, dep_transf=None,
+                 indep_transf=None, params=(), **kwargs):
         dep, exprs = zip(*dep_exprs)
         if dep_transf is not None:
             self.dep_fw, self.dep_bw = zip(*dep_transf)
             exprs = transform_exprs_dep(self.dep_fw, self.dep_bw,
-                                        zip(dep, exprs))
+                                        list(zip(dep, exprs)))
         else:
             self.dep_fw, self.dep_bw = None, None
 
@@ -158,7 +187,8 @@ class TransformedSys(SymbolicSys):
                                           zip(dep, exprs), indep)
         else:
             self.indep_fw, self.indep_bw = None, None
-        super(TransformedSys, self).__init__(zip(dep, exprs), indep, **kwargs)
+        super(TransformedSys, self).__init__(zip(dep, exprs), indep, params,
+                                             **kwargs)
 
         self.f_dep, self.b_dep = self.num_transformer_factory(
             self.dep_fw, self.dep_bw, dep)
@@ -169,10 +199,15 @@ class TransformedSys(SymbolicSys):
 
     @classmethod
     def from_callback(cls, cb, n, dep_transf_cbs=None, indep_transf_cbs=None,
-                      **kwargs):
+                      nparams=-1, **kwargs):
         x = cls.Symbol('x')
         y = cls.symarray('y', n)
-        exprs = cb(x, y)
+        if nparams == -1:
+            p = ()
+            exprs = cb(x, y)
+        else:
+            p = cls.symarray('p', nparams)
+            exprs = cb(x, y, p)
         if dep_transf_cbs is not None:
             try:
                 dep_transf = [(dep_transf_cbs[idx][0](yi),
@@ -189,7 +224,7 @@ class TransformedSys(SymbolicSys):
         else:
             indep_transf = None
 
-        return cls(zip(y, exprs), x, dep_transf, indep_transf, **kwargs)
+        return cls(zip(y, exprs), x, dep_transf, indep_transf, p, **kwargs)
 
     def back_transform_out(self, out):
         return stack_1d_on_left(self.b_indep(out[:, 0]),
