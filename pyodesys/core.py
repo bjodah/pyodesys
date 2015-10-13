@@ -48,9 +48,9 @@ class OdeSys(object):
 
     def __init__(self, f, jac=None, dfdx=None, lband=None, uband=None,
                  **kwargs):
-        self.get_f_ty_callback = lambda: f
-        self.get_j_ty_callback = lambda: jac
-        self.get_dfdx_callback = lambda: dfdx
+        self.f_cb = f
+        self.j_cb = jac
+        self.dfdx_cb = dfdx
         self.lband = lband
         self.uband = uband
         self._y0 = None
@@ -128,8 +128,8 @@ class OdeSys(object):
             elif name == 'vode':
                 with_jacobian = kwargs.get('method', 'adams') == 'bdf'
         from scipy.integrate import ode
-        r = ode(self.get_f_ty_callback(),
-                jac=self.get_j_ty_callback() if with_jacobian else None)
+        r = ode(self.f_cb,
+                jac=self.j_cb if with_jacobian else None)
         if 'lband' in kwargs or 'uband' in kwargs:
             raise ValueError("lband and uband set locally (set at"
                              " initialization instead)")
@@ -137,6 +137,7 @@ class OdeSys(object):
             kwargs['lband'], kwargs['uband'] = self.lband, self.uband
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
         if params is not None:
+            # For some reason vode seems to drop y (!?)
             r.set_f_params(params)
             r.set_jac_params(params)
         r.set_initial_value(y0, xout[0])
@@ -169,19 +170,16 @@ class OdeSys(object):
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol, check_indexing=False)
         new_kwargs.update(kwargs)
-        f = self.get_f_ty_callback()
 
         def _f(x, y, fout):
-            fout[:] = f(x, y)
+            fout[:] = self.f_cb(x, y)
 
         if with_jacobian:
-            j = self.get_j_ty_callback()
-            dfdx = self.get_dfdx_callback()
 
             def _j(x, y, jout, dfdx_out=None, fy=None):
-                jout[:, :] = j(x, y)
+                jout[:, :] = self.j_cb(x, y)
                 if dfdx_out is not None:
-                    dfdx_out[:] = dfdx(x, y)
+                    dfdx_out[:] = self.dfdx_cb(x, y)
         else:
             _j = None
 

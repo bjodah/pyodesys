@@ -36,8 +36,7 @@ class SymbolicSys(OdeSys):
     """
 
     def __init__(self, dep_exprs, indep=None, params=(), jac=True,
-                 lband=None, uband=None, lambdify=None, lambdify_unpack=True,
-                 expand_params=False):
+                 lband=None, uband=None, lambdify=None, lambdify_unpack=True):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self.params = params
@@ -50,7 +49,9 @@ class SymbolicSys(OdeSys):
         if lambdify is not None:
             self.lambdify = lambdify
         self.lambdify_unpack = lambdify_unpack
-        self.expand_params = expand_params
+        self.f_cb = self.get_f_ty_callback()
+        self.j_cb = self.get_j_ty_callback()
+        self.dfdx_cb = self.get_dfdx_callback()
 
     @staticmethod
     def Symbol(name):
@@ -124,27 +125,27 @@ class SymbolicSys(OdeSys):
             return [expr.diff(self.indep) for expr in self.exprs]
 
     def get_f_ty_callback(self):
-        cb = self.lambdify(self.args(params=self.params), self.exprs)
+        cb = self.lambdify(list(chain(self.args(), self.params)), self.exprs)
 
-        def f(x, y, *args):
+        def f(x, y, params=()):
             if self.lambdify_unpack:
-                return np.asarray(cb(*self.args(x, y, *args)))
+                return np.asarray(cb(*self.args(x, y, params)))
             else:
-                return np.asarray(cb(self.args(x, y, *args)))
+                return np.asarray(cb(self.args(x, y, params)))
         return f
 
     def get_j_ty_callback(self):
-        cb = self.lambdify(self.args(params=self.params), self.get_jac())
+        cb = self.lambdify(list(chain(self.args(), self.params)), self.get_jac())
 
-        def j(x, y, *args):
+        def j(x, y, params=()):
             if self.lambdify_unpack:
-                return np.asarray(cb(*self.args(x, y, *args)))
+                return np.asarray(cb(*self.args(x, y, params)))
             else:
-                return np.asarray(cb(self.args(x, y, *args)))
+                return np.asarray(cb(self.args(x, y, params)))
         return j
 
     def get_dfdx_callback(self):
-        cb = self.lambdify(self.args(params=self.params), self.dfdx())
+        cb = self.lambdify(list(chain(self.args(), self.params)), self.dfdx())
 
         def dfdx(x, y, params=()):
             if self.lambdify_unpack:
