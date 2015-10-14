@@ -31,7 +31,7 @@ def decay_rhs(t, y, k):
 
 
 def _test_TransformedSys(dep_transf_cbs, indep_transf_cbs):
-    rtol, atol = 1e-9, 1e-9
+    rtol, atol = 1e-8, 1e-8
     k = [7., 3, 2]
     ts = TransformedSys.from_callback(decay_rhs, len(k)+1, len(k),
                                       dep_transf_cbs, indep_transf_cbs)
@@ -241,7 +241,7 @@ def test_gsl_predefined(method, forgive):
 
 
 @pytest.mark.parametrize('method,forgive', zip(
-    'bsimp msadams msbdf rkck'.split(), (0.002, 4, 14, 0.21)))
+    'bsimp msadams msbdf rkck'.split(), (0.003, 4, 14, 0.21)))
 def test_gsl_adaptive(method, forgive):
     _gsl(1, method, forgive)
 
