@@ -137,7 +137,6 @@ class OdeSys(object):
             kwargs['lband'], kwargs['uband'] = self.lband, self.uband
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
         if params is not None:
-            # For some reason vode seems to drop y (!?)
             r.set_f_params(params)
             r.set_jac_params(params)
         r.set_initial_value(y0, xout[0])
@@ -163,23 +162,36 @@ class OdeSys(object):
                 out[idx, 1:] = r.y
         return self.post_process(out)
 
-    def _integrate(self, adaptive, predefined, xout, y0, with_jacobian,
-                   atol=1e-8, rtol=1e-8, first_step=1e-16, **kwargs):
+    def _integrate(self, adaptive, predefined, xout, y0, params=(),
+                   with_jacobian=None, atol=1e-8, rtol=1e-8, first_step=None,
+                   **kwargs):
         xout, y0 = self.pre_process(xout, y0)
+        if first_step is None:
+            first_step = 1e-14 + xout[0]*1e-14
         nx = len(xout)
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol, check_indexing=False)
         new_kwargs.update(kwargs)
 
         def _f(x, y, fout):
-            fout[:] = self.f_cb(x, y)
+            if len(params) > 0:
+                fout[:] = self.f_cb(x, y, params)
+            else:
+                fout[:] = self.f_cb(x, y)
 
-        if with_jacobian:
-
+        if with_jacobian is None:
+            raise ValueError("Need to pass with_jacobian")
+        elif with_jacobian is True:
             def _j(x, y, jout, dfdx_out=None, fy=None):
-                jout[:, :] = self.j_cb(x, y)
+                if len(params) > 0:
+                    jout[:, :] = self.j_cb(x, y, params)
+                else:
+                    jout[:, :] = self.j_cb(x, y)
                 if dfdx_out is not None:
-                    dfdx_out[:] = self.dfdx_cb(x, y)
+                    if len(params) > 0:
+                        dfdx_out[:] = self.dfdx_cb(x, y, params)
+                    else:
+                        dfdx_out[:] = self.dfdx_cb(x, y)
         else:
             _j = None
 

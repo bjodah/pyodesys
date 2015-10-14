@@ -31,16 +31,17 @@ def decay_rhs(t, y, k):
 
 
 def _test_TransformedSys(dep_transf_cbs, indep_transf_cbs):
-    rtol, atol = 1e-8, 1e-8
+    rtol, atol = 1e-9, 1e-9
     k = [7., 3, 2]
-    ts = TransformedSys.from_callback(decay_rhs, len(k)+1, dep_transf_cbs,
-                                      indep_transf_cbs, nparams=len(k))
+    ts = TransformedSys.from_callback(decay_rhs, len(k)+1, len(k),
+                                      dep_transf_cbs, indep_transf_cbs)
     y0 = [1e-20]*(len(k)+1)
     y0[0] = 1
-    out = ts.integrate_scipy([1e-16, 2, 3], y0, np.array(k))
+    out = ts.integrate_cvode([1e-12, 1], y0, k, atol=1e-12, rtol=1e-12)
     ref = out.copy()
     ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0] - ref[0, 0],
                                        exp=np.exp)).T
+    np.set_printoptions(linewidth=240)
     assert np.allclose(out, ref, rtol=rtol, atol=atol)
 
 

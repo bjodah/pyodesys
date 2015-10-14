@@ -199,8 +199,8 @@ class TransformedSys(SymbolicSys):
         self._pre_processor = self.forward_transform_xy
 
     @classmethod
-    def from_callback(cls, cb, n, dep_transf_cbs=None, indep_transf_cbs=None,
-                      nparams=-1, **kwargs):
+    def from_callback(cls, cb, n, nparams=-1, dep_transf_cbs=None,
+                      indep_transf_cbs=None, **kwargs):
         x = cls.Symbol('x')
         y = cls.symarray('y', n)
         if nparams == -1:
