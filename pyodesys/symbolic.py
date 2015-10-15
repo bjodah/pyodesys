@@ -185,7 +185,7 @@ class TransformedSys(SymbolicSys):
         if indep_transf is not None:
             self.indep_fw, self.indep_bw = indep_transf
             exprs = transform_exprs_indep(self.indep_fw, self.indep_bw,
-                                          zip(dep, exprs), indep)
+                                          list(zip(dep, exprs)), indep)
         else:
             self.indep_fw, self.indep_bw = None, None
         super(TransformedSys, self).__init__(zip(dep, exprs), indep, params,
@@ -215,8 +215,8 @@ class TransformedSys(SymbolicSys):
                                dep_transf_cbs[idx][1](yi))
                               for idx, yi in enumerate(y)]
             except TypeError:
-                dep_transf = zip(map(dep_transf_cbs[0], y),
-                                 map(dep_transf_cbs[1], y))
+                dep_transf = list(zip(list(map(dep_transf_cbs[0], y)),
+                                      list(map(dep_transf_cbs[1], y))))
         else:
             dep_transf = None
 
@@ -225,7 +225,7 @@ class TransformedSys(SymbolicSys):
         else:
             indep_transf = None
 
-        return cls(zip(y, exprs), x, dep_transf, indep_transf, p, **kwargs)
+        return cls(list(zip(y, exprs)), x, dep_transf, indep_transf, p, **kwargs)
 
     def back_transform_out(self, out):
         return stack_1d_on_left(self.b_indep(out[:, 0]),

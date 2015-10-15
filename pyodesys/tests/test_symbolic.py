@@ -49,7 +49,7 @@ def test_TransformedSys_liny_linx():
 
 
 def test_TransformedSys_logy_linx():
-    _test_TransformedSys(logexp, idty2, 1e-2, 1e-2)  # unacceptable
+    _test_TransformedSys(logexp, idty2, 1e-10, 1e-10)
 
 
 def test_TransformedSys_liny_logx():
@@ -57,7 +57,7 @@ def test_TransformedSys_liny_logx():
 
 
 def test_TransformedSys_logy_logx():
-    _test_TransformedSys(logexp, logexp, 1e-2, 1e-2)  # unacceptable
+    _test_TransformedSys(logexp, logexp, 1e-10, 1e-10)
 
 
 def timeit(callback, *args, **kwargs):
