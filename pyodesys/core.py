@@ -48,9 +48,9 @@ class OdeSys(object):
 
     def __init__(self, f, jac=None, dfdx=None, lband=None, uband=None,
                  **kwargs):
-        self.get_f_ty_callback = lambda: f
-        self.get_j_ty_callback = lambda: jac
-        self.get_dfdx_callback = lambda: dfdx
+        self.f_cb = f
+        self.j_cb = jac
+        self.dfdx_cb = dfdx
         self.lband = lband
         self.uband = uband
         self._y0 = None
@@ -128,8 +128,8 @@ class OdeSys(object):
             elif name == 'vode':
                 with_jacobian = kwargs.get('method', 'adams') == 'bdf'
         from scipy.integrate import ode
-        r = ode(self.get_f_ty_callback(),
-                jac=self.get_j_ty_callback() if with_jacobian else None)
+        r = ode(self.f_cb,
+                jac=self.j_cb if with_jacobian else None)
         if 'lband' in kwargs or 'uband' in kwargs:
             raise ValueError("lband and uband set locally (set at"
                              " initialization instead)")
@@ -162,26 +162,36 @@ class OdeSys(object):
                 out[idx, 1:] = r.y
         return self.post_process(out)
 
-    def _integrate(self, adaptive, predefined, xout, y0, with_jacobian,
-                   atol=1e-8, rtol=1e-8, first_step=1e-16, **kwargs):
+    def _integrate(self, adaptive, predefined, xout, y0, params=(),
+                   with_jacobian=None, atol=1e-8, rtol=1e-8, first_step=None,
+                   **kwargs):
         xout, y0 = self.pre_process(xout, y0)
+        if first_step is None:
+            first_step = 1e-14 + xout[0]*1e-14
         nx = len(xout)
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol, check_indexing=False)
         new_kwargs.update(kwargs)
-        f = self.get_f_ty_callback()
 
         def _f(x, y, fout):
-            fout[:] = f(x, y)
+            if len(params) > 0:
+                fout[:] = self.f_cb(x, y, params)
+            else:
+                fout[:] = self.f_cb(x, y)
 
-        if with_jacobian:
-            j = self.get_j_ty_callback()
-            dfdx = self.get_dfdx_callback()
-
+        if with_jacobian is None:
+            raise ValueError("Need to pass with_jacobian")
+        elif with_jacobian is True:
             def _j(x, y, jout, dfdx_out=None, fy=None):
-                jout[:, :] = j(x, y)
+                if len(params) > 0:
+                    jout[:, :] = self.j_cb(x, y, params)
+                else:
+                    jout[:, :] = self.j_cb(x, y)
                 if dfdx_out is not None:
-                    dfdx_out[:] = dfdx(x, y)
+                    if len(params) > 0:
+                        dfdx_out[:] = self.dfdx_cb(x, y, params)
+                    else:
+                        dfdx_out[:] = self.dfdx_cb(x, y)
         else:
             _j = None
 

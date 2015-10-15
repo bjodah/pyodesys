@@ -36,8 +36,7 @@ class SymbolicSys(OdeSys):
     """
 
     def __init__(self, dep_exprs, indep=None, params=(), jac=True,
-                 lband=None, uband=None, lambdify=None, lambdify_unpack=True,
-                 expand_params=False):
+                 lband=None, uband=None, lambdify=None, lambdify_unpack=True):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self.params = params
@@ -50,7 +49,9 @@ class SymbolicSys(OdeSys):
         if lambdify is not None:
             self.lambdify = lambdify
         self.lambdify_unpack = lambdify_unpack
-        self.expand_params = expand_params
+        self.f_cb = self.get_f_ty_callback()
+        self.j_cb = self.get_j_ty_callback()
+        self.dfdx_cb = self.get_dfdx_callback()
 
     @staticmethod
     def Symbol(name):
@@ -124,27 +125,27 @@ class SymbolicSys(OdeSys):
             return [expr.diff(self.indep) for expr in self.exprs]
 
     def get_f_ty_callback(self):
-        cb = self.lambdify(self.args(params=self.params), self.exprs)
+        cb = self.lambdify(list(chain(self.args(), self.params)), self.exprs)
 
-        def f(x, y, *args):
+        def f(x, y, params=()):
             if self.lambdify_unpack:
-                return np.asarray(cb(*self.args(x, y, *args)))
+                return np.asarray(cb(*self.args(x, y, params)))
             else:
-                return np.asarray(cb(self.args(x, y, *args)))
+                return np.asarray(cb(self.args(x, y, params)))
         return f
 
     def get_j_ty_callback(self):
-        cb = self.lambdify(self.args(params=self.params), self.get_jac())
+        cb = self.lambdify(list(chain(self.args(), self.params)), self.get_jac())
 
-        def j(x, y, *args):
+        def j(x, y, params=()):
             if self.lambdify_unpack:
-                return np.asarray(cb(*self.args(x, y, *args)))
+                return np.asarray(cb(*self.args(x, y, params)))
             else:
-                return np.asarray(cb(self.args(x, y, *args)))
+                return np.asarray(cb(self.args(x, y, params)))
         return j
 
     def get_dfdx_callback(self):
-        cb = self.lambdify(self.args(params=self.params), self.dfdx())
+        cb = self.lambdify(list(chain(self.args(), self.params)), self.dfdx())
 
         def dfdx(x, y, params=()):
             if self.lambdify_unpack:
@@ -184,7 +185,7 @@ class TransformedSys(SymbolicSys):
         if indep_transf is not None:
             self.indep_fw, self.indep_bw = indep_transf
             exprs = transform_exprs_indep(self.indep_fw, self.indep_bw,
-                                          zip(dep, exprs), indep)
+                                          list(zip(dep, exprs)), indep)
         else:
             self.indep_fw, self.indep_bw = None, None
         super(TransformedSys, self).__init__(zip(dep, exprs), indep, params,
@@ -198,8 +199,8 @@ class TransformedSys(SymbolicSys):
         self._pre_processor = self.forward_transform_xy
 
     @classmethod
-    def from_callback(cls, cb, n, dep_transf_cbs=None, indep_transf_cbs=None,
-                      nparams=-1, **kwargs):
+    def from_callback(cls, cb, n, nparams=-1, dep_transf_cbs=None,
+                      indep_transf_cbs=None, **kwargs):
         x = cls.Symbol('x')
         y = cls.symarray('y', n)
         if nparams == -1:
@@ -214,8 +215,8 @@ class TransformedSys(SymbolicSys):
                                dep_transf_cbs[idx][1](yi))
                               for idx, yi in enumerate(y)]
             except TypeError:
-                dep_transf = zip(map(dep_transf_cbs[0], y),
-                                 map(dep_transf_cbs[1], y))
+                dep_transf = list(zip(list(map(dep_transf_cbs[0], y)),
+                                      list(map(dep_transf_cbs[1], y))))
         else:
             dep_transf = None
 
@@ -224,7 +225,7 @@ class TransformedSys(SymbolicSys):
         else:
             indep_transf = None
 
-        return cls(zip(y, exprs), x, dep_transf, indep_transf, p, **kwargs)
+        return cls(list(zip(y, exprs)), x, dep_transf, indep_transf, p, **kwargs)
 
     def back_transform_out(self, out):
         return stack_1d_on_left(self.b_indep(out[:, 0]),

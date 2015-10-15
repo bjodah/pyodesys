@@ -43,7 +43,7 @@ def transform_exprs_dep(fw, bw, dep_exprs, check=True):
     dep, exprs = zip(*dep_exprs)
     if check:
         check_transforms(fw, bw, dep)
-    bw_subs = zip(dep, bw)
+    bw_subs = list(zip(dep, bw))
     return [(e*f.diff(y)).subs(bw_subs) for f, y, e in zip(fw, dep, exprs)]
 
 
