@@ -7,7 +7,7 @@ def vdp_f(t, y, mu):
 
 
 def vdp_j(t, y, mu):
-    Jmat = np.zeros((2,2))
+    Jmat = np.zeros((2, 2))
     Jmat[0, 0] = 0
     Jmat[0, 1] = 1
     Jmat[1, 0] = -1 - mu*2*y[1]*y[0]

@@ -45,7 +45,7 @@ def _test_TransformedSys(dep_transf_cbs, indep_transf_cbs, rtol, atol):
 
 
 def test_TransformedSys_liny_linx():
-    _test_TransformedSys(idty2, idty2, 1e-12, 1e-12)
+    _test_TransformedSys(idty2, idty2, 1e-11, 1e-11)
 
 
 def test_TransformedSys_logy_linx():
@@ -62,7 +62,7 @@ def test_TransformedSys_logy_logx():
 
 def test_ScaledSys():
     k = k0, k1, k2 = [7., 3, 2]
-    y = y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
+    y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
     l = [
         (y0, -7*y0),
         (y1, 7*y0 - 3*y1),
@@ -80,10 +80,11 @@ def test_ScaledSys():
 
 
 def test_ScaledSys_from_callback():
-    f = lambda t, x, k: [-k[0]*x[0],
-                         k[0]*x[0] - k[1]*x[1],
-                         k[1]*x[1] - k[2]*x[2],
-                         k[2]*x[2]]
+    def f(t, x, k):
+        return [-k[0]*x[0],
+                k[0]*x[0] - k[1]*x[1],
+                k[1]*x[1] - k[2]*x[2],
+                k[2]*x[2]]
     odesys = ScaledSys.from_callback(f, 4, 3, 1e8)
     k = [7, 3, 2]
     y0 = [0]*(len(k)+1)
