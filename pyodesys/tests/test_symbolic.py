@@ -8,7 +8,7 @@ import pytest
 import time
 
 from .. import SymbolicSys
-from ..symbolic import TransformedSys
+from ..symbolic import TransformedSys, ScaledSys
 from .bateman import bateman_full  # analytic, never mind the details
 
 
@@ -45,7 +45,7 @@ def _test_TransformedSys(dep_transf_cbs, indep_transf_cbs, rtol, atol):
 
 
 def test_TransformedSys_liny_linx():
-    _test_TransformedSys(idty2, idty2, 1e-10, 1e-10)
+    _test_TransformedSys(idty2, idty2, 1e-12, 1e-12)
 
 
 def test_TransformedSys_logy_linx():
@@ -58,6 +58,41 @@ def test_TransformedSys_liny_logx():
 
 def test_TransformedSys_logy_logx():
     _test_TransformedSys(logexp, logexp, 1e-10, 1e-10)
+
+
+def test_ScaledSys():
+    k = k0, k1, k2 = [7., 3, 2]
+    y = y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
+    l = [
+        (y0, -7*y0),
+        (y1, 7*y0 - 3*y1),
+        (y2, 3*y1 - 2*y2),
+        (y3, 2*y2)
+    ]
+    ss = ScaledSys(l, dep_scaling=1e8)
+    y0 = [0]*(len(k)+1)
+    y0[0] = 1
+    out = ss.integrate_cvode([1e-12, 1], y0, atol=1e-12, rtol=1e-12)
+    ref = out.copy()
+    ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0] - ref[0, 0],
+                                       exp=np.exp)).T
+    assert np.allclose(out, ref, rtol=1e-12, atol=1e-12)
+
+
+def test_ScaledSys_from_callback():
+    f = lambda t, x, k: [-k[0]*x[0],
+                         k[0]*x[0] - k[1]*x[1],
+                         k[1]*x[1] - k[2]*x[2],
+                         k[2]*x[2]]
+    odesys = ScaledSys.from_callback(f, 4, 3, 1e8)
+    k = [7, 3, 2]
+    y0 = [0]*(len(k)+1)
+    y0[0] = 1
+    out = odesys.integrate_scipy([1e-12, 1], y0, k)
+    ref = out.copy()
+    ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0] - ref[0, 0],
+                                       exp=np.exp)).T
+    assert np.allclose(out, ref, rtol=3e-11, atol=3e-11)
 
 
 def timeit(callback, *args, **kwargs):
