@@ -135,7 +135,8 @@ class SymbolicSys(OdeSys):
         return f
 
     def get_j_ty_callback(self):
-        cb = self.lambdify(list(chain(self.args(), self.params)), self.get_jac())
+        cb = self.lambdify(list(chain(self.args(), self.params)),
+                           self.get_jac())
 
         def j(x, y, params=()):
             if self.lambdify_unpack:
@@ -173,7 +174,8 @@ class SymbolicSys(OdeSys):
 class TransformedSys(SymbolicSys):
 
     def __init__(self, dep_exprs, indep=None, dep_transf=None,
-                 indep_transf=None, params=(), **kwargs):
+                 indep_transf=None, params=(), exprs_transf_cb=None,
+                 **kwargs):
         dep, exprs = zip(*dep_exprs)
         if dep_transf is not None:
             self.dep_fw, self.dep_bw = zip(*dep_transf)
@@ -188,13 +190,20 @@ class TransformedSys(SymbolicSys):
                                           list(zip(dep, exprs)), indep)
         else:
             self.indep_fw, self.indep_bw = None, None
+
+        if exprs_transf_cb is not None:
+            exprs = exprs_transf_cb(exprs)
+
         super(TransformedSys, self).__init__(zip(dep, exprs), indep, params,
                                              **kwargs)
-
         self.f_dep, self.b_dep = self.num_transformer_factory(
             self.dep_fw, self.dep_bw, dep)
-        self.f_indep, self.b_indep = self.num_transformer_factory(
-            self.indep_fw, self.indep_bw, indep)
+        if (self.indep_fw, self.indep_bw) != (None, None):
+            self.f_indep, self.b_indep = self.num_transformer_factory(
+                self.indep_fw, self.indep_bw, indep)
+        else:
+            self.f_indep = lambda x: x  # identity operation
+            self.b_indep = lambda x: x  # identity operation
         self._post_processor = self.back_transform_out
         self._pre_processor = self.forward_transform_xy
 
@@ -225,7 +234,8 @@ class TransformedSys(SymbolicSys):
         else:
             indep_transf = None
 
-        return cls(list(zip(y, exprs)), x, dep_transf, indep_transf, p, **kwargs)
+        return cls(list(zip(y, exprs)), x, dep_transf,
+                   indep_transf, p, **kwargs)
 
     def back_transform_out(self, out):
         return stack_1d_on_left(self.b_indep(out[:, 0]),
@@ -233,3 +243,38 @@ class TransformedSys(SymbolicSys):
 
     def forward_transform_xy(self, x, y):
         return self.f_indep(x), self.f_dep(*y)
+
+
+class ScaledSys(TransformedSys):
+
+    @staticmethod
+    def scale_fw_bw(scaling):
+        return (lambda x: scaling*x, lambda x: x/scaling)
+
+    def __init__(self, dep_exprs, indep=None, dep_scaling=1, indep_scaling=1,
+                 params=(), **kwargs):
+        dep, exprs = zip(*dep_exprs)
+        try:
+            n = len(dep_scaling)
+        except TypeError:
+            n = len(dep_exprs)
+            dep_scaling = [dep_scaling]*n
+        transf_dep_cbs = [self.scale_fw_bw(s) for s in dep_scaling]
+        transf_indep_cbs = self.scale_fw_bw(indep_scaling)
+        super(ScaledSys, self).__init__(
+            dep_exprs, indep,
+            dep_transf=[(transf_cb[0](depi),
+                         transf_cb[1](depi)) for transf_cb, depi
+                        in zip(transf_dep_cbs, dep)],
+            indep_transf=(transf_indep_cbs[0](indep),
+                          transf_indep_cbs[0](indep)) if indep is not None else
+            None, **kwargs)
+
+    @classmethod
+    def from_callback(cls, cb, n, nparams=-1, dep_scaling=1, indep_scaling=1,
+                      **kwargs):
+        return TransformedSys.from_callback(
+            cb, n, nparams,
+            dep_transf_cbs=cls.scale_fw_bw(dep_scaling),
+            indep_transf_cbs=cls.scale_fw_bw(indep_scaling),
+        )

@@ -13,3 +13,5 @@ script:
   - git config --global user.name "drone"
   - git config --global user.email "drone@hera.physchem.kth.se"
   - if [[ "$DRONE_BRANCH" == "master" ]]; then ./scripts/github_upload.sh doc/_build/html bjodah pyodesys gh-pages; fi
+  - if [[ "$DRONE_BRANCH" == "master" ]]; then scp -r benchmarks/* pyodesys@hera.physchem.kth.se:~; fi
+  - if [[ "$DRONE_BRANCH" == "master" ]]; then ssh pyodesys@hera.physchem.kth.se 'source /etc/profile; asv run -k -e >asv-run.log; asv publish>asv-publish.log'; fi
