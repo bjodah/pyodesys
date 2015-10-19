@@ -16,7 +16,7 @@ PKG_UPPER=$(echo $PKG | tr '[:lower:]' '[:upper:]')
 env ${PKG_UPPER}_RELEASE_VERSION=$1 python setup.py sdist
 
 # Build conda recipe:
-./scripts/build_conda_recipe.sh $1
+PYTHONNOUSERSITE=1 ./scripts/build_conda_recipe.sh $1
 
 # All went well
 

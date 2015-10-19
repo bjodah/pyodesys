@@ -11,6 +11,12 @@ pyodesys
 .. image:: https://img.shields.io/pypi/l/pyodesys.svg
    :target: https://github.com/bjodah/pyodesys/blob/master/LICENSE
    :alt: License
+.. image:: http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat
+   :target: http://hera.physchem.kth.se/~pyodesys/benchmarks
+   :alt: airspeedvelocity
+.. image:: http://hera.physchem.kth.se/~pyodesys/master/htmlcov/coverage.svg
+   :target: http://hera.physchem.kth.se/~pyodesys/master/htmlcov
+   :alt: coverage
 
 `pyodesys <https://github.com/bjodah/pyodesys>`_ provides a straightforward way
 of numerically integrating systems of ordinary differential equations. It unifies

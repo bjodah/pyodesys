@@ -8,6 +8,7 @@ script:
   - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov pyodesys --cov-report html
   - python2 setup.py sdist
   - ./scripts/generate_docs.sh
+  - ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
   - scp -r doc/ dist/* htmlcov/ pyodesys@hera.physchem.kth.se:~/public_html/
   - touch doc/_build/html/.nojekyll
   - git config --global user.name "drone"
