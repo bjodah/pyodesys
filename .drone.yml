@@ -9,7 +9,7 @@ script:
   - python2 setup.py sdist
   - ./scripts/generate_docs.sh
   - ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
-  - scp -r doc/ dist/* htmlcov/ pyodesys@hera.physchem.kth.se:~/public_html/
+  - scp -r doc/ dist/* htmlcov/ pyodesys@hera.physchem.kth.se:~/public_html/$DRONE_BRANCH
   - touch doc/_build/html/.nojekyll
   - git config --global user.name "drone"
   - git config --global user.email "drone@hera.physchem.kth.se"
