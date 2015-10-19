@@ -63,17 +63,11 @@ The classic van der Pol oscillator (see `examples/van_der_pol.py <examples/van_d
 
 .. code:: python
 
-   >>> import sympy as sp
-   >>> import numpy as np
    >>> from pyodesys import SymbolicSys
-   >>> mu = 1.0
-   >>> y = sp.symarray('y', 2)
-   >>> f = [y[1], -y[0] + mu*y[1]*(1 - y[0]**2)]
-   >>> odesys = SymbolicSys(zip(y, f))
-   >>> out = odesys.integrate('odeint', 10, [1, 0])  # use pyodeint
-   >>> import matplotlib.pyplot as plt
-   >>> plt.plot(out[:, 0], out[:, 1:])  # doctest: +SKIP
-
+   >>> def f(t, y, p):
+   ...     return [y[1], -y[0] + p[0]*y[1]*(1 - y[0]**2)]
+   >>> odesys = SymbolicSys.from_callback(f, 2, 1)
+   >>> odesys.plot_result(odesys.integrate('odeint', 10, [1, 0], [1]))  # doctest: +SKIP
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/van_der_pol.png
 
