@@ -1,4 +1,9 @@
+# -*- coding: utf-8 -*-
+from __future__ import (absolute_import, division, print_function)
+
+
 import numpy as np
+import inspect
 
 
 def stack_1d_on_left(x, y):
@@ -57,3 +62,13 @@ def transform_exprs_indep(fw, bw, dep_exprs, indep, check=True):
                              % str(bw))
     dep, exprs = zip(*dep_exprs)
     return [(e/fw.diff(indep)).subs(indep, bw) for e in exprs]
+
+
+def ensure_3args(func):
+    nargs = len(inspect.getargspec(func)[0])
+    if nargs == 2:
+        return lambda x, y, params: func(x, y)
+    elif nargs == 3:
+        return func
+    else:
+        raise NotImplementedError

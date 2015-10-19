@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import, division, print_function
 
-from itertools import chain
+from itertools import chain, repeat
 
 import numpy as np
 import sympy as sp
@@ -10,7 +10,7 @@ import sympy as sp
 from .core import OdeSys
 from .util import (
     banded_jacobian, stack_1d_on_left, transform_exprs_dep,
-    transform_exprs_indep
+    transform_exprs_indep, ensure_3args
 )
 
 
@@ -36,22 +36,21 @@ class SymbolicSys(OdeSys):
     """
 
     def __init__(self, dep_exprs, indep=None, params=(), jac=True,
-                 lband=None, uband=None, lambdify=None, lambdify_unpack=True):
+                 lambdify=None, lambdify_unpack=True, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self.params = params
         self._jac = jac
-        if (lband, uband) != (None, None):
-            if not lband >= 0 or not uband >= 0:
-                raise ValueError("bands needs to be > 0 if provided")
-        self.lband = lband
-        self.uband = uband
         if lambdify is not None:
             self.lambdify = lambdify
         self.lambdify_unpack = lambdify_unpack
-        self.f_cb = self.get_f_ty_callback()
-        self.j_cb = self.get_j_ty_callback()
-        self.dfdx_cb = self.get_dfdx_callback()
+        # we need self.band before super().__init__
+        self.band = kwargs.get('band', None)
+        super(SymbolicSys, self).__init__(
+            self.get_f_ty_callback(),
+            self.get_j_ty_callback(),
+            self.get_dfdx_callback(),
+            **kwargs)
 
     @staticmethod
     def Symbol(name):
@@ -79,15 +78,11 @@ class SymbolicSys(OdeSys):
         return lambdify(dep, fw), lambdify(dep, bw)
 
     @classmethod
-    def from_callback(cls, cb, n, nparams=-1, *args, **kwargs):
+    def from_callback(cls, cb, n, nparams=0, *args, **kwargs):
         x = cls.Symbol('x')
         y = cls.symarray('y', n)
-        if nparams == -1:
-            p = ()
-            exprs = cb(x, y)
-        else:
-            p = cls.symarray('p', nparams)
-            exprs = cb(x, y, p)
+        p = cls.symarray('p', nparams)
+        exprs = ensure_3args(cb)(x, y, p)
         return cls(zip(y, exprs), x, p, *args, **kwargs)
 
     @property
@@ -106,13 +101,13 @@ class SymbolicSys(OdeSys):
 
     def get_jac(self):
         if self._jac is True:
-            if self.lband is None:
+            if self.band is None:
                 f = sp.Matrix(1, self.ny, lambda _, q: self.exprs[q])
                 return f.jacobian(self.dep)
             else:
                 # Banded
                 return sp.ImmutableMatrix(banded_jacobian(
-                    self.exprs, self.dep, self.lband, self.uband))
+                    self.exprs, self.dep, *self.band))
         elif self._jac is False:
             return False
         else:
@@ -174,7 +169,7 @@ class SymbolicSys(OdeSys):
 class TransformedSys(SymbolicSys):
 
     def __init__(self, dep_exprs, indep=None, dep_transf=None,
-                 indep_transf=None, params=(), exprs_transf_cb=None,
+                 indep_transf=None, params=(), exprs_process_cb=None,
                  **kwargs):
         dep, exprs = zip(*dep_exprs)
         if dep_transf is not None:
@@ -191,8 +186,8 @@ class TransformedSys(SymbolicSys):
         else:
             self.indep_fw, self.indep_bw = None, None
 
-        if exprs_transf_cb is not None:
-            exprs = exprs_transf_cb(exprs)
+        if exprs_process_cb is not None:
+            exprs = exprs_process_cb(exprs)
 
         super(TransformedSys, self).__init__(zip(dep, exprs), indep, params,
                                              **kwargs)
@@ -208,24 +203,15 @@ class TransformedSys(SymbolicSys):
         self._pre_processor = self.forward_transform_xy
 
     @classmethod
-    def from_callback(cls, cb, n, nparams=-1, dep_transf_cbs=None,
+    def from_callback(cls, cb, n, nparams=0, dep_transf_cbs=None,
                       indep_transf_cbs=None, **kwargs):
         x = cls.Symbol('x')
         y = cls.symarray('y', n)
-        if nparams == -1:
-            p = ()
-            exprs = cb(x, y)
-        else:
-            p = cls.symarray('p', nparams)
-            exprs = cb(x, y, p)
+        p = cls.symarray('p', nparams)
+        exprs = ensure_3args(cb)(x, y, p)
         if dep_transf_cbs is not None:
-            try:
-                dep_transf = [(dep_transf_cbs[idx][0](yi),
-                               dep_transf_cbs[idx][1](yi))
-                              for idx, yi in enumerate(y)]
-            except TypeError:
-                dep_transf = list(zip(list(map(dep_transf_cbs[0], y)),
-                                      list(map(dep_transf_cbs[1], y))))
+            dep_transf = [(fw(yi), bw(yi)) for (fw, bw), yi
+                          in zip(dep_transf_cbs, y)]
         else:
             dep_transf = None
 
@@ -243,6 +229,61 @@ class TransformedSys(SymbolicSys):
 
     def forward_transform_xy(self, x, y):
         return self.f_indep(x), self.f_dep(*y)
+
+
+def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
+    """
+    A factory function for creating symmetrically transformed systems.
+
+    Parameters
+    ----------
+    dep_tr: pair of callables (default: None)
+        Forward and backward transformation to be applied to the
+        dependent variables
+    indep_tr: pair of callables (default: None)
+        Forward and backward transformation to be applied to the
+        independent variable
+
+
+    Examples
+    --------
+    >>> import sympy
+    >>> logexp = (sympy.log, sympy.exp)
+    >>> LogLogSys = symmetricsys(
+    ...     logexp, logexp, exprs_process_cb=lambda exprs: [
+    ...         sympy.powsimp(expr.expand(), force=True) for expr in exprs])
+
+    """
+    if dep_tr is not None:
+        if not callable(dep_tr[0]) or not callable(dep_tr[1]):
+            raise ValueError("Exceptected dep_tr to be a pair of callables")
+    if indep_tr is not None:
+        if not callable(indep_tr[0]) or not callable(indep_tr[1]):
+            raise ValueError("Exceptected indep_tr to be a pair of callables")
+
+    class _Sys(TransformedSys):
+        def __init__(self, dep_exprs, indep=None, **inner_kwargs):
+            new_kwargs = kwargs.copy()
+            new_kwargs.update(inner_kwargs)
+            dep, exprs = zip(*dep_exprs)
+            super(_Sys, self).__init__(
+                zip(dep, exprs), indep,
+                dep_transf=list(zip(
+                    list(map(dep_tr[0], dep)),
+                    list(map(dep_tr[1], dep))
+                )) if dep_tr is not None else None,
+                indep_transf=((indep_tr[0](indep), indep_tr[1](indep))
+                              if indep_tr is not None else None),
+                **new_kwargs)
+
+        @classmethod
+        def from_callback(cls, cb, n, nparams=0, **kwargs):
+            return TransformedSys.from_callback(
+                cb, n, nparams,
+                dep_transf_cbs=repeat(dep_tr) if dep_tr is not None else None,
+                indep_transf_cbs=indep_tr,
+                **kwargs)
+    return _Sys
 
 
 class ScaledSys(TransformedSys):
@@ -271,10 +312,10 @@ class ScaledSys(TransformedSys):
             None, **kwargs)
 
     @classmethod
-    def from_callback(cls, cb, n, nparams=-1, dep_scaling=1, indep_scaling=1,
+    def from_callback(cls, cb, n, nparams=0, dep_scaling=1, indep_scaling=1,
                       **kwargs):
         return TransformedSys.from_callback(
             cb, n, nparams,
-            dep_transf_cbs=cls.scale_fw_bw(dep_scaling),
+            dep_transf_cbs=repeat(cls.scale_fw_bw(dep_scaling)),
             indep_transf_cbs=cls.scale_fw_bw(indep_scaling),
         )

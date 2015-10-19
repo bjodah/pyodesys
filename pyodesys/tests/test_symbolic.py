@@ -8,7 +8,7 @@ import pytest
 import time
 
 from .. import SymbolicSys
-from ..symbolic import TransformedSys, ScaledSys
+from ..symbolic import ScaledSys, symmetricsys
 from .bateman import bateman_full  # analytic, never mind the details
 
 
@@ -30,10 +30,10 @@ def decay_rhs(t, y, k):
     return dydt
 
 
-def _test_TransformedSys(dep_transf_cbs, indep_transf_cbs, rtol, atol):
+def _test_TransformedSys(dep_tr, indep_tr, rtol, atol):
     k = [7., 3, 2]
-    ts = TransformedSys.from_callback(decay_rhs, len(k)+1, len(k),
-                                      dep_transf_cbs, indep_transf_cbs)
+    ts = symmetricsys(dep_tr, indep_tr).from_callback(
+        decay_rhs, len(k)+1, len(k))
     y0 = [1e-20]*(len(k)+1)
     y0[0] = 1
     out = ts.integrate_cvode([1e-12, 1], y0, k, atol=1e-12, rtol=1e-12)
@@ -148,14 +148,14 @@ def decay_dydt_factory(k):
 
 # Short decay chains, using Bateman's equation
 # --------------------------------------------
-@pytest.mark.parametrize('bands', [(1, 0), (None, None)])
-def test_SymbolicSys__from_callback_bateman(bands):
+@pytest.mark.parametrize('band', [(1, 0), None])
+def test_SymbolicSys__from_callback_bateman(band):
     # Decay chain of 3 species (2 decays)
     # A --[k0=4]--> B --[k1=3]--> C
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     atol, rtol = 1e-11, 1e-11
     odesys = SymbolicSys.from_callback(decay_dydt_factory(k), len(k)+1,
-                                       lband=bands[0], uband=bands[1])
+                                       band=band)
     out = odesys.integrate_scipy(tend, y0, atol=atol, rtol=rtol)
     ref = out.copy()
     ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0],
@@ -163,13 +163,13 @@ def test_SymbolicSys__from_callback_bateman(bands):
     assert np.allclose(out, ref, rtol=rtol, atol=atol)
 
 
-@pytest.mark.parametrize('bands', [(1, 0), (None, None)])
-def test_SymbolicSys_bateman(bands):
+@pytest.mark.parametrize('band', [(1, 0), None])
+def test_SymbolicSys_bateman(band):
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
     dydt = decay_dydt_factory(k)
     f = dydt(0, y)
-    odesys = SymbolicSys(zip(y, f), lband=bands[0], uband=bands[1])
+    odesys = SymbolicSys(zip(y, f), band=band)
     out = odesys.integrate_scipy(tend, y0)
     ref = out.copy()
     ref[:, 1:] = np.array(bateman_full(y0, k+[0], ref[:, 0],
@@ -320,7 +320,7 @@ def test_long_chain_dense(n, forgive):
 def test_long_chain_banded_scipy(n):
     p, a = 0, n
     y0, k, odesys_dens = get_special_chain(n, p, a)
-    y0, k, odesys_band = get_special_chain(n, p, a, lband=1, uband=0)
+    y0, k, odesys_band = get_special_chain(n, p, a, band=(1, 0))
     atol, rtol = 1e-7, 1e-7
     time_dens, out_dens = timeit(odesys_dens.integrate_scipy,
                                  1, y0, atol=atol, rtol=rtol)
@@ -337,7 +337,7 @@ def test_long_chain_banded_scipy(n):
 def test_long_chain_banded_cvode(n):
     p, a = 0, n
     y0, k, odesys_dens = get_special_chain(n, p, a)
-    y0, k, odesys_band = get_special_chain(n, p, a, lband=1, uband=0)
+    y0, k, odesys_band = get_special_chain(n, p, a, band=(1, 0))
     atol, rtol = 1e-9, 1e-9
     for i in range(3):
         time_band, out_band = timeit(odesys_band.integrate_cvode,

@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
-from .util import stack_1d_on_left
+from .util import stack_1d_on_left, ensure_3args
 
 
 class OdeSys(object):
@@ -29,11 +29,10 @@ class OdeSys(object):
         required for implicit methods
     dfdx: callback
         pass
-
-    lband: int or None (default)
-        If jacobian is banded: number of sub-diagonals
-    uband: int or None (default)
-        If jacobian is banded: number of super-diagonals
+    band: tuple of 2 ints or None (default: None)
+        If jacobian is banded: number of sub- and super-diagonals
+    names: iterable of str
+        names of variables, used for plotting
 
     Notes
     -----
@@ -46,15 +45,15 @@ class OdeSys(object):
     _pre_processor = None
     _post_processor = None
 
-    def __init__(self, f, jac=None, dfdx=None, lband=None, uband=None,
-                 **kwargs):
-        self.f_cb = f
-        self.j_cb = jac
+    def __init__(self, f, jac=None, dfdx=None, band=None, names=None):
+        self.f_cb = ensure_3args(f)
+        self.j_cb = ensure_3args(jac)
         self.dfdx_cb = dfdx
-        self.lband = lband
-        self.uband = uband
-        self._y0 = None
-        self.kwargs = kwargs  # default kwargs for integration
+        if band is not None:
+            if not band[0] >= 0 or not band[1] >= 0:
+                raise ValueError("bands needs to be > 0 if provided")
+        self.band = band
+        self.names = names
 
     def pre_process(self, xout, y0):
         # Should be used by all methods matching "integrate_*"
@@ -130,11 +129,11 @@ class OdeSys(object):
         from scipy.integrate import ode
         r = ode(self.f_cb,
                 jac=self.j_cb if with_jacobian else None)
-        if 'lband' in kwargs or 'uband' in kwargs:
-            raise ValueError("lband and uband set locally (set at"
+        if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
+            raise ValueError("lband and uband set locally (set `band` at"
                              " initialization instead)")
-        if self.lband is not None:
-            kwargs['lband'], kwargs['uband'] = self.lband, self.uband
+        if self.band is not None:
+            kwargs['lband'], kwargs['uband'] = self.band
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
         if params is not None:
             r.set_f_params(params)
@@ -227,11 +226,30 @@ class OdeSys(object):
         import pycvodes
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bdf') in pycvodes.requires_jac
-        if 'lband' in kwargs or 'uband' in kwargs:
+        if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
             raise ValueError("lband and uband set locally (set at"
                              " initialization instead)")
-        if self.lband is not None:
-            kwargs['lband'], kwargs['uband'] = self.lband, self.uband
+        if self.band is not None:
+            kwargs['lband'], kwargs['uband'] = self.band
         return self._integrate(pycvodes.integrate_adaptive,
                                pycvodes.integrate_predefined,
                                *args, **kwargs)
+
+    def plot_result(self, result, plot=None, plot_kwargs_cb=None,
+                    ls=('-', '--', ':', '-.'),
+                    c=('k', 'r', 'g', 'b', 'c', 'm', 'y')):
+        if plot is None:
+            from matplotlib.pyplot import plot
+        if plot_kwargs_cb is None:
+            names = getattr(self, 'names', None)
+
+            def plot_kwargs_cb(idx):
+                kwargs = {'ls': ls[idx % len(ls)],
+                          'c': c[idx % len(c)]}
+                if names:
+                    kwargs['label'] = names[idx]
+                return kwargs
+        else:
+            plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
+        for idx in range(result.shape[1] - 1):
+            plot(result[:, 0], result[:, idx+1], **plot_kwargs_cb(idx))
