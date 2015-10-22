@@ -5,3 +5,4 @@ dist/
 MANIFEST
 build/
 **/.ipynb_checkpoints/
+doc/

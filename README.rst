@@ -50,9 +50,9 @@ Simplest way to install pyodesys and its (optional) dependencies is to use the `
 
 Optional requirements not listed in requirements.txt:
 
-- pygslodeiv2
-- pyodeint
-- pycvodes
+- pygslodeiv2 (>=v0.4.1)
+- pyodeint (>=v0.5.0)
+- pycvodes (>=v0.2.0)
 
 Source distribution is available here:
 `<https://pypi.python.org/pypi/pyodesys>`_

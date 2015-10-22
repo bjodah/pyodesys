@@ -1,4 +1,4 @@
-image: bjodah/dockerfile-bjodah-scicomp:14.04c
+image: bjodah/bjodahimg:latest
 git:
     path: github.com/bjodah/pyodesys
 env:
@@ -11,7 +11,7 @@ script:
   - python2 setup.py sdist
   - ./scripts/generate_docs.sh
   - ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
-  - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH" && scp -r doc/ dist/* htmlcov/ ${MY_SERVER}:~/public_html/$DRONE_BRANCH
+  - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH" && scp -r doc/_build/html dist/* htmlcov/ ${MY_SERVER}:~/public_html/$DRONE_BRANCH
   - touch doc/_build/html/.nojekyll
   - git config --global user.name "drone"
   - git config --global user.email ${MY_SERVER}
