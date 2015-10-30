@@ -1,3 +1,23 @@
+v0.4.0
+======
+- Refactor to use xout, yout, info. Need to test interpolation.
+- two new methods: adaptive and predefined (incl. tests)
+- Support roots
+- Refactor plot_result (interpolation now available)
+- Make Matrix class optional
+- Added force_predefined kwarg to integrate()
+- Fix bug in symmetricsys().from_callback()
+- New upstream versions of pyodeint, pycvodes and pygslodeiv2
+- Tweak tests of pycvodes backend for new upstream
+- New example
+
+v0.3.0
+======
+- OdeSys.integrate* methods now return a tuple: (xout, yout, info-dict)
+  currently there are no guarantees about the exact contents of the info-dict.
+- signature of callbacks of rhs and jac in OdeSys are now:
+      (t, y_arr, param_arr) -> f_arr
+
 v0.2.0
 ======
 - New OdeSys class factory: symmetricsys for symmetric transformations

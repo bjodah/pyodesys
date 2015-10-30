@@ -9,7 +9,7 @@ import sympy as sp
 
 from .core import OdeSys
 from .util import (
-    banded_jacobian, stack_1d_on_left, transform_exprs_dep,
+    banded_jacobian, transform_exprs_dep,
     transform_exprs_indep, ensure_3args
 )
 
@@ -28,6 +28,17 @@ class SymbolicSys(OdeSys):
             do not compute jacobian (use explicit steppers)
         If ImmutableMatrix:
             user provided expressions for the jacobian
+    roots: iterable of expressions
+        equations to look for root's for during integration
+        (currently available through cvode)
+    lambdify: callback
+        default: sympy.lambdify
+    lambdify_unpack: bool (default: True)
+        whether or not unpacking of args needed when calling lambdify callback
+    Matrix: class
+        default: sympy.Matrix
+    \*\*kwargs:
+        See :py:class:`OdeSys`
 
     Notes
     -----
@@ -35,21 +46,33 @@ class SymbolicSys(OdeSys):
     an upper limit on number of arguments.
     """
 
-    def __init__(self, dep_exprs, indep=None, params=(), jac=True,
-                 lambdify=None, lambdify_unpack=True, **kwargs):
+    def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True,
+                 roots=None, lambdify=None, lambdify_unpack=True, Matrix=None,
+                 **kwargs):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self.params = params
         self._jac = jac
+        self._dfdx = dfdx
+        self.roots = roots
         if lambdify is not None:
             self.lambdify = lambdify
         self.lambdify_unpack = lambdify_unpack
+        if Matrix is None:
+            import sympy
+            self.Matrix = sympy.ImmutableMatrix
+        else:
+            self.Matrix = Matrix
         # we need self.band before super().__init__
         self.band = kwargs.get('band', None)
+        if kwargs.get('names', None) is True:
+            kwargs['names'] = [y.name for y in self.dep]
         super(SymbolicSys, self).__init__(
             self.get_f_ty_callback(),
             self.get_j_ty_callback(),
             self.get_dfdx_callback(),
+            self.get_roots_callback(),
+            nroots=None if roots is None else len(roots),
             **kwargs)
 
     @staticmethod
@@ -96,28 +119,32 @@ class SymbolicSys(OdeSys):
             y = self.dep
         args = tuple(y)
         if self.indep is not None:
-            args = (x,) + args + tuple(params)
-        return args
+            args = (x,) + args
+        return args + tuple(params)
 
     def get_jac(self):
         if self._jac is True:
             if self.band is None:
-                f = sp.Matrix(1, self.ny, lambda _, q: self.exprs[q])
-                return f.jacobian(self.dep)
+                f = self.Matrix(1, self.ny, lambda _, q: self.exprs[q])
+                self._jac = f.jacobian(self.dep)
             else:
                 # Banded
-                return sp.ImmutableMatrix(banded_jacobian(
+                self._jac = self.Matrix(banded_jacobian(
                     self.exprs, self.dep, *self.band))
         elif self._jac is False:
             return False
-        else:
-            return self._jac
 
-    def dfdx(self):
-        if self.indep is None:
-            return [0]*self.ny
-        else:
-            return [expr.diff(self.indep) for expr in self.exprs]
+        return self._jac
+
+    def get_dfdx(self):
+        if self._dfdx is True:
+            if self.indep is None:
+                self._dfdx = [0]*self.ny
+            else:
+                self._dfdx = [expr.diff(self.indep) for expr in self.exprs]
+        elif self._dfdx is False:
+            return False
+        return self._dfdx
 
     def get_f_ty_callback(self):
         cb = self.lambdify(list(chain(self.args(), self.params)), self.exprs)
@@ -130,8 +157,10 @@ class SymbolicSys(OdeSys):
         return f
 
     def get_j_ty_callback(self):
-        cb = self.lambdify(list(chain(self.args(), self.params)),
-                           self.get_jac())
+        j_exprs = self.get_jac()
+        if j_exprs is False:
+            return None
+        cb = self.lambdify(list(chain(self.args(), self.params)), j_exprs)
 
         def j(x, y, params=()):
             if self.lambdify_unpack:
@@ -141,7 +170,10 @@ class SymbolicSys(OdeSys):
         return j
 
     def get_dfdx_callback(self):
-        cb = self.lambdify(list(chain(self.args(), self.params)), self.dfdx())
+        dfdx_exprs = self.get_dfdx()
+        if dfdx_exprs is False:
+            return None
+        cb = self.lambdify(list(chain(self.args(), self.params)), dfdx_exprs)
 
         def dfdx(x, y, params=()):
             if self.lambdify_unpack:
@@ -149,6 +181,18 @@ class SymbolicSys(OdeSys):
             else:
                 return np.asarray(cb(self.args(x, y, params)))
         return dfdx
+
+    def get_roots_callback(self):
+        if self.roots is None:
+            return None
+        cb = self.lambdify(list(chain(self.args(), self.params)), self.roots)
+
+        def roots(x, y, params=()):
+            if self.lambdify_unpack:
+                return np.asarray(cb(*self.args(x, y, params)))
+            else:
+                return np.asarray(cb(self.args(x, y, params)))
+        return roots
 
     # Not working yet:
     def integrate_mpmath(self, xout, y0):
@@ -163,7 +207,7 @@ class SymbolicSys(OdeSys):
         yout = []
         for x in xout:
             yout.append(cb(x))
-        return self.post_process(stack_1d_on_left(xout, yout))
+        return self.post_process(xout, yout)
 
 
 class TransformedSys(SymbolicSys):
@@ -223,9 +267,8 @@ class TransformedSys(SymbolicSys):
         return cls(list(zip(y, exprs)), x, dep_transf,
                    indep_transf, p, **kwargs)
 
-    def back_transform_out(self, out):
-        return stack_1d_on_left(self.b_indep(out[:, 0]),
-                                np.array(self.b_dep(*out[:, 1:].T)).T)
+    def back_transform_out(self, xout, yout):
+        return self.b_indep(xout), np.array(self.b_dep(*yout.T)).T
 
     def forward_transform_xy(self, x, y):
         return self.f_indep(x), self.f_dep(*y)
@@ -277,12 +320,14 @@ def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
                 **new_kwargs)
 
         @classmethod
-        def from_callback(cls, cb, n, nparams=0, **kwargs):
+        def from_callback(cls, cb, n, nparams=0, **inner_kwargs):
+            new_kwargs = kwargs.copy()
+            new_kwargs.update(inner_kwargs)
             return TransformedSys.from_callback(
                 cb, n, nparams,
                 dep_transf_cbs=repeat(dep_tr) if dep_tr is not None else None,
                 indep_transf_cbs=indep_tr,
-                **kwargs)
+                **new_kwargs)
     return _Sys
 
 
