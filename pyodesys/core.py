@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 
 from .util import ensure_3args
-from .plotting import plot_result
+from .plotting import plot_result, plot_phase_plane
 
 
 class OdeSys(object):
@@ -359,17 +359,22 @@ class OdeSys(object):
                                pycvodes.integrate_predefined,
                                *args, **kwargs)
 
-    def plot_result(self, **kwargs):
+    def _plot(self, cb, **kwargs):
         kwargs = kwargs.copy()
         if 'x' in kwargs or 'y' in kwargs:
             raise ValueError("x and y from internal_xout and internal_yout")
-
-        if 'names' not in kwargs:
-            kwargs['names'] = getattr(self, 'names', None)
 
         if 'post_processor' in kwargs:
             raise ValueError("post_processor taken from self")
         else:
             kwargs['post_processor'] = self._post_processor
 
-        return plot_result(self.internal_xout, self.internal_yout, **kwargs)
+        return cb(self.internal_xout, self.internal_yout, **kwargs)
+
+    def plot_result(self, **kwargs):
+        if 'names' not in kwargs:
+            kwargs['names'] = getattr(self, 'names', None)
+        return self._plot(plot_result, **kwargs)
+
+    def plot_phase_plane(self, indices=(0, 1), **kwargs):
+        return self._plot(plot_phase_plane, indices=indices, **kwargs)
