@@ -71,6 +71,8 @@ The classic van der Pol oscillator (see `examples/van_der_pol.py <examples/van_d
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/van_der_pol.png
 
+for more examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered jupyter notebooks here:
+`<http://hera.physchem.kth.se/~pyodesys/master/examples>`_
 
 License
 -------

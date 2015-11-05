@@ -9,9 +9,12 @@ script:
   - pip3 install --user pyodeint pycvodes pygslodeiv2
   - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov pyodesys --cov-report html
   - python2 setup.py sdist
+  - pip install dist/*.tar.gz
+  - (cd examples/; ipython2 nbconvert --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
   - ./scripts/generate_docs.sh
   - ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
-  - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH" && scp -r doc/_build/html dist/* htmlcov/ ${MY_SERVER}:~/public_html/$DRONE_BRANCH
+  - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH"
+  - scp -r doc/_build/html dist/* htmlcov/ examples/ ${MY_SERVER}:~/public_html/$DRONE_BRANCH
   - touch doc/_build/html/.nojekyll
   - git config --global user.name "drone"
   - git config --global user.email ${MY_SERVER}
