@@ -11,6 +11,7 @@ script:
   - python2 setup.py sdist
   - pip install dist/*.tar.gz
   - (cd examples/; ipython2 nbconvert --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
+  - (cd examples/; ../scripts/render_index.sh *.html)
   - ./scripts/generate_docs.sh
   - ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
   - ssh "${MY_SERVER}" "mkdir -p ~/public_html/$DRONE_BRANCH"
