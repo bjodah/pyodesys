@@ -117,3 +117,20 @@ def plot_result(x, y, plot=None, plot_kwargs_cb=None,
                 idx, lines=True, markers=False))
         return x_post2, y_post2
     return x_post, y_post
+
+
+def plot_phase_plane(x, y, indices, post_processor=None, plot=None, names=None,
+                     **kwargs):
+    if len(indices) != 2:
+        raise ValueError('Only two phase variables supported at the moment')
+    if plot is None:
+        import matplotlib.pyplot as plt
+        plot = plt.plot
+        if names is not None:
+            plt.xlabel(names[indices[0]])
+            plt.ylabel(names[indices[1]])
+
+    if post_processor is not None:
+        x, y = post_processor(x, y)
+
+    plot(y[:, indices[0]], y[:, indices[1]], **kwargs)
