@@ -369,11 +369,12 @@ class OdeSys(object):
         else:
             kwargs['post_processor'] = self._post_processor
 
+        if 'names' not in kwargs:
+            kwargs['names'] = getattr(self, 'names', None)
+
         return cb(self.internal_xout, self.internal_yout, **kwargs)
 
     def plot_result(self, **kwargs):
-        if 'names' not in kwargs:
-            kwargs['names'] = getattr(self, 'names', None)
         return self._plot(plot_result, **kwargs)
 
     def plot_phase_plane(self, indices=(0, 1), **kwargs):

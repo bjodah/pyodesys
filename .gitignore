@@ -6,3 +6,4 @@ MANIFEST
 build/
 **/.ipynb_checkpoints/
 doc/
+examples/test.wav
