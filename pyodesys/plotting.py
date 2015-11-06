@@ -6,7 +6,7 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
 
-def plot_result(x, y, plot=None, plot_kwargs_cb=None,
+def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None,
                 ls=('-', '--', ':', '-.'),
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
@@ -22,6 +22,8 @@ def plot_result(x, y, plot=None, plot_kwargs_cb=None,
         ``y.shape[0] == len(x)``, plot_results will draw
         ``y.shape[1]`` lines. If ``interpolate != None``
         y is expected two be three dimensional, otherwise two dimensional.
+    indices: iterable of integers
+        what indices to plot
     plot: callback (default: None)
         If None, use ``matplotlib.pyplot.plot``
     plot_kwargs_cb: callback(int) -> dict
@@ -45,6 +47,8 @@ def plot_result(x, y, plot=None, plot_kwargs_cb=None,
         when None: ``scipy.interpolate.BPoly.from_derivatives``
     post_processor: callback (default: None)
     """
+    if indices is None:
+        indices = range(y.shape[-1])
     if plot is None:
         from matplotlib.pyplot import plot
     if plot_kwargs_cb is None:
@@ -78,7 +82,7 @@ def plot_result(x, y, plot=None, plot_kwargs_cb=None,
     if lines is None:
         lines = interpolate in (None, False)
     markers = len(x) < m_lim
-    for idx in range(y.shape[-1]):
+    for idx in indices:
         plot(x_post, y_post[:, idx], **plot_kwargs_cb(
             idx, lines=lines, labels=names))
         if markers:
@@ -119,8 +123,10 @@ def plot_result(x, y, plot=None, plot_kwargs_cb=None,
     return x_post, y_post
 
 
-def plot_phase_plane(x, y, indices, post_processor=None, plot=None, names=None,
+def plot_phase_plane(x, y, indices=None, post_processor=None, plot=None, names=None,
                      **kwargs):
+    if indices is None:
+        indices = (0, 1)
     if len(indices) != 2:
         raise ValueError('Only two phase variables supported at the moment')
     if plot is None:

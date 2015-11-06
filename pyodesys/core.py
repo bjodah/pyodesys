@@ -377,5 +377,24 @@ class OdeSys(object):
     def plot_result(self, **kwargs):
         return self._plot(plot_result, **kwargs)
 
-    def plot_phase_plane(self, indices=(0, 1), **kwargs):
+    def plot_phase_plane(self, indices=None, **kwargs):
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
+
+    def stiffness(self, xy=None, idx=None):
+        from scipy.linalg import svd
+
+        if xy is None:
+            x, y = self.internal_xout, self.internal_yout
+        else:
+            x, y = self.pre_process(*xy)
+
+        if y.ndim > 1:
+            if idx is None:
+                raise ValueError("Need an index in idx")
+            x, y = x[idx], y[idx, :]
+
+        J = self.j_cb(t, y, p)
+        if self.band is None:
+            singular_values = svd(J, compute_uv=False)
+        else:
+            raise NotImplementedError
