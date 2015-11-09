@@ -123,8 +123,8 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None,
     return x_post, y_post
 
 
-def plot_phase_plane(x, y, indices=None, post_processor=None, plot=None, names=None,
-                     **kwargs):
+def plot_phase_plane(x, y, indices=None, post_processor=None, plot=None,
+                     names=None, **kwargs):
     if indices is None:
         indices = (0, 1)
     if len(indices) != 2:
