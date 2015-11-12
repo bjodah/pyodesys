@@ -37,6 +37,13 @@ class OdeSys(object):
         If jacobian is banded: number of sub- and super-diagonals
     names: iterable of str (default: None)
         names of variables, used for plotting
+    pre_processors: iterable of callables (optional)
+        signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:]
+        insert at beginning
+    post_processors: iterable of callables (optional)
+        signature: f(x2[:], y2[:, :], y1[:], params2[:]) -> x1[:], y1[:, :],
+            params1[:]
+        insert at end
 
     Attributes
     ----------
@@ -45,20 +52,15 @@ class OdeSys(object):
     names: iterable of str objects
     internal_xout: before post-processing
     internal_yout: before post-processing
+    internal_params: before post-processing
 
     Notes
     -----
     banded jacobians are supported by "scipy" and "cvode" solvers
     """
 
-    # Possible future abstractions:
-    # scaling, (variable transformations, then including scaling)
-
-    _pre_processor = None
-    _post_processor = None
-
     def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None,
-                 band=None, names=None):
+                 band=None, names=None, pre_processors=(), post_processors=()):
         self.f_cb = ensure_3args(f)
         self.j_cb = ensure_3args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -69,8 +71,10 @@ class OdeSys(object):
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
         self.names = names
+        self.pre_processors = pre_processors
+        self.post_processors = post_processors
 
-    def pre_process(self, xout, y0):
+    def pre_process(self, xout, y0, params=()):
         # Should be used by all methods matching "integrate_*"
         try:
             nx = len(xout)
@@ -78,19 +82,18 @@ class OdeSys(object):
                 xout = (0, xout[0])
         except TypeError:
             xout = (0, xout)
-        if self._pre_processor is None:
-            return xout, y0
-        else:
-            return self._pre_processor(xout, y0)
 
-    def post_process(self, xout, yout):
+        for pre_processor in self.pre_processors:
+            xout, y0, params = pre_processor(xout, y0, params)
+        return xout, y0, params
+
+    def post_process(self, xout, yout, params):
         # Should be used by all methods matching "integrate_*"
         self.internal_xout = np.asarray(xout, dtype=np.float64).copy()
         self.internal_yout = np.asarray(yout, dtype=np.float64).copy()
-        if self._post_processor is None:
-            return xout, yout
-        else:
-            return self._post_processor(xout, yout)
+        for post_processor in self.post_processors:
+            xout, yout, params = post_processor(xout, yout, params)
+        return xout, yout, params
 
     def adaptive(self, solver, y0, x0, xend, params=(), **kwargs):
         """
@@ -181,7 +184,7 @@ class OdeSys(object):
         """
         return getattr(self, 'integrate_'+solver)(xout, y0, params, **kwargs)
 
-    def integrate_scipy(self, xout, y0, params=None, atol=1e-8, rtol=1e-8,
+    def integrate_scipy(self, xout, y0, params=(), atol=1e-8, rtol=1e-8,
                         first_step=None, with_jacobian=None,
                         force_predefined=False, name='lsoda', **kwargs):
         """
@@ -202,7 +205,8 @@ class OdeSys(object):
             2-dimensional array (first column indep., rest dep.), infodict
         """
         ny = len(y0)
-        xout, y0 = self.pre_process(xout, y0)
+        xout, intern_y0, self.internal_params = self.pre_process(
+            xout, y0, params)
         nx = len(xout)
         if with_jacobian is None:
             if name == 'lsoda':  # lsoda might call jacobian
@@ -230,12 +234,12 @@ class OdeSys(object):
         if self.band is not None:
             kwargs['lband'], kwargs['uband'] = self.band
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
-        if params is not None:
-            r.set_f_params(params)
-            r.set_jac_params(params)
-        r.set_initial_value(y0, xout[0])
+        if self.internal_params is not ():
+            r.set_f_params(self.internal_params)
+            r.set_jac_params(self.internal_params)
+        r.set_initial_value(intern_y0, xout[0])
         if nx == 2 and not force_predefined:
-            ysteps = [y0]
+            ysteps = [intern_y0]
             xsteps = [xout[0]]
             while r.t < xout[1]:
                 r.integrate(xout[1], step=True)  # vode itask 2 (may overshoot)
@@ -247,7 +251,7 @@ class OdeSys(object):
             xout = np.array(xsteps)
         else:
             yout = np.empty((nx, ny))
-            yout[0, :] = y0
+            yout[0, :] = intern_y0
             for idx in range(1, nx):
                 r.integrate(xout[idx])
                 if not r.successful():
@@ -255,12 +259,13 @@ class OdeSys(object):
                 yout[idx, :] = r.y
         info = {'success': r.successful(), 'nrhs': rhs.ncall,
                 'njac': jac.ncall}
-        return self.post_process(xout, yout) + (info,)
+        return self.post_process(
+            xout, yout, self.internal_params)[:2] + (info,)
 
     def _integrate(self, adaptive, predefined, xout, y0, params=(),
                    atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
                    force_predefined=False, **kwargs):
-        xout, y0 = self.pre_process(xout, y0)
+        xout, y0, self.internal_params = self.pre_process(xout, y0, params)
         if first_step is None:
             first_step = 1e-14 + xout[0]*1e-14  # arbitrary, often works
         nx = len(xout)
@@ -307,7 +312,8 @@ class OdeSys(object):
             xout, yout, info = adaptive(_f, _j, y0, *xout, **new_kwargs)
         else:
             yout, info = predefined(_f, _j, y0, xout, **new_kwargs)
-        return self.post_process(xout, yout) + (info,)
+        return self.post_process(
+            xout, yout, self.internal_params)[:2] + (info,)
 
     def integrate_gsl(self, *args, **kwargs):
         """
@@ -364,15 +370,16 @@ class OdeSys(object):
         if 'x' in kwargs or 'y' in kwargs:
             raise ValueError("x and y from internal_xout and internal_yout")
 
-        if 'post_processor' in kwargs:
-            raise ValueError("post_processor taken from self")
+        if 'post_processors' in kwargs:
+            raise ValueError("post_processors taken from self")
         else:
-            kwargs['post_processor'] = self._post_processor
+            kwargs['post_processors'] = self.post_processors
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
 
-        return cb(self.internal_xout, self.internal_yout, **kwargs)
+        return cb(self.internal_xout, self.internal_yout,
+                  self.internal_params, **kwargs)
 
     def plot_result(self, **kwargs):
         return self._plot(plot_result, **kwargs)
@@ -380,21 +387,22 @@ class OdeSys(object):
     def plot_phase_plane(self, indices=None, **kwargs):
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
 
-    def stiffness(self, xy=None, params=()):
+    def stiffness(self, xyp=None):
         """
         Calculate sittness ratio, i.e. the ratio between the largest and
         smallest absolute eigenvalue of the jacobian matrix
         """
         from scipy.linalg import svd
 
-        if xy is None:
-            x, y = self.internal_xout, self.internal_yout
+        if xyp is None:
+            x, y, intern_p = (self.internal_xout, self.internal_yout,
+                              self.internal_params)
         else:
-            x, y = self.pre_process(*xy)
+            x, y, intern_p = self.pre_process(*xyp)
 
         singular_values = []
         for xval, yvals in zip(x, y):
-            J = self.j_cb(xval, yvals, params)
+            J = self.j_cb(xval, yvals, intern_p)
             if self.band is None:
                 singular_values.append(svd(J, compute_uv=False))
             else:

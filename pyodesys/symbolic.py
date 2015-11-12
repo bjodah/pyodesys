@@ -96,9 +96,9 @@ class SymbolicSys(OdeSys):
         return sp.lambdify(*args, **kwargs)
 
     @classmethod
-    def num_transformer_factory(cls, fw, bw, dep, lambdify=None):
+    def num_transformer_factory(cls, fw, bw, inp, lambdify=None):
         lambdify = lambdify or cls.lambdify
-        return lambdify(dep, fw), lambdify(dep, bw)
+        return lambdify(inp, fw), lambdify(inp, bw)
 
     @classmethod
     def from_callback(cls, cb, n, nparams=0, *args, **kwargs):
@@ -195,19 +195,30 @@ class SymbolicSys(OdeSys):
         return roots
 
     # Not working yet:
-    def integrate_mpmath(self, xout, y0):
+    def integrate_mpmath(self, xout, y0, params=()):
         """ Not working at the moment, need to fix
         (low priority - taylor series is a poor method)"""
-        xout, y0 = self.pre_process(xout, y0)
+        raise NotImplementedError
+        xout, y0, self.internal_params = self.pre_process(xout, y0, params)
         from mpmath import odefun
-        cb = odefun(lambda x, y: [e.subs(
-            ([(self.indep, x)] if self.indep is not None else []) +
-            list(zip(self.dep, y))
-        ) for e in self.exprs], xout[0], y0)
+
+        def rhs(x, y):
+            rhs.ncall += 1
+            return [
+                e.subs(
+                    ([(self.indep, x)] if self.indep is not None else []) +
+                    list(zip(self.dep, y))
+                ) for e in self.exprs
+            ]
+        rhs.ncall = 0
+
+        cb = odefun(lambda x, y: rhs, xout[0], y0)
         yout = []
         for x in xout:
             yout.append(cb(x))
-        return self.post_process(xout, yout)
+        info = {'nrhs': rhs.ncall}
+        return self.post_process(
+            xout, yout, self.internal_params)[:2] + (info,)
 
 
 class TransformedSys(SymbolicSys):
@@ -233,18 +244,20 @@ class TransformedSys(SymbolicSys):
         if exprs_process_cb is not None:
             exprs = exprs_process_cb(exprs)
 
-        super(TransformedSys, self).__init__(zip(dep, exprs), indep, params,
-                                             **kwargs)
+        super(TransformedSys, self).__init__(
+            zip(dep, exprs), indep, params,
+            pre_processors=[self.forward_transform_xy],
+            post_processors=[self.back_transform_out], **kwargs)
+        # the pre- and post-processors need callbacks:
+        args = self.args(indep, dep, params)
         self.f_dep, self.b_dep = self.num_transformer_factory(
-            self.dep_fw, self.dep_bw, dep)
+            self.dep_fw, self.dep_bw, args)
         if (self.indep_fw, self.indep_bw) != (None, None):
             self.f_indep, self.b_indep = self.num_transformer_factory(
-                self.indep_fw, self.indep_bw, indep)
+                self.indep_fw, self.indep_bw, args)
         else:
-            self.f_indep = lambda x: x  # identity operation
-            self.b_indep = lambda x: x  # identity operation
-        self._post_processor = self.back_transform_out
-        self._pre_processor = self.forward_transform_xy
+            self.f_indep = None
+            self.b_indep = None
 
     @classmethod
     def from_callback(cls, cb, n, nparams=0, dep_transf_cbs=None,
@@ -267,11 +280,23 @@ class TransformedSys(SymbolicSys):
         return cls(list(zip(y, exprs)), x, dep_transf,
                    indep_transf, p, **kwargs)
 
-    def back_transform_out(self, xout, yout):
-        return self.b_indep(xout), np.array(self.b_dep(*yout.T)).T
+    def back_transform_out(self, xout, yout, params):
+        args = self.args(xout, yout.T, params)
+        if self.lambdify_unpack:
+            return (xout if self.b_indep is None else self.b_indep(*args),
+                    np.array(self.b_dep(*args)).T, params)
+        else:
+            return (xout if self.b_indep is None else self.b_indep(args),
+                    np.array(self.b_dep(args)).T, params)
 
-    def forward_transform_xy(self, x, y):
-        return self.f_indep(x), self.f_dep(*y)
+    def forward_transform_xy(self, x, y, p):
+        args = self.args(x, y, p)
+        if self.lambdify_unpack:
+            return (x if self.f_indep is None else self.f_indep(*args),
+                    self.f_dep(*args), p)
+        else:
+            return (x if self.f_indep is None else self.f_indep(args),
+                    self.f_dep(args), p)
 
 
 def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):

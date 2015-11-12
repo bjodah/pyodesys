@@ -311,7 +311,7 @@ def test_long_chain_dense(n, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
-@pytest.mark.parametrize('n', [21, 30])  # something maxes out at 31
+@pytest.mark.parametrize('n', [29, 30])  # something maxes out at 31
 def test_long_chain_banded_scipy(n):
     p, a = 0, n
     y0, k, odesys_dens = get_special_chain(n, p, a)
