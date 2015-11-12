@@ -377,5 +377,28 @@ class OdeSys(object):
     def plot_result(self, **kwargs):
         return self._plot(plot_result, **kwargs)
 
-    def plot_phase_plane(self, indices=(0, 1), **kwargs):
+    def plot_phase_plane(self, indices=None, **kwargs):
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
+
+    def stiffness(self, xy=None, params=()):
+        """
+        Calculate sittness ratio, i.e. the ratio between the largest and
+        smallest absolute eigenvalue of the jacobian matrix
+        """
+        from scipy.linalg import svd
+
+        if xy is None:
+            x, y = self.internal_xout, self.internal_yout
+        else:
+            x, y = self.pre_process(*xy)
+
+        singular_values = []
+        for xval, yvals in zip(x, y):
+            J = self.j_cb(xval, yvals, params)
+            if self.band is None:
+                singular_values.append(svd(J, compute_uv=False))
+            else:
+                raise NotImplementedError
+
+        return (np.abs(singular_values).max(axis=-1) /
+                np.abs(singular_values).min(axis=-1))
