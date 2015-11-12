@@ -22,7 +22,7 @@ def vdp_j(t, y, p):
 
 def test_params():
     odes = OdeSys(vdp_f, vdp_j)
-    xout, yout, info = odes.integrate_scipy([0, 1, 2], [1, 0], params=[2.0])
+    xout, yout, info = odes.integrate('scipy', [0, 1, 2], [1, 0], params=[2.0])
     # blessed values:
     ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
     assert np.allclose(yout, ref)

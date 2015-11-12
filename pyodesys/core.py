@@ -47,12 +47,12 @@ class OdeSys(object):
 
     Attributes
     ----------
-    f_cb: callback for evaluating the vector of derivatives
-    j_cb: callback for evaluating the Jacobian matrix of f
-    names: iterable of str objects
-    internal_xout: before post-processing
-    internal_yout: before post-processing
-    internal_params: before post-processing
+    f_cb : callback for evaluating the vector of derivatives
+    j_cb : callback for evaluating the Jacobian matrix of f
+    names : iterable of str objects
+    internal_xout : before post-processing
+    internal_yout : before post-processing
+    internal_params : before post-processing
 
     Notes
     -----
@@ -60,7 +60,8 @@ class OdeSys(object):
     """
 
     def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None,
-                 band=None, names=None, pre_processors=(), post_processors=()):
+                 band=None, names=None, pre_processors=None,
+                 post_processors=None):
         self.f_cb = ensure_3args(f)
         self.j_cb = ensure_3args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -71,11 +72,11 @@ class OdeSys(object):
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
         self.names = names
-        self.pre_processors = pre_processors
-        self.post_processors = post_processors
+        self.pre_processors = pre_processors or []
+        self.post_processors = post_processors or []
 
     def pre_process(self, xout, y0, params=()):
-        # Should be used by all methods matching "integrate_*"
+        # Should be used by all methods matching "_integrate_*"
         try:
             nx = len(xout)
             if nx == 1:
@@ -88,7 +89,7 @@ class OdeSys(object):
         return xout, y0, params
 
     def post_process(self, xout, yout, params):
-        # Should be used by all methods matching "integrate_*"
+        # Should be used by all methods matching "_integrate_*"
         self.internal_xout = np.asarray(xout, dtype=np.float64).copy()
         self.internal_yout = np.asarray(yout, dtype=np.float64).copy()
         for post_processor in self.post_processors:
@@ -173,7 +174,7 @@ class OdeSys(object):
         force_predefined: bool (default: False)
             override behaviour of len(xout) == 2 => adaptive
         \*\*kwargs:
-            Additional keyword arguments passed to ``integrate_$(solver)``.
+            Additional keyword arguments passed to ``_integrate_$(solver)``.
 
         Returns
         -------
@@ -182,11 +183,11 @@ class OdeSys(object):
         yout: array of the dependent variable(s) for the different values of x
         info: dict ('nrhs' and 'njac' guaranteed to be there)
         """
-        return getattr(self, 'integrate_'+solver)(xout, y0, params, **kwargs)
+        return getattr(self, '_integrate_'+solver)(xout, y0, params, **kwargs)
 
-    def integrate_scipy(self, xout, y0, params=(), atol=1e-8, rtol=1e-8,
-                        first_step=None, with_jacobian=None,
-                        force_predefined=False, name='lsoda', **kwargs):
+    def _integrate_scipy(self, xout, y0, params=(), atol=1e-8, rtol=1e-8,
+                         first_step=None, with_jacobian=None,
+                         force_predefined=False, name='lsoda', **kwargs):
         """
         Use scipy.integrate.ode
 
@@ -315,7 +316,7 @@ class OdeSys(object):
         return self.post_process(
             xout, yout, self.internal_params)[:2] + (info,)
 
-    def integrate_gsl(self, *args, **kwargs):
+    def _integrate_gsl(self, *args, **kwargs):
         """
         Use GNU Scientific Library to integrate ODE system.
 
@@ -341,7 +342,7 @@ class OdeSys(object):
                                pygslodeiv2.integrate_predefined,
                                *args, **kwargs)
 
-    def integrate_odeint(self, *args, **kwargs):
+    def _integrate_odeint(self, *args, **kwargs):
         """ Use Boost.Numeric.Odeint to integrate the ODE system. """
         import pyodeint
         kwargs['with_jacobian'] = kwargs.get(
@@ -350,7 +351,7 @@ class OdeSys(object):
                                pyodeint.integrate_predefined,
                                *args, **kwargs)
 
-    def integrate_cvode(self, *args, **kwargs):
+    def _integrate_cvode(self, *args, **kwargs):
         """ Use CVode (from CVodes in Sundials) to
         integrate the ODE system. """
         import pycvodes

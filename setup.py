@@ -41,11 +41,14 @@ tests = [
     'pyodesys.tests',
 ]
 
+with open(os.path.join(pkg_name, '__init__.py')) as f:
+    long_description = f.read().split('"""')[1]
 descr = 'Straightforward numerical integration of ODE systems from SymPy.'
 setup_kwargs = dict(
     name=pkg_name,
     version=__version__,
     description=descr,
+    long_description=long_description,
     classifiers=classifiers,
     author='Björn Dahlgren',
     author_email='bjodah@DELETEMEgmail.com',

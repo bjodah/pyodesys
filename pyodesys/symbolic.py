@@ -40,6 +40,12 @@ class SymbolicSys(OdeSys):
     \*\*kwargs:
         See :py:class:`OdeSys`
 
+    Attributes
+    ----------
+    dep : iterable of dependent variables
+    indep : independent variable
+    params : iterable of parameters
+
     Notes
     -----
     Works for a moderate number of unknowns, sympy.lambdify has
@@ -195,7 +201,7 @@ class SymbolicSys(OdeSys):
         return roots
 
     # Not working yet:
-    def integrate_mpmath(self, xout, y0, params=()):
+    def _integrate_mpmath(self, xout, y0, params=()):
         """ Not working at the moment, need to fix
         (low priority - taylor series is a poor method)"""
         raise NotImplementedError
@@ -389,3 +395,134 @@ class ScaledSys(TransformedSys):
             dep_transf_cbs=repeat(cls.scale_fw_bw(dep_scaling)),
             indep_transf_cbs=cls.scale_fw_bw(indep_scaling),
         )
+
+
+def _take(indices, iterable):
+    return np.asarray([elem for idx, elem in enumerate(
+        iterable) if idx in indices])
+
+
+def _skip(indices, iterable):
+    return np.asarray([elem for idx, elem in enumerate(
+        iterable) if idx not in indices])
+
+
+def _append(arr, *iterables):
+    if isinstance(arr, np.ndarray):
+        return np.concatenate((arr,) + iterables)
+    arr = arr[:]
+    for iterable in iterables:
+        arr += type(arr)(iterable)
+    return arr
+
+
+def _concat(*args):
+    return np.concatenate(list(map(np.atleast_1d, args)))
+
+
+class PartiallySolvedSystem(object):
+    """ Use analytic expressions some dependent variables
+
+    Parameters
+    ----------
+    original_system: SymbolicSys
+    analytic_factory: callable
+        signature: solved(x0, y0, p0) -> dict, where dict maps
+        independent variables as analytic expressions in remaining variables
+
+    Attributes
+    ----------
+    reformulated_sys : the new :py:class:`pyodesys.symbolic.SymbolicSys` \
+        instance.
+
+    Examples
+    --------
+    >>> odesys = SymbolicSys.from_callback(
+    ...     lambda x, y, p: [
+    ...         -p[0]*y[0],
+    ...         p[0]*y[0] - p[1]*y[1]
+    ...     ], 2, 2)
+    >>> dep0 = odesys.dep[0]
+    >>> partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
+    ...         dep0: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+    ...     })
+    >>> print(partsys.reformulated_sys.exprs)  # doctest: +SKIP
+    (_Dummy_29*p_0*exp(-p_0*(-_Dummy_28 + x)) - p_1*y_1,)
+    >>> y0, k = [3, 2], [3.5, 2.5]
+    >>> xout, yout, info = partsys.integrate('scipy', [0, 1], y0, k)
+    >>> info['success'], yout.shape[1]
+    (True, 2)
+
+    """
+    def __init__(self, original_system, analytic_factory, Dummy=None,
+                 **kwargs):
+        self.original_system = original_system
+        self.analytic_factory = analytic_factory
+        if original_system.roots is not None:
+            raise NotImplementedError('roots unsupported')
+        if Dummy is None:
+            Dummy = sp.Dummy
+        self.init_indep = Dummy()
+        self.init_dep = [Dummy() for _ in range(original_system.ny)]
+        self.reformulated_sys = self._reformulate(original_system, **kwargs)
+        for attr in 'integrate plot_result plot_phase_plane stiffness'.split():
+            setattr(self, attr, getattr(self.reformulated_sys, attr))
+
+    def _get_analytic_cb(self, ori_sys, analytic_exprs, new_params):
+        cb = ori_sys.lambdify(_concat(ori_sys.indep, new_params),
+                              analytic_exprs)
+
+        def analytic(x, params):
+            args = np.empty((len(x), 1+len(params)))
+            args[:, 0] = x
+            args[:, 1:] = params
+            if ori_sys.lambdify_unpack:
+                return np.asarray(cb(*(args.T)))
+            else:
+                return np.asarray(cb(args.T))
+        return analytic
+
+    def _reformulate(self, orisys, **kwargs):
+        if 'pre_processors' in kwargs or 'post_processors' in kwargs:
+            raise NotImplementedError("Cannot override pre-/postprocessors")
+        analytic = self.analytic_factory(self.init_indep, self.init_dep,
+                                         orisys.params)
+        new_dep = [dep for dep in orisys.dep if dep not in analytic]
+        new_params = _append(orisys.params, (self.init_indep,), self.init_dep)
+        self.analytic_cb = self._get_analytic_cb(
+            orisys, list(analytic.values()), new_params)
+        analytic_ids = [orisys.dep.index(dep) for dep in analytic]
+        nanalytic = len(analytic_ids)
+        new_exprs = [expr.subs(analytic) for idx, expr in enumerate(
+            orisys.exprs) if idx not in analytic_ids]
+        new_kw = kwargs.copy()
+        if 'name' not in new_kw and orisys.names is not None:
+            new_kw['names'] = orisys.names
+        if 'band' not in new_kw and orisys.band is not None:
+            new_kw['band'] = orisys.band
+
+        def pre_processor(x, y, p):
+            return (x, _skip(analytic_ids, y), _append(
+                p, [x[0]], y))
+
+        def post_processor(x, y, p):
+            new_y = np.empty(y.shape[:-1] + (y.shape[-1]+nanalytic,))
+            analyt_y = self.analytic_cb(x, p)
+            analyt_idx = 0
+            intern_idx = 0
+            for idx in range(orisys.ny):
+                if idx in analytic_ids:
+                    new_y[..., idx] = analyt_y[analyt_idx]
+                    analyt_idx += 1
+                else:
+                    new_y[..., idx] = y[..., intern_idx]
+                    intern_idx += 1
+            return x, new_y, p[:-(1+orisys.ny)]
+
+        new_kw['pre_processors'] = [pre_processor] + orisys.pre_processors
+        new_kw['post_processors'] = orisys.post_processors + [post_processor]
+
+        return SymbolicSys(
+            zip(new_dep, new_exprs), orisys.indep, new_params,
+            lambdify=orisys.lambdify, lambdify_unpack=orisys.lambdify_unpack,
+            Matrix=orisys.Matrix, **new_kw)
