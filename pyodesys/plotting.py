@@ -6,12 +6,12 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
 
-def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None,
+def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
                 ls=('-', '--', ':', '-.'),
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
-                names=None, post_processor=None):
+                names=None, post_processors=()):
     """
     Parameters
     ----------
@@ -22,6 +22,8 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None,
         ``y.shape[0] == len(x)``, plot_results will draw
         ``y.shape[1]`` lines. If ``interpolate != None``
         y is expected two be three dimensional, otherwise two dimensional.
+    params: array_like:
+        parameters used
     indices: iterable of integers
         what indices to plot
     plot: callback (default: None)
@@ -45,7 +47,7 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None,
         to use for interpolation using 3rd dimension of y as input.
     interp_from_deriv: callback (default: None)
         when None: ``scipy.interpolate.BPoly.from_derivatives``
-    post_processor: callback (default: None)
+    post_processors: callback (default: None)
     """
     if indices is None:
         indices = range(y.shape[-1])
@@ -71,14 +73,13 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None,
     else:
         plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
 
-    def post_process(x, y):
-        if post_processor is None:
-            return x, y
-        else:
-            return post_processor(x, y)
+    def post_process(x, y, params):
+        for post_processor in post_processors:
+            x, y, params = post_processor(x, y, params)
+        return x, y, params
 
-    x_post, y_post = post_process(x, y[:, 0, :] if interpolate and
-                                  y.ndim == 3 else y)
+    x_post, y_post, params_post = post_process(x, y[:, 0, :] if interpolate and
+                                               y.ndim == 3 else y, params)
     if lines is None:
         lines = interpolate in (None, False)
     markers = len(x) < m_lim
@@ -115,7 +116,7 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None,
             interp_cb = interp_from_deriv(x, y[..., idx])
             y2[:, idx] = interp_cb(x_plot)
 
-        x_post2, y_post2 = post_process(x_plot, y2)
+        x_post2, y_post2, params2 = post_process(x_plot, y2, params)
         for idx in range(y.shape[-1]):
             plot(x_post2, y_post2[:, idx], **plot_kwargs_cb(
                 idx, lines=True, markers=False))
@@ -123,12 +124,13 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None,
     return x_post, y_post
 
 
-def plot_phase_plane(x, y, indices=None, post_processor=None, plot=None,
-                     names=None, **kwargs):
+def plot_phase_plane(x, y, params=(), indices=None, post_processors=None,
+                     plot=None, names=None, **kwargs):
     if indices is None:
         indices = (0, 1)
     if len(indices) != 2:
         raise ValueError('Only two phase variables supported at the moment')
+
     if plot is None:
         import matplotlib.pyplot as plt
         plot = plt.plot
@@ -136,7 +138,8 @@ def plot_phase_plane(x, y, indices=None, post_processor=None, plot=None,
             plt.xlabel(names[indices[0]])
             plt.ylabel(names[indices[1]])
 
-    if post_processor is not None:
-        x, y = post_processor(x, y)
+    if post_processors is not None:
+        for post_processor in post_processors:
+            x, y, params = post_processor(x, y, params)
 
     plot(y[:, indices[0]], y[:, indices[1]], **kwargs)

@@ -40,6 +40,12 @@ class SymbolicSys(OdeSys):
     \*\*kwargs:
         See :py:class:`OdeSys`
 
+    Attributes
+    ----------
+    dep : iterable of dependent variables
+    indep : independent variable
+    params : iterable of parameters
+
     Notes
     -----
     Works for a moderate number of unknowns, sympy.lambdify has
@@ -96,9 +102,9 @@ class SymbolicSys(OdeSys):
         return sp.lambdify(*args, **kwargs)
 
     @classmethod
-    def num_transformer_factory(cls, fw, bw, dep, lambdify=None):
+    def num_transformer_factory(cls, fw, bw, inp, lambdify=None):
         lambdify = lambdify or cls.lambdify
-        return lambdify(dep, fw), lambdify(dep, bw)
+        return lambdify(inp, fw), lambdify(inp, bw)
 
     @classmethod
     def from_callback(cls, cb, n, nparams=0, *args, **kwargs):
@@ -195,19 +201,30 @@ class SymbolicSys(OdeSys):
         return roots
 
     # Not working yet:
-    def integrate_mpmath(self, xout, y0):
+    def _integrate_mpmath(self, xout, y0, params=()):
         """ Not working at the moment, need to fix
         (low priority - taylor series is a poor method)"""
-        xout, y0 = self.pre_process(xout, y0)
+        raise NotImplementedError
+        xout, y0, self.internal_params = self.pre_process(xout, y0, params)
         from mpmath import odefun
-        cb = odefun(lambda x, y: [e.subs(
-            ([(self.indep, x)] if self.indep is not None else []) +
-            list(zip(self.dep, y))
-        ) for e in self.exprs], xout[0], y0)
+
+        def rhs(x, y):
+            rhs.ncall += 1
+            return [
+                e.subs(
+                    ([(self.indep, x)] if self.indep is not None else []) +
+                    list(zip(self.dep, y))
+                ) for e in self.exprs
+            ]
+        rhs.ncall = 0
+
+        cb = odefun(lambda x, y: rhs, xout[0], y0)
         yout = []
         for x in xout:
             yout.append(cb(x))
-        return self.post_process(xout, yout)
+        info = {'nrhs': rhs.ncall}
+        return self.post_process(
+            xout, yout, self.internal_params)[:2] + (info,)
 
 
 class TransformedSys(SymbolicSys):
@@ -233,18 +250,20 @@ class TransformedSys(SymbolicSys):
         if exprs_process_cb is not None:
             exprs = exprs_process_cb(exprs)
 
-        super(TransformedSys, self).__init__(zip(dep, exprs), indep, params,
-                                             **kwargs)
+        super(TransformedSys, self).__init__(
+            zip(dep, exprs), indep, params,
+            pre_processors=[self.forward_transform_xy],
+            post_processors=[self.back_transform_out], **kwargs)
+        # the pre- and post-processors need callbacks:
+        args = self.args(indep, dep, params)
         self.f_dep, self.b_dep = self.num_transformer_factory(
-            self.dep_fw, self.dep_bw, dep)
+            self.dep_fw, self.dep_bw, args)
         if (self.indep_fw, self.indep_bw) != (None, None):
             self.f_indep, self.b_indep = self.num_transformer_factory(
-                self.indep_fw, self.indep_bw, indep)
+                self.indep_fw, self.indep_bw, args)
         else:
-            self.f_indep = lambda x: x  # identity operation
-            self.b_indep = lambda x: x  # identity operation
-        self._post_processor = self.back_transform_out
-        self._pre_processor = self.forward_transform_xy
+            self.f_indep = None
+            self.b_indep = None
 
     @classmethod
     def from_callback(cls, cb, n, nparams=0, dep_transf_cbs=None,
@@ -267,11 +286,23 @@ class TransformedSys(SymbolicSys):
         return cls(list(zip(y, exprs)), x, dep_transf,
                    indep_transf, p, **kwargs)
 
-    def back_transform_out(self, xout, yout):
-        return self.b_indep(xout), np.array(self.b_dep(*yout.T)).T
+    def back_transform_out(self, xout, yout, params):
+        args = self.args(xout, yout.T, params)
+        if self.lambdify_unpack:
+            return (xout if self.b_indep is None else self.b_indep(*args),
+                    np.array(self.b_dep(*args)).T, params)
+        else:
+            return (xout if self.b_indep is None else self.b_indep(args),
+                    np.array(self.b_dep(args)).T, params)
 
-    def forward_transform_xy(self, x, y):
-        return self.f_indep(x), self.f_dep(*y)
+    def forward_transform_xy(self, x, y, p):
+        args = self.args(x, y, p)
+        if self.lambdify_unpack:
+            return (x if self.f_indep is None else self.f_indep(*args),
+                    self.f_dep(*args), p)
+        else:
+            return (x if self.f_indep is None else self.f_indep(args),
+                    self.f_dep(args), p)
 
 
 def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
@@ -364,3 +395,134 @@ class ScaledSys(TransformedSys):
             dep_transf_cbs=repeat(cls.scale_fw_bw(dep_scaling)),
             indep_transf_cbs=cls.scale_fw_bw(indep_scaling),
         )
+
+
+def _take(indices, iterable):
+    return np.asarray([elem for idx, elem in enumerate(
+        iterable) if idx in indices])
+
+
+def _skip(indices, iterable):
+    return np.asarray([elem for idx, elem in enumerate(
+        iterable) if idx not in indices])
+
+
+def _append(arr, *iterables):
+    if isinstance(arr, np.ndarray):
+        return np.concatenate((arr,) + iterables)
+    arr = arr[:]
+    for iterable in iterables:
+        arr += type(arr)(iterable)
+    return arr
+
+
+def _concat(*args):
+    return np.concatenate(list(map(np.atleast_1d, args)))
+
+
+class PartiallySolvedSystem(object):
+    """ Use analytic expressions some dependent variables
+
+    Parameters
+    ----------
+    original_system: SymbolicSys
+    analytic_factory: callable
+        signature: solved(x0, y0, p0) -> dict, where dict maps
+        independent variables as analytic expressions in remaining variables
+
+    Attributes
+    ----------
+    reformulated_sys : the new :py:class:`pyodesys.symbolic.SymbolicSys` \
+        instance.
+
+    Examples
+    --------
+    >>> odesys = SymbolicSys.from_callback(
+    ...     lambda x, y, p: [
+    ...         -p[0]*y[0],
+    ...         p[0]*y[0] - p[1]*y[1]
+    ...     ], 2, 2)
+    >>> dep0 = odesys.dep[0]
+    >>> partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
+    ...         dep0: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+    ...     })
+    >>> print(partsys.reformulated_sys.exprs)  # doctest: +SKIP
+    (_Dummy_29*p_0*exp(-p_0*(-_Dummy_28 + x)) - p_1*y_1,)
+    >>> y0, k = [3, 2], [3.5, 2.5]
+    >>> xout, yout, info = partsys.integrate('scipy', [0, 1], y0, k)
+    >>> info['success'], yout.shape[1]
+    (True, 2)
+
+    """
+    def __init__(self, original_system, analytic_factory, Dummy=None,
+                 **kwargs):
+        self.original_system = original_system
+        self.analytic_factory = analytic_factory
+        if original_system.roots is not None:
+            raise NotImplementedError('roots unsupported')
+        if Dummy is None:
+            Dummy = sp.Dummy
+        self.init_indep = Dummy()
+        self.init_dep = [Dummy() for _ in range(original_system.ny)]
+        self.reformulated_sys = self._reformulate(original_system, **kwargs)
+        for attr in 'integrate plot_result plot_phase_plane stiffness'.split():
+            setattr(self, attr, getattr(self.reformulated_sys, attr))
+
+    def _get_analytic_cb(self, ori_sys, analytic_exprs, new_params):
+        cb = ori_sys.lambdify(_concat(ori_sys.indep, new_params),
+                              analytic_exprs)
+
+        def analytic(x, params):
+            args = np.empty((len(x), 1+len(params)))
+            args[:, 0] = x
+            args[:, 1:] = params
+            if ori_sys.lambdify_unpack:
+                return np.asarray(cb(*(args.T)))
+            else:
+                return np.asarray(cb(args.T))
+        return analytic
+
+    def _reformulate(self, orisys, **kwargs):
+        if 'pre_processors' in kwargs or 'post_processors' in kwargs:
+            raise NotImplementedError("Cannot override pre-/postprocessors")
+        analytic = self.analytic_factory(self.init_indep, self.init_dep,
+                                         orisys.params)
+        new_dep = [dep for dep in orisys.dep if dep not in analytic]
+        new_params = _append(orisys.params, (self.init_indep,), self.init_dep)
+        self.analytic_cb = self._get_analytic_cb(
+            orisys, list(analytic.values()), new_params)
+        analytic_ids = [orisys.dep.index(dep) for dep in analytic]
+        nanalytic = len(analytic_ids)
+        new_exprs = [expr.subs(analytic) for idx, expr in enumerate(
+            orisys.exprs) if idx not in analytic_ids]
+        new_kw = kwargs.copy()
+        if 'name' not in new_kw and orisys.names is not None:
+            new_kw['names'] = orisys.names
+        if 'band' not in new_kw and orisys.band is not None:
+            new_kw['band'] = orisys.band
+
+        def pre_processor(x, y, p):
+            return (x, _skip(analytic_ids, y), _append(
+                p, [x[0]], y))
+
+        def post_processor(x, y, p):
+            new_y = np.empty(y.shape[:-1] + (y.shape[-1]+nanalytic,))
+            analyt_y = self.analytic_cb(x, p)
+            analyt_idx = 0
+            intern_idx = 0
+            for idx in range(orisys.ny):
+                if idx in analytic_ids:
+                    new_y[..., idx] = analyt_y[analyt_idx]
+                    analyt_idx += 1
+                else:
+                    new_y[..., idx] = y[..., intern_idx]
+                    intern_idx += 1
+            return x, new_y, p[:-(1+orisys.ny)]
+
+        new_kw['pre_processors'] = [pre_processor] + orisys.pre_processors
+        new_kw['post_processors'] = orisys.post_processors + [post_processor]
+
+        return SymbolicSys(
+            zip(new_dep, new_exprs), orisys.indep, new_params,
+            lambdify=orisys.lambdify, lambdify_unpack=orisys.lambdify_unpack,
+            Matrix=orisys.Matrix, **new_kw)

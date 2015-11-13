@@ -7,7 +7,7 @@ from .test_core import vdp_f, vdp_j
 
 def test_plot_result():
     odes = OdeSys(vdp_f, vdp_j)
-    odes.integrate_scipy([0, 1, 2], [1, 0], params=[2.0])
+    odes.integrate('scipy', [0, 1, 2], [1, 0], params=[2.0])
     odes.plot_result()
 
 
