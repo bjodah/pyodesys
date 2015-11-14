@@ -454,6 +454,12 @@ class PartiallySolvedSystem(object):
     (True, 2)
 
     """
+
+    _delegated = (
+        'integrate', 'plot_result', 'plot_phase_plane', 'stiffness',
+        'internal_xout', 'internal_yout', 'internal_params'
+    )
+
     def __init__(self, original_system, analytic_factory, Dummy=None,
                  **kwargs):
         self.original_system = original_system
@@ -465,8 +471,13 @@ class PartiallySolvedSystem(object):
         self.init_indep = Dummy()
         self.init_dep = [Dummy() for _ in range(original_system.ny)]
         self.reformulated_sys = self._reformulate(original_system, **kwargs)
-        for attr in 'integrate plot_result plot_phase_plane stiffness'.split():
-            setattr(self, attr, getattr(self.reformulated_sys, attr))
+
+    def __getattr__(self, attr):
+        if attr in self._delegated:
+            return getattr(self.reformulated_sys, attr)
+        else:
+            raise AttributeError("%r object has no attribute %r" %
+                                 (self.__class__, attr))
 
     def _get_analytic_cb(self, ori_sys, analytic_exprs, new_params):
         cb = ori_sys.lambdify(_concat(ori_sys.indep, new_params),
