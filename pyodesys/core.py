@@ -275,8 +275,8 @@ class OdeSys(object):
         new_kwargs.update(kwargs)
 
         def _f(x, y, fout):
-            if len(params) > 0:
-                fout[:] = self.f_cb(x, y, params)
+            if len(self.internal_params) > 0:
+                fout[:] = self.f_cb(x, y, self.internal_params)
             else:
                 fout[:] = self.f_cb(x, y)
 
@@ -284,13 +284,13 @@ class OdeSys(object):
             raise ValueError("Need to pass with_jacobian")
         elif with_jacobian is True:
             def _j(x, y, jout, dfdx_out=None, fy=None):
-                if len(params) > 0:
-                    jout[:, :] = self.j_cb(x, y, params)
+                if len(self.internal_params) > 0:
+                    jout[:, :] = self.j_cb(x, y, self.internal_params)
                 else:
                     jout[:, :] = self.j_cb(x, y)
                 if dfdx_out is not None:
-                    if len(params) > 0:
-                        dfdx_out[:] = self.dfdx_cb(x, y, params)
+                    if len(self.internal_params) > 0:
+                        dfdx_out[:] = self.dfdx_cb(x, y, self.internal_params)
                     else:
                         dfdx_out[:] = self.dfdx_cb(x, y)
         else:
@@ -298,8 +298,8 @@ class OdeSys(object):
 
         if self.roots_cb is not None:
             def _roots(x, y, out):
-                if len(params) > 0:
-                    out[:] = self.roots_cb(x, y, params)
+                if len(self.internal_params) > 0:
+                    out[:] = self.roots_cb(x, y, self.internal_params)
                 else:
                     out[:] = self.roots_cb(x, y)
             if 'roots' in new_kwargs:
