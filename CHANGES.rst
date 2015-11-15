@@ -1,6 +1,6 @@
 v0.4.0
 ======
-- SymbolicSys not available directly from pyodesys
+- SymbolicSys not available directly from pyodesys (but from pyodesys.symbolic)
 - OdeSys.integrate_* documented as private (internal).
 - symbolic.PartiallySolvedSystem added
 - multiple (chained) pre and postprocessors supported

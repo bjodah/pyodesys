@@ -17,14 +17,14 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
 
     Parameters
     ----------
-    x: array_like:
+    x: array_like
         Values of the independent variable.
-    y: array_like:
+    y: array_like
         Values of the independent variable. This must hold
         ``y.shape[0] == len(x)``, plot_results will draw
         ``y.shape[1]`` lines. If ``interpolate != None``
         y is expected two be three dimensional, otherwise two dimensional.
-    params: array_like:
+    params: array_like
         parameters used
     indices: iterable of integers
         what indices to plot (default: None => all)

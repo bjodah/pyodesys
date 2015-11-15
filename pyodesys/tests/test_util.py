@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from .. import SymbolicSys
+from ..symbolic import SymbolicSys
 from ..util import banded_jacobian
 from .test_symbolic import decay_dydt_factory
 

@@ -57,7 +57,7 @@ setup_kwargs = dict(
     url='https://github.com/bjodah/' + pkg_name,
     license='BSD',
     packages=[pkg_name] + tests,
-    extras_require={'all': ['sympy', 'scipy', 'pyodeint', 
+    extras_require={'all': ['sympy', 'scipy', 'pyodeint',
                             'pycvodes', 'pygslodeiv2']}
 )
 

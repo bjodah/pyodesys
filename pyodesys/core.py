@@ -100,7 +100,7 @@ class OdeSys(object):
         """ Transforms internal values to output, used inernally.
 
         Should be used by all methods matching "integrate_*"
-        """ 
+        """
         self.internal_xout = np.asarray(xout, dtype=np.float64).copy()
         self.internal_yout = np.asarray(yout, dtype=np.float64).copy()
         for post_processor in self.post_processors:
@@ -163,7 +163,7 @@ class OdeSys(object):
         Parameters
         ----------
         solver: str
-            Name of solver, one of: 
+            Name of solver, one of:
                 - 'scipy': :meth:`integrate_scipy`
                 - 'gsl': :meth:`integrate_gsl`
                 - 'odeint': :meth:`integrate_odeint`
@@ -203,11 +203,12 @@ class OdeSys(object):
         return getattr(self, 'integrate_'+solver)(xout, y0, params, **kwargs)
 
     def integrate_scipy(self, xout, y0, params=(), atol=1e-8, rtol=1e-8,
-                         first_step=None, with_jacobian=None,
-                         force_predefined=False, name='lsoda', **kwargs):
+                        first_step=None, with_jacobian=None,
+                        force_predefined=False, name='lsoda', **kwargs):
         """ Do not use directly (use ``integrate('scipy', ...)``).
 
-        Uses `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html>`_
+        Uses `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/\
+generated/scipy.integrate.ode.html>`_
 
         Parameters
         ----------
@@ -216,7 +217,9 @@ class OdeSys(object):
         name: str (default: 'lsoda')
             what solver wrapped in scipy.integrate.ode to use.
         \*\*kwargs:
-            keyword arguments passed onto `set_integrator(...) <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.set_integrator.html#scipy.integrate.ode.set_integrator>`_
+            keyword arguments passed onto `set_integrator(...) <\
+http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.\
+set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         Returns
         -------
@@ -336,7 +339,7 @@ class OdeSys(object):
     def integrate_gsl(self, *args, **kwargs):
         """ Do not use directly (use ``integrate('gsl', ...)``).
 
-        Uses `GNU Scientific Library <http://www.gnu.org/software/gsl/>`_ 
+        Uses `GNU Scientific Library <http://www.gnu.org/software/gsl/>`_
         (via `pygslodeiv2 <https://pypi.python.org/pypi/pygslodeiv2>`_)
         to integrate the ODE system.
 
@@ -364,8 +367,9 @@ class OdeSys(object):
     def integrate_odeint(self, *args, **kwargs):
         """ Do not use directly (use ``integrate('odeint', ...)``).
 
-        Uses `Boost.Numeric.Odeint <http://www.odeint.com>`_ 
-        (via `pyodeint <https://pypi.python.org/pypi/pyodeint>`_) to integrate the ODE system.
+        Uses `Boost.Numeric.Odeint <http://www.odeint.com>`_
+        (via `pyodeint <https://pypi.python.org/pypi/pyodeint>`_) to integrate
+        the ODE system.
         """
         import pyodeint  # Python interface to boost's odeint solvers
         kwargs['with_jacobian'] = kwargs.get(
@@ -377,8 +381,10 @@ class OdeSys(object):
     def integrate_cvode(self, *args, **kwargs):
         """ Do not use directly (use ``integrate('cvode', ...)``).
 
-        Uses CVode from CVodes in `SUNDIALS <https://computation.llnl.gov/casc/sundials/>`_
-        (via `pycvodes <https://pypi.python.org/pypi/pycvodes>`_) to integrate the ODE system. """
+        Uses CVode from CVodes in
+        `SUNDIALS <https://computation.llnl.gov/casc/sundials/>`_
+        (via `pycvodes <https://pypi.python.org/pypi/pycvodes>`_)
+        to integrate the ODE system. """
         import pycvodes  # Python interface to SUNDIALS's cvodes solver
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bdf') in pycvodes.requires_jac
@@ -414,7 +420,7 @@ class OdeSys(object):
 
     def plot_phase_plane(self, indices=None, **kwargs):
         """ Plots a phase portrait from last integration.
-        
+
         See :func:`pyodesys.plotting.plot_phase_plane`
         """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)

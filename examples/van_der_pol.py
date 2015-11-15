@@ -4,7 +4,7 @@
 import sympy as sp
 import numpy as np
 
-from pyodesys import SymbolicSys
+from pyodesys.symbolic import SymbolicSys
 from pyodesys.util import stack_1d_on_left
 
 

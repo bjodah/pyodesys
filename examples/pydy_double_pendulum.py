@@ -11,7 +11,7 @@ $ python pydy_double_pendulum.py --plot --nt 200
 
 import numpy as np
 
-from pyodesys import SymbolicSys
+from pyodesys.symbolic import SymbolicSys
 from pyodesys.util import stack_1d_on_left
 
 
