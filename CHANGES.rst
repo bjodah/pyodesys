@@ -1,6 +1,7 @@
 v0.4.0
 ======
-- OdeSys.integrate_* made private.
+- SymbolicSys not available directly from pyodesys
+- OdeSys.integrate_* documented as private (internal).
 - symbolic.PartiallySolvedSystem added
 - multiple (chained) pre and postprocessors supported
 - stiffness may be inspected retroactively (ratio biggest/smallest eigenvalue 

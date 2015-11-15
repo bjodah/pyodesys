@@ -27,16 +27,16 @@ class OdeSys(object):
     ----------
     f: callback
         first derivatives of dependent variables (y) with respect to
-        dependent variable (x). Signature f(x, y)
+        dependent variable (x). Signature rhs(x, y[:]) --> f[:] or
+        rhs(x, y[:], p[:]) --> f[:] or
     jac: callback
-        Jacobian matrix (dfdy). optional for explicit methods,
-        required for implicit methods
+        Jacobian matrix (dfdy). Required for implicit methods.
     dfdx: callback
-        pass
+        Signature dfdx(x, y[:], p[:]) -> out[:] (used by e.g. GSL)
     band: tuple of 2 ints or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
     names: iterable of str (default: None)
-        names of variables, used for plotting
+        names of variables, e.g. used for plotting
     pre_processors: iterable of callables (optional)
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:]
         insert at beginning
@@ -47,12 +47,17 @@ class OdeSys(object):
 
     Attributes
     ----------
-    f_cb : callback for evaluating the vector of derivatives
-    j_cb : callback for evaluating the Jacobian matrix of f
-    names : iterable of str objects
-    internal_xout : before post-processing
-    internal_yout : before post-processing
-    internal_params : before post-processing
+    f_cb : callback
+        for evaluating the vector of derivatives
+    j_cb : callback
+        for evaluating the Jacobian matrix of f
+    names : iterable of strings
+    internal_xout : 1D array of floats
+        internal values of dependent variable before post-processing
+    internal_yout : 2D (or higher) array of floats
+        internal values of dependent variable before post-processing
+    internal_params : 1D array of floats
+        internal parameter values before post-processing
 
     Notes
     -----
@@ -76,7 +81,10 @@ class OdeSys(object):
         self.post_processors = post_processors or []
 
     def pre_process(self, xout, y0, params=()):
-        # Should be used by all methods matching "_integrate_*"
+        """ Transforms input to internal values, used inernally.
+
+        Should be used by all methods matching "integrate_*"
+        """
         try:
             nx = len(xout)
             if nx == 1:
@@ -89,7 +97,10 @@ class OdeSys(object):
         return xout, y0, params
 
     def post_process(self, xout, yout, params):
-        # Should be used by all methods matching "_integrate_*"
+        """ Transforms internal values to output, used inernally.
+
+        Should be used by all methods matching "integrate_*"
+        """ 
         self.internal_xout = np.asarray(xout, dtype=np.float64).copy()
         self.internal_yout = np.asarray(yout, dtype=np.float64).copy()
         for post_processor in self.post_processors:
@@ -97,7 +108,8 @@ class OdeSys(object):
         return xout, yout, params
 
     def adaptive(self, solver, y0, x0, xend, params=(), **kwargs):
-        """
+        """ Integrate with solver chosen output.
+
         Parameters
         ----------
         solver: str
@@ -111,7 +123,7 @@ class OdeSys(object):
         params: array_like
             see :meth:`integrate`
         \*\*kwargs:
-            see :py:meth:`integrate`
+            see :meth:`integrate`
 
         Returns
         -------
@@ -120,7 +132,8 @@ class OdeSys(object):
         return self.integrate(solver, (x0, xend), y0, params=params, **kwargs)
 
     def predefined(self, solver, y0, xout, params=(), **kwargs):
-        """
+        """ Integrate with user chosen output.
+
         Parameters
         ----------
         solver: str
@@ -145,24 +158,28 @@ class OdeSys(object):
     def integrate(self, solver, xout, y0, params=(),
                   **kwargs):
         """
-        Integrate using ``solver``.
+        Integrate the system of ODE's.
 
         Parameters
         ----------
-        solve: str
-            Name of solver, one of: 'scipy', 'gsl', 'odeint', 'cvode'.
+        solver: str
+            Name of solver, one of: 
+                - 'scipy': :meth:`integrate_scipy`
+                - 'gsl': :meth:`integrate_gsl`
+                - 'odeint': :meth:`integrate_odeint`
+                - 'cvode':  :meth:`integrate_cvode`
             See respective method for more information.
         xout: array_like or pair (start and final time) or float
-            if array_like:
-            length-2 iterable
-                values of independent variable to integrate to
-            if a pair (length two):
-                initial and final time
-            if a float:
+            if float:
                 make it a pair: (0, xout)
+            if pair or length-2 array:
+                initial and final value of the independent variable
+            if array_like:
+                values of independent variable report at
         y0: array_like
             Initial values at xout[0] for the dependent variables.
         params: array_like (default: tuple())
+            Value of parameters passed to user-supplied callbacks.
         atol: float
             Absolute tolerance
         rtol: float
@@ -172,9 +189,9 @@ class OdeSys(object):
             done automatically (only used when required). This matters
             when jacobian is derived at runtime (high computational cost).
         force_predefined: bool (default: False)
-            override behaviour of len(xout) == 2 => adaptive
+            override behaviour of ``len(xout) == 2`` => :meth:`adaptive`
         \*\*kwargs:
-            Additional keyword arguments passed to ``_integrate_$(solver)``.
+            Additional keyword arguments passed to ``integrate_$(solver)``.
 
         Returns
         -------
@@ -183,27 +200,27 @@ class OdeSys(object):
         yout: array of the dependent variable(s) for the different values of x
         info: dict ('nrhs' and 'njac' guaranteed to be there)
         """
-        return getattr(self, '_integrate_'+solver)(xout, y0, params, **kwargs)
+        return getattr(self, 'integrate_'+solver)(xout, y0, params, **kwargs)
 
-    def _integrate_scipy(self, xout, y0, params=(), atol=1e-8, rtol=1e-8,
+    def integrate_scipy(self, xout, y0, params=(), atol=1e-8, rtol=1e-8,
                          first_step=None, with_jacobian=None,
                          force_predefined=False, name='lsoda', **kwargs):
-        """
-        Use scipy.integrate.ode
+        """ Do not use directly (use ``integrate('scipy', ...)``).
+
+        Uses `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html>`_
 
         Parameters
         ----------
         \*args:
-            see :method:`integrate`
+            see :meth:`integrate`
         name: str (default: 'lsoda')
             what solver wrapped in scipy.integrate.ode to use.
         \*\*kwargs:
-            keyword arguments passed onto set_integrator(...)
+            keyword arguments passed onto `set_integrator(...) <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         Returns
         -------
-        Pair (length 2-tuple):
-            2-dimensional array (first column indep., rest dep.), infodict
+        See :meth:`integrate`
         """
         ny = len(y0)
         xout, intern_y0, self.internal_params = self.pre_process(
@@ -316,45 +333,53 @@ class OdeSys(object):
         return self.post_process(
             xout, yout, self.internal_params)[:2] + (info,)
 
-    def _integrate_gsl(self, *args, **kwargs):
-        """
-        Use GNU Scientific Library to integrate ODE system.
+    def integrate_gsl(self, *args, **kwargs):
+        """ Do not use directly (use ``integrate('gsl', ...)``).
+
+        Uses `GNU Scientific Library <http://www.gnu.org/software/gsl/>`_ 
+        (via `pygslodeiv2 <https://pypi.python.org/pypi/pygslodeiv2>`_)
+        to integrate the ODE system.
 
         Parameters
         ----------
         \*args:
             see :meth:`integrate`
         method: str (default: 'bsimp')
-            what stepper to use, see ``gslodeiv2.steppers``
+            what stepper to use, see :py:attr:`gslodeiv2.steppers`
         \*\*kwargs:
             keyword arguments passed onto
-            gslodeiv2.integrate_adaptive/gslodeiv2.integrate_predefined
+            :py:func:`gslodeiv2.integrate_adaptive`/:py:func:`gslodeiv2.integrate_predefined`
 
         Returns
         -------
-        Pair (length 2-tuple):
-            2-dimensional array (first column indep., rest dep.), infodict
+        See :meth:`integrate`
         """
-        import pygslodeiv2
+        import pygslodeiv2  # Python interface GSL's "odeiv2" solvers
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bsimp') in pygslodeiv2.requires_jac
         return self._integrate(pygslodeiv2.integrate_adaptive,
                                pygslodeiv2.integrate_predefined,
                                *args, **kwargs)
 
-    def _integrate_odeint(self, *args, **kwargs):
-        """ Use Boost.Numeric.Odeint to integrate the ODE system. """
-        import pyodeint
+    def integrate_odeint(self, *args, **kwargs):
+        """ Do not use directly (use ``integrate('odeint', ...)``).
+
+        Uses `Boost.Numeric.Odeint <http://www.odeint.com>`_ 
+        (via `pyodeint <https://pypi.python.org/pypi/pyodeint>`_) to integrate the ODE system.
+        """
+        import pyodeint  # Python interface to boost's odeint solvers
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'rosenbrock4') in pyodeint.requires_jac
         return self._integrate(pyodeint.integrate_adaptive,
                                pyodeint.integrate_predefined,
                                *args, **kwargs)
 
-    def _integrate_cvode(self, *args, **kwargs):
-        """ Use CVode (from CVodes in Sundials) to
-        integrate the ODE system. """
-        import pycvodes
+    def integrate_cvode(self, *args, **kwargs):
+        """ Do not use directly (use ``integrate('cvode', ...)``).
+
+        Uses CVode from CVodes in `SUNDIALS <https://computation.llnl.gov/casc/sundials/>`_
+        (via `pycvodes <https://pypi.python.org/pypi/pycvodes>`_) to integrate the ODE system. """
+        import pycvodes  # Python interface to SUNDIALS's cvodes solver
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bdf') in pycvodes.requires_jac
         if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
@@ -368,12 +393,10 @@ class OdeSys(object):
 
     def _plot(self, cb, **kwargs):
         kwargs = kwargs.copy()
-        if 'x' in kwargs or 'y' in kwargs:
+        if 'x' in kwargs or 'y' in kwargs or 'params' in kwargs:
             raise ValueError("x and y from internal_xout and internal_yout")
 
-        if 'post_processors' in kwargs:
-            raise ValueError("post_processors taken from self")
-        else:
+        if 'post_processors' not in kwargs:
             kwargs['post_processors'] = self.post_processors
 
         if 'names' not in kwargs:
@@ -383,15 +406,30 @@ class OdeSys(object):
                   self.internal_params, **kwargs)
 
     def plot_result(self, **kwargs):
+        """ Plots the integrated dependent variables from last integration.
+
+        See :func:`pyodesys.plotting.plot_result`
+        """
         return self._plot(plot_result, **kwargs)
 
     def plot_phase_plane(self, indices=None, **kwargs):
+        """ Plots a phase portrait from last integration.
+        
+        See :func:`pyodesys.plotting.plot_phase_plane`
+        """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
 
     def stiffness(self, xyp=None):
-        """
+        """ Running stiffness ratio from last integration.
+
         Calculate sittness ratio, i.e. the ratio between the largest and
-        smallest absolute eigenvalue of the jacobian matrix
+        smallest absolute eigenvalue of the jacobian matrix (from SVD).
+
+        Parameters
+        ----------
+        xyp: length 3 tuple (default: None)
+            internal_xout, internal_yout, internal_params, taken
+            from last integration if not specified.
         """
         from scipy.linalg import svd
 

@@ -16,6 +16,10 @@ from .util import (
 
 class SymbolicSys(OdeSys):
     """
+    ODE System from symbolic expressions
+
+    Creates a :class:OdeSys from symbolic expressions
+
     Parameters
     ----------
     dep_exprs: iterable of (symbol, expression)-pairs
@@ -32,23 +36,26 @@ class SymbolicSys(OdeSys):
         equations to look for root's for during integration
         (currently available through cvode)
     lambdify: callback
-        default: sympy.lambdify
+        default: :py:func:`sympy.lambdify`
     lambdify_unpack: bool (default: True)
         whether or not unpacking of args needed when calling lambdify callback
     Matrix: class
-        default: sympy.Matrix
+        default: :py:class:`sympy.Matrix`
     \*\*kwargs:
         See :py:class:`OdeSys`
 
     Attributes
     ----------
-    dep : iterable of dependent variables
-    indep : independent variable
-    params : iterable of parameters
+    dep : iterable of symbols
+        dependent variables
+    indep : symbol
+        independent variable
+    params : iterable of symbols
+        parameters
 
     Notes
     -----
-    Works for a moderate number of unknowns, sympy.lambdify has
+    Works for a moderate number of unknowns, :py:func:`sympy.lambdify` has
     an upper limit on number of arguments.
     """
 
@@ -83,10 +90,25 @@ class SymbolicSys(OdeSys):
 
     @staticmethod
     def Symbol(name):
+        """ Create a new Symbol (uses :py:class:`sympy.Symol`) """
         return sp.Symbol(name, real=True)
+
+    @staticmethod
+    def Dummy():
+        """ Create a new Dummy (symbol) (uses :py:class:`sympy.Dummy`) """
+        return sp.Dummy()
 
     @classmethod
     def symarray(cls, prefix, shape, Symbol=None):
+        """ Creates an nd-array of symbols
+
+        Parameters
+        ----------
+        prefix: str
+        shape: tuple
+        Symbol: callable
+            (defualt :func:`Symbol`)
+        """
         # see https://github.com/sympy/sympy/pull/9939
         # when released: return sp.symarray(key, n, real=True)
         arr = np.empty(shape, dtype=object)
@@ -97,28 +119,47 @@ class SymbolicSys(OdeSys):
 
     @staticmethod
     def lambdify(*args, **kwargs):
+        """ Creates a callback for numerical evaluation of symbolic expreesion
+
+        Uses :py:func:`sympy.lambdify`
+        """        
         if 'modules' not in kwargs:
             kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
         return sp.lambdify(*args, **kwargs)
 
     @classmethod
-    def num_transformer_factory(cls, fw, bw, inp, lambdify=None):
-        lambdify = lambdify or cls.lambdify
-        return lambdify(inp, fw), lambdify(inp, bw)
+    def from_callback(cls, cb, ny, nparams=0, *args, **kwargs):
+        """ Create an instance from a callback.
 
-    @classmethod
-    def from_callback(cls, cb, n, nparams=0, *args, **kwargs):
+        Parameters
+        ----------
+        cb: callbable
+            Signature rhs(x, y[:], p[:]) -> f[:]
+        ny: int
+            length of y
+        nparams: int (default: 0)
+            length of p
+        \*args:
+            arguments passed onto :class:`SymbolicSys`
+        \*\*kwargs:
+            keyword arguments passed onto :class:`SymbolicSys`
+
+        Returns
+        -------
+        An instance of :class:`SymbolicSys`.
+        """
         x = cls.Symbol('x')
-        y = cls.symarray('y', n)
+        y = cls.symarray('y', ny)
         p = cls.symarray('p', nparams)
         exprs = ensure_3args(cb)(x, y, p)
         return cls(zip(y, exprs), x, p, *args, **kwargs)
 
     @property
     def ny(self):
+        """ Number of dependent variables in the system. """
         return len(self.exprs)
 
-    def args(self, x=None, y=None, params=()):
+    def _args(self, x=None, y=None, params=()):
         if x is None:
             x = self.indep
         if y is None:
@@ -129,6 +170,7 @@ class SymbolicSys(OdeSys):
         return args + tuple(params)
 
     def get_jac(self):
+        """ Derive the jacobian from ``self.exprs`` and ``self.dep``. """
         if self._jac is True:
             if self.band is None:
                 f = self.Matrix(1, self.ny, lambda _, q: self.exprs[q])
@@ -143,6 +185,7 @@ class SymbolicSys(OdeSys):
         return self._jac
 
     def get_dfdx(self):
+        """ Derive the derivatives of ``self.exprs`` with respect to ``self.indep``. """
         if self._dfdx is True:
             if self.indep is None:
                 self._dfdx = [0]*self.ny
@@ -153,51 +196,55 @@ class SymbolicSys(OdeSys):
         return self._dfdx
 
     def get_f_ty_callback(self):
-        cb = self.lambdify(list(chain(self.args(), self.params)), self.exprs)
+        """ Generate a callback for evaluating ``self.exprs``. """
+        cb = self.lambdify(list(chain(self._args(), self.params)), self.exprs)
 
         def f(x, y, params=()):
             if self.lambdify_unpack:
-                return np.asarray(cb(*self.args(x, y, params)))
+                return np.asarray(cb(*self._args(x, y, params)))
             else:
-                return np.asarray(cb(self.args(x, y, params)))
+                return np.asarray(cb(self._args(x, y, params)))
         return f
 
     def get_j_ty_callback(self):
+        """ Generate a callback for evaluating the jacobian. """
         j_exprs = self.get_jac()
         if j_exprs is False:
             return None
-        cb = self.lambdify(list(chain(self.args(), self.params)), j_exprs)
+        cb = self.lambdify(list(chain(self._args(), self.params)), j_exprs)
 
         def j(x, y, params=()):
             if self.lambdify_unpack:
-                return np.asarray(cb(*self.args(x, y, params)))
+                return np.asarray(cb(*self._args(x, y, params)))
             else:
-                return np.asarray(cb(self.args(x, y, params)))
+                return np.asarray(cb(self._args(x, y, params)))
         return j
 
     def get_dfdx_callback(self):
+        """ Generate a callback for evaluating derivative of ``self.exprs`` """
         dfdx_exprs = self.get_dfdx()
         if dfdx_exprs is False:
             return None
-        cb = self.lambdify(list(chain(self.args(), self.params)), dfdx_exprs)
+        cb = self.lambdify(list(chain(self._args(), self.params)), dfdx_exprs)
 
         def dfdx(x, y, params=()):
             if self.lambdify_unpack:
-                return np.asarray(cb(*self.args(x, y, params)))
+                return np.asarray(cb(*self._args(x, y, params)))
             else:
-                return np.asarray(cb(self.args(x, y, params)))
+                return np.asarray(cb(self._args(x, y, params)))
         return dfdx
 
     def get_roots_callback(self):
+        """ Generate a callback for evaluating ``self.roots`` """
         if self.roots is None:
             return None
-        cb = self.lambdify(list(chain(self.args(), self.params)), self.roots)
+        cb = self.lambdify(list(chain(self._args(), self.params)), self.roots)
 
         def roots(x, y, params=()):
             if self.lambdify_unpack:
-                return np.asarray(cb(*self.args(x, y, params)))
+                return np.asarray(cb(*self._args(x, y, params)))
             else:
-                return np.asarray(cb(self.args(x, y, params)))
+                return np.asarray(cb(self._args(x, y, params)))
         return roots
 
     # Not working yet:
@@ -228,6 +275,25 @@ class SymbolicSys(OdeSys):
 
 
 class TransformedSys(SymbolicSys):
+    """ SymbolicSys with abstracted variable transformations.
+    
+    Parameters
+    ----------
+    dep_exprs: see :class:`SymbolicSys`
+    indep: see :class:`SymbolicSys`
+    dep_transf: iterable of (expression, expression) pairs
+        pairs of (forward, backward) transformations for the dependents
+        variables
+    indep_transf: pair of expressions
+        forward and backward transformation of the independent variable
+    params: see :class:`SymbolicSys`
+    exprs_process_cb: callbable
+        signatrue f(exprs) -> exprs
+        post processing of the expressions for the derivatives of the
+        dependent variables after transformation have been applied.
+    \*\*kwargs:
+        keyword arguments passed onto :class:`SymbolicSys`
+    """
 
     def __init__(self, dep_exprs, indep=None, dep_transf=None,
                  indep_transf=None, params=(), exprs_process_cb=None,
@@ -252,24 +318,44 @@ class TransformedSys(SymbolicSys):
 
         super(TransformedSys, self).__init__(
             zip(dep, exprs), indep, params,
-            pre_processors=[self.forward_transform_xy],
-            post_processors=[self.back_transform_out], **kwargs)
+            pre_processors=[self._forward_transform_xy],
+            post_processors=[self._back_transform_out], **kwargs)
         # the pre- and post-processors need callbacks:
-        args = self.args(indep, dep, params)
-        self.f_dep, self.b_dep = self.num_transformer_factory(
-            self.dep_fw, self.dep_bw, args)
+        args = self._args(indep, dep, params)
+        self.f_dep = self.lambdify(args, self.dep_fw)
+        self.b_dep = self.lambdify(args, self.dep_bw)
         if (self.indep_fw, self.indep_bw) != (None, None):
-            self.f_indep, self.b_indep = self.num_transformer_factory(
-                self.indep_fw, self.indep_bw, args)
+            self.f_indep = self.lambdify(args, self.indep_fw)
+            self.b_indep = self.lambdify(args, self.indep_bw)
         else:
             self.f_indep = None
             self.b_indep = None
 
     @classmethod
-    def from_callback(cls, cb, n, nparams=0, dep_transf_cbs=None,
+    def from_callback(cls, cb, ny, nparams=0, dep_transf_cbs=None,
                       indep_transf_cbs=None, **kwargs):
+        """
+        Create an instance from a callback.
+
+        Analogous to :func:`SymbolicSys.from_callback`.
+
+        Parameters
+        ----------
+        cb: callable
+            Signature rhs(x, y[:], p[:]) -> f[:]
+        ny: int
+            length of y
+        nparams: int
+            length of p
+        dep_transf_cbs: iterable of pairs callables
+            callables should have the signature f(yi) -> expression in yi
+        indep_transf_cbs: pair of callbacks
+            callables should have the signature f(x) -> expression in x
+        \*\*kwargs:
+            keyword arguments passed onto :class:`TransformedSys`
+        """
         x = cls.Symbol('x')
-        y = cls.symarray('y', n)
+        y = cls.symarray('y', ny)
         p = cls.symarray('p', nparams)
         exprs = ensure_3args(cb)(x, y, p)
         if dep_transf_cbs is not None:
@@ -286,8 +372,8 @@ class TransformedSys(SymbolicSys):
         return cls(list(zip(y, exprs)), x, dep_transf,
                    indep_transf, p, **kwargs)
 
-    def back_transform_out(self, xout, yout, params):
-        args = self.args(xout, yout.T, params)
+    def _back_transform_out(self, xout, yout, params):
+        args = self._args(xout, yout.T, params)
         if self.lambdify_unpack:
             return (xout if self.b_indep is None else self.b_indep(*args),
                     np.array(self.b_dep(*args)).T, params)
@@ -295,8 +381,8 @@ class TransformedSys(SymbolicSys):
             return (xout if self.b_indep is None else self.b_indep(args),
                     np.array(self.b_dep(args)).T, params)
 
-    def forward_transform_xy(self, x, y, p):
-        args = self.args(x, y, p)
+    def _forward_transform_xy(self, x, y, p):
+        args = self._args(x, y, p)
         if self.lambdify_unpack:
             return (x if self.f_indep is None else self.f_indep(*args),
                     self.f_dep(*args), p)
@@ -317,7 +403,12 @@ def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
     indep_tr: pair of callables (default: None)
         Forward and backward transformation to be applied to the
         independent variable
+    \*\*kwargs:
+        default keyword arguments for the TransformedSys subclass
 
+    Returns
+    -------
+    Subclass of TransformedSys
 
     Examples
     --------
@@ -363,6 +454,22 @@ def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
 
 
 class ScaledSys(TransformedSys):
+    """
+    Special case of TransformedSys where the variables have been scaled.
+
+    Parameters
+    ----------
+    dep_exprs: see :class:`SymbolicSys`
+    indep: see :class:`SymbolicSys`
+    dep_scaling: number (>0) or iterable of numbers
+        scaling of the dependent variables
+    indep_scaling: number (>0)
+        scaling of the independent variable
+    params: see :class:`SymbolicSys`
+    \*\*kwargs:
+        keyword arguments passed onto TransformedSys
+
+    """
 
     @staticmethod
     def scale_fw_bw(scaling):
@@ -457,7 +564,7 @@ class PartiallySolvedSystem(SymbolicSys):
         if original_system.roots is not None:
             raise NotImplementedError('roots unsupported')
         if Dummy is None:
-            Dummy = sp.Dummy
+            Dummy = self.Dummy
         self.init_indep = Dummy()
         self.init_dep = [Dummy() for _ in range(original_system.ny)]
 

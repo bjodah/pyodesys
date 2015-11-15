@@ -13,6 +13,8 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, post_processors=()):
     """
+    Plot the depepndent variables vs. the dependent variable
+
     Parameters
     ----------
     x: array_like:
@@ -25,7 +27,7 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
     params: array_like:
         parameters used
     indices: iterable of integers
-        what indices to plot
+        what indices to plot (default: None => all)
     plot: callback (default: None)
         If None, use ``matplotlib.pyplot.plot``
     plot_kwargs_cb: callback(int) -> dict
@@ -43,11 +45,12 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
         limit number of points to use markers instead of lines
     lines: None
         default: draw between markers unless we are interpolating as well.
-    interpolate: (default: None)
-        to use for interpolation using 3rd dimension of y as input.
+    interpolate: bool or int (default: None)
+        density-multiplier for grid of independent variable when interpolating
+        if True => 20. negative integer signifies log-spaced grid.
     interp_from_deriv: callback (default: None)
         when None: ``scipy.interpolate.BPoly.from_derivatives``
-    post_processors: callback (default: None)
+    post_processors: iterable of callback (default: tuple())
     """
     if indices is None:
         indices = range(y.shape[-1])
@@ -124,8 +127,30 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
     return x_post, y_post
 
 
-def plot_phase_plane(x, y, params=(), indices=None, post_processors=None,
+def plot_phase_plane(x, y, params=(), indices=None, post_processors=(),
                      plot=None, names=None, **kwargs):
+    """ Plot the phase portrait of two dependent variables
+
+    Parameters
+    ----------
+    x: array_like
+        Values of the independent variable
+    y: array_like
+        Values of the dependent variables
+    params: array_like
+        parameters
+    indices: pair of integers (default: None)
+        what dependent variable to plot for (None => (0, 1))
+    post_processors: iterable of callbles
+        see :class:OdeSystem
+    plot: callable (default: None)
+        Uses matplotlib.pyplot.plot if None
+    names: iterable of strings
+        labels for x and y axis
+    \*\*kwargs:
+        keyword arguemtns passed to ``plot()``
+
+    """
     if indices is None:
         indices = (0, 1)
     if len(indices) != 2:
@@ -138,8 +163,7 @@ def plot_phase_plane(x, y, params=(), indices=None, post_processors=None,
             plt.xlabel(names[indices[0]])
             plt.ylabel(names[indices[1]])
 
-    if post_processors is not None:
-        for post_processor in post_processors:
-            x, y, params = post_processor(x, y, params)
+    for post_processor in post_processors:
+        x, y, params = post_processor(x, y, params)
 
     plot(y[:, indices[0]], y[:, indices[1]], **kwargs)
