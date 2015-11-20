@@ -41,7 +41,7 @@ class OdeSys(object):
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:]
         insert at beginning
     post_processors: iterable of callables (optional)
-        signature: f(x2[:], y2[:, :], y1[:], params2[:]) -> x1[:], y1[:, :],
+        signature: f(x2[:], y2[:, :], params2[:]) -> x1[:], y1[:, :],
             params1[:]
         insert at end
 
