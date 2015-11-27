@@ -3,12 +3,12 @@
 
 import os
 import shutil
-from distutils.core import setup
+from setuptools import setup
 
 
 pkg_name = 'pyodesys'
 
-PYODESYS_RELEASE_VERSION = os.environ.get('PYODESYS_RELEASE_VERSION', '')
+PYODESYS_RELEASE_VERSION = os.environ.get('PYODESYS_RELEASE_VERSION', '')  # v*
 
 # http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
 if os.environ.get('CONDA_BUILD', '0') == '1':
@@ -20,10 +20,12 @@ if os.environ.get('CONDA_BUILD', '0') == '1':
 
 release_py_path = os.path.join(pkg_name, '_release.py')
 
-if (len(PYODESYS_RELEASE_VERSION) > 1 and
-   PYODESYS_RELEASE_VERSION[0] == 'v'):
-    TAGGED_RELEASE = True
-    __version__ = PYODESYS_RELEASE_VERSION[1:]
+if len(PYODESYS_RELEASE_VERSION) > 0:
+    if PYODESYS_RELEASE_VERSION[0] == 'v':
+        TAGGED_RELEASE = True
+        __version__ = PYODESYS_RELEASE_VERSION[1:]
+    else:
+        raise ValueError("Ill formated version")
 else:
     TAGGED_RELEASE = False
     # read __version__ attribute from _release.py:
@@ -54,14 +56,17 @@ setup_kwargs = dict(
     author_email='bjodah@DELETEMEgmail.com',
     url='https://github.com/bjodah/' + pkg_name,
     license='BSD',
-    packages=[pkg_name] + tests
+    packages=[pkg_name] + tests,
+    extras_require={'all': ['sympy', 'scipy', 'pyodeint',
+                            'pycvodes', 'pygslodeiv2']}
 )
 
 if __name__ == '__main__':
     try:
         if TAGGED_RELEASE:
             # Same commit should generate different sdist
-            # depending on tagged version (set PYODESYS_RELEASE_VERSION)
+            # depending on tagged version (set $PYODESYS_RELEASE_VERSION)
+            # e.g.:  $ PYODESYS_RELEASE_VERSION=v1.2.3 python setup.py sdist
             # this will ensure source distributions contain the correct version
             shutil.move(release_py_path, release_py_path+'__temp__')
             open(release_py_path, 'wt').write(

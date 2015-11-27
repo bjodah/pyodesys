@@ -62,7 +62,7 @@ The classic van der Pol oscillator (see `examples/van_der_pol.py <examples/van_d
 
 .. code:: python
 
-   >>> from pyodesys import SymbolicSys
+   >>> from pyodesys.symbolic import SymbolicSys
    >>> def f(t, y, p):
    ...     return [y[1], -y[0] + p[0]*y[1]*(1 - y[0]**2)]
    >>> odesys = SymbolicSys.from_callback(f, 2, 1)

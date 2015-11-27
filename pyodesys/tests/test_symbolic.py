@@ -9,7 +9,7 @@ import sympy as sp
 import pytest
 import time
 
-from .. import SymbolicSys
+from ..symbolic import SymbolicSys
 from ..symbolic import ScaledSys, symmetricsys, PartiallySolvedSystem
 from .bateman import bateman_full  # analytic, never mind the details
 
