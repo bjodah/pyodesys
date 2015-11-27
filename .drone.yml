@@ -5,8 +5,8 @@ env:
   - MY_SERVER=pyodesys@hera.physchem.kth.se
 script:
   - if [[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then export PYODESYS_RELEASE_VERSION=$DRONE_BRANCH; echo ${PYODESYS_RELEASE_VERSION} | tail -c +2 > __conda_version__.txt; fi
-  - pip install --user pyodeint pycvodes pygslodeiv2
-  - pip3 install --user pyodeint pycvodes pygslodeiv2
+  - pip install --user pyodeint pycvodes pygslodeiv2 pymbolic pysym
+  - pip3 install --user pyodeint pycvodes pygslodeiv2 pymbolic pysym
   - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov pyodesys --cov-report html
   - python2 setup.py sdist
   - pip install dist/*.tar.gz

@@ -8,7 +8,7 @@ from pyodesys.symbolic import SymbolicSys
 from pyodesys.util import stack_1d_on_left
 
 
-def main(y0='1,0', mu=1.0, tend=10., nt=2, savefig='None', plot=False,
+def main(y0='1,0', mu=1.0, tend=10., nt=50, savefig='None', plot=False,
          savetxt='None', solver='scipy', dpi=100, kwargs='', verbose=False):
     assert nt > 1
     y = sp.symarray('y', 2)
@@ -25,7 +25,7 @@ def main(y0='1,0', mu=1.0, tend=10., nt=2, savefig='None', plot=False,
         np.savetxt(stack_1d_on_left(xout, yout), savetxt)
     if plot:
         import matplotlib.pyplot as plt
-        odesys.plot_result(xout, yout)
+        odesys.plot_result()
         plt.legend()
         if savefig != 'None':
             plt.savefig(savefig, dpi=dpi)

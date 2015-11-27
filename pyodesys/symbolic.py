@@ -3,15 +3,120 @@
 from __future__ import absolute_import, division, print_function
 
 from itertools import chain, repeat
+import os
 
 import numpy as np
-import sympy as sp
 
 from .core import OdeSys
 from .util import (
     banded_jacobian, transform_exprs_dep,
     transform_exprs_indep, ensure_3args
 )
+
+
+def _lambdify(backend=None):
+    backend = os.environ.get('PYODESYS_SYM_BACKEND', 'sympy')
+    if backend == 'sympy':
+        import sympy as sp
+
+        def lambdify(*args, **kwargs):
+            if 'modules' not in kwargs:
+                kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
+            return sp.lambdify(*args, **kwargs)
+        return lambdify
+    elif backend == 'pysym':
+        import pysym as ps
+        return ps.Lambdify
+    else:
+        raise NotImplementedError('Unknown symbolic package: %s' %
+                                  backend)
+
+
+def _lambdify_unpack(backend=None):
+    backend = os.environ.get('PYODESYS_SYM_BACKEND', 'sympy')
+    if backend == 'sympy':
+        return True
+    elif backend == 'pysym':
+        return False
+    else:
+        raise NotImplementedError('Unknown symbolic package: %s' %
+                                  backend)
+
+
+def _Matrix(backend=None):
+    backend = os.environ.get('PYODESYS_SYM_BACKEND', 'sympy')
+    if backend == 'sympy':
+        import sympy as sp
+        return sp.Matrix
+    elif backend == 'pysym':
+        import pysym as ps
+        return ps.Matrix
+    else:
+        raise NotImplementedError('Unknown symbolic package: %s' %
+                                  backend)
+
+
+def _Symbol(backend=None):
+    backend = os.environ.get('PYODESYS_SYM_BACKEND', 'sympy')
+    if backend == 'sympy':
+        import sympy as sp
+
+        def Symbol(*args, **kwargs):
+            if 'real' not in kwargs:
+                kwargs['real'] = True
+            return sp.Symbol(*args, **kwargs)
+        return Symbol
+    elif backend == 'pysym':
+        import pysym as ps
+        return ps.Symbol
+    else:
+        raise NotImplementedError('Unknown symbolic package: %s' %
+                                  backend)
+
+
+def _Dummy(backend=None):
+    backend = os.environ.get('PYODESYS_SYM_BACKEND', 'sympy')
+    if backend == 'sympy':
+        import sympy as sp
+        return sp.Dummy
+    elif backend == 'pysym':
+        import pysym as ps
+        return ps.Dummy
+    else:
+        raise NotImplementedError('Unknown symbolic package: %s' %
+                                  backend)
+
+
+def _symarray(backend=None):
+    backend = os.environ.get('PYODESYS_SYM_BACKEND', 'sympy')
+    if backend == 'sympy':
+        import sympy as sp
+
+        def symarray(prefix, shape, Symbol=None, real=True):
+            """ Creates an nd-array of symbols
+
+            Parameters
+            ----------
+            prefix: str
+            shape: tuple
+            Symbol: callable
+                (defualt :func:`Symbol`)
+            """
+            # see https://github.com/sympy/sympy/pull/9939
+            # when released: return sp.symarray(key, n, real=True)
+            arr = np.empty(shape, dtype=object)
+            for index in np.ndindex(shape):
+                arr[index] = (
+                    Symbol or (lambda name: sp.Symbol(name, real=real))
+                )('%s_%s' % (prefix, '_'.join(map(str, index))))
+            return arr
+        return symarray
+    elif backend == 'pysym':
+        import pysym as ps
+        return ps.symarray
+    else:
+        raise NotImplementedError('Unknown symbolic package: %s' %
+                                  backend)
 
 
 class SymbolicSys(OdeSys):
@@ -43,6 +148,12 @@ class SymbolicSys(OdeSys):
         whether or not unpacking of args needed when calling lambdify callback
     Matrix: class
         default: :py:class:`sympy.Matrix`
+    Symbol: class
+        default: :py:class:`sympy.Symbol`
+    Dummy: class
+        default: :py:class:`sympy.Dummy`
+    symarray: callback
+        default: :py:class:`sympy.symarray`
     \*\*kwargs:
         See :py:class:`OdeSys`
 
@@ -62,22 +173,21 @@ class SymbolicSys(OdeSys):
     """
 
     def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True,
-                 roots=None, lambdify=None, lambdify_unpack=True, Matrix=None,
-                 **kwargs):
+                 roots=None, lambdify=None, lambdify_unpack=None, Matrix=None,
+                 Symbol=None, Dummy=None, symarray=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self.params = params
         self._jac = jac
         self._dfdx = dfdx
         self.roots = roots
-        if lambdify is not None:
-            self.lambdify = lambdify
-        self.lambdify_unpack = lambdify_unpack
-        if Matrix is None:
-            import sympy
-            self.Matrix = sympy.ImmutableMatrix
-        else:
-            self.Matrix = Matrix
+        self.lambdify = lambdify or _lambdify()
+        self.lambdify_unpack = (_lambdify_unpack() if lambdify_unpack is None
+                                else lambdify_unpack)
+        self.Matrix = Matrix or _Matrix()
+        self.Symbol = Symbol or _Symbol()
+        self.Dummy = Dummy or _Dummy()
+        self.symarray = symarray or _symarray()
         # we need self.band before super().__init__
         self.band = kwargs.get('band', None)
         if kwargs.get('names', None) is True:
@@ -89,45 +199,6 @@ class SymbolicSys(OdeSys):
             self.get_roots_callback(),
             nroots=None if roots is None else len(roots),
             **kwargs)
-
-    @staticmethod
-    def Symbol(name):
-        """ Create a new Symbol (uses :py:class:`sympy.Symol`) """
-        return sp.Symbol(name, real=True)
-
-    @staticmethod
-    def Dummy():
-        """ Create a new Dummy (symbol) (uses :py:class:`sympy.Dummy`) """
-        return sp.Dummy()
-
-    @classmethod
-    def symarray(cls, prefix, shape, Symbol=None):
-        """ Creates an nd-array of symbols
-
-        Parameters
-        ----------
-        prefix: str
-        shape: tuple
-        Symbol: callable
-            (defualt :func:`Symbol`)
-        """
-        # see https://github.com/sympy/sympy/pull/9939
-        # when released: return sp.symarray(key, n, real=True)
-        arr = np.empty(shape, dtype=object)
-        for index in np.ndindex(shape):
-            arr[index] = (Symbol or cls.Symbol)('%s_%s' % (
-                prefix, '_'.join(map(str, index))))
-        return arr
-
-    @staticmethod
-    def lambdify(*args, **kwargs):
-        """ Creates a callback for numerical evaluation of symbolic expreesion
-
-        Uses :py:func:`sympy.lambdify`
-        """
-        if 'modules' not in kwargs:
-            kwargs['modules'] = [{'ImmutableMatrix': np.array}, 'numpy']
-        return sp.lambdify(*args, **kwargs)
 
     @classmethod
     def from_callback(cls, cb, ny, nparams=0, *args, **kwargs):
@@ -150,9 +221,9 @@ class SymbolicSys(OdeSys):
         -------
         An instance of :class:`SymbolicSys`.
         """
-        x = cls.Symbol('x')
-        y = cls.symarray('y', ny)
-        p = cls.symarray('p', nparams)
+        x = kwargs.get('Symbol', _Symbol())('x')
+        y = kwargs.get('symarray', _symarray())('y', ny)
+        p = kwargs.get('symarray', _symarray())('p', nparams)
         exprs = ensure_3args(cb)(x, y, p)
         return cls(zip(y, exprs), x, p, *args, **kwargs)
 
@@ -358,9 +429,9 @@ class TransformedSys(SymbolicSys):
         \*\*kwargs:
             keyword arguments passed onto :class:`TransformedSys`
         """
-        x = cls.Symbol('x')
-        y = cls.symarray('y', ny)
-        p = cls.symarray('p', nparams)
+        x = kwargs.get('Symbol', _Symbol())('x')
+        y = kwargs.get('symarray', _symarray())('y', ny)
+        p = kwargs.get('symarray', _symarray())('p', nparams)
         exprs = ensure_3args(cb)(x, y, p)
         if dep_transf_cbs is not None:
             dep_transf = [(fw(yi), bw(yi)) for (fw, bw), yi
@@ -560,6 +631,7 @@ class PartiallySolvedSystem(SymbolicSys):
 
     Examples
     --------
+    >>> import sympy as sp
     >>> odesys = SymbolicSys.from_callback(
     ...     lambda x, y, p: [
     ...         -p[0]*y[0],
@@ -584,8 +656,7 @@ class PartiallySolvedSystem(SymbolicSys):
         self.analytic_factory = analytic_factory
         if original_system.roots is not None:
             raise NotImplementedError('roots unsupported')
-        if Dummy is None:
-            Dummy = self.Dummy
+        Dummy = Dummy or _Dummy()
         self.init_indep = Dummy()
         self.init_dep = [Dummy() for _ in range(original_system.ny)]
 
@@ -635,7 +706,10 @@ class PartiallySolvedSystem(SymbolicSys):
             zip(new_dep, new_exprs), original_system.indep, new_params,
             lambdify=original_system.lambdify,
             lambdify_unpack=original_system.lambdify_unpack,
-            Matrix=original_system.Matrix, **new_kw)
+            Matrix=original_system.Matrix,
+            Symbol=original_system.Symbol,
+            Dummy=original_system.Dummy,
+            **new_kw)
 
     def _get_analytic_cb(self, ori_sys, analytic_exprs, new_params):
         cb = ori_sys.lambdify(_concat(ori_sys.indep, new_params),
