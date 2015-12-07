@@ -9,3 +9,4 @@ doc/
 examples/*.wav
 examples/*.html
 examples/thumbs/
+*.egg-info/

@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
+"""
+Core functionality from OdeSys.
+
+Note that it is possible to use new custom ODE integrators with pyodesys by
+providing a module with two functions named ``integrate_adaptive`` and
+``integrate_predefined``. See source code of :py:class`RK4_example_integartor`
+for an example.
+
+"""
 
 from __future__ import absolute_import, division, print_function
+
+import math
 
 import numpy as np
 
@@ -200,7 +211,14 @@ class OdeSys(object):
         yout: array of the dependent variable(s) for the different values of x
         info: dict ('nrhs' and 'njac' guaranteed to be there)
         """
-        return getattr(self, 'integrate_'+solver)(xout, y0, params, **kwargs)
+        if isinstance(solver, str):
+            return getattr(self, 'integrate_'+solver)(
+                xout, y0, params, **kwargs)
+        else:
+            kwargs['with_jacobian'] = getattr(solver, 'with_jacobian', None)
+            return self._integrate(solver.integrate_adaptive,
+                                   solver.integrate_predefined,
+                                   xout, y0, params, **kwargs)
 
     def integrate_scipy(self, xout, y0, params=(), atol=1e-8, rtol=1e-8,
                         first_step=None, with_jacobian=None,
@@ -455,3 +473,46 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
+
+
+class RK4_example_integartor:
+    """
+    This is an example of how to implement a custom integrator.
+    It uses fixed step size and is usually not useful for real problems.
+    """
+
+    with_jacobian = False
+
+    @staticmethod
+    def integrate_adaptive(rhs, jac, y0, x0, xend, dx0, **kwargs):
+        xspan = xend - x0
+        n = int(math.ceil(xspan/dx0))
+        yout = [y0[:]]
+        xout = [x0]
+        k = [np.empty(len(y0)) for _ in range(4)]
+        for i in range(0, n+1):
+            x, y = xout[-1], yout[-1]
+            h = min(dx0, xend-x)
+            rhs(x,       y,            k[0])
+            rhs(x + h/2, y + h/2*k[0], k[1])
+            rhs(x + h/2, y + h/2*k[1], k[2])
+            rhs(x + h,   y + h*k[2],   k[3])
+            yout.append(y + h/6 * (k[0] + 2*k[1] + 2*k[2] + k[3]))
+            xout.append(x+h)
+        return np.array(xout), np.array(yout), {'nrhs': n*4}
+
+    @staticmethod
+    def integrate_predefined(rhs, jac, y0, xout, **kwargs):
+        x_old = xout[0]
+        yout = [y0[:]]
+        k = [np.empty(len(y0)) for _ in range(4)]
+        for i, x in enumerate(xout[1:], 1):
+            y = yout[-1]
+            h = x - x_old
+            rhs(x_old,       y,            k[0])
+            rhs(x_old + h/2, y + h/2*k[0], k[1])
+            rhs(x_old + h/2, y + h/2*k[1], k[2])
+            rhs(x_old + h,   y + h*k[2],   k[3])
+            yout.append(y + h/6 * (k[0] + 2*k[1] + 2*k[2] + k[3]))
+            x_old = x
+        return np.array(yout), {'nrhs': (len(xout)-1)*4}

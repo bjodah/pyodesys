@@ -1,8 +1,8 @@
 pyodesys
 ========
 
-.. image:: http://hera.physchem.kth.se:8080/github.com/bjodah/pyodesys/status.svg?branch=master
-   :target: http://hera.physchem.kth.se:8080/github.com/bjodah/pyodesys
+.. image:: http://hera.physchem.kth.se:9090/api/badges/bjodah/pyodesys/status.svg
+   :target: http://hera.physchem.kth.se:9090/bjodah/pyodesys
    :alt: Build status
 .. image:: https://img.shields.io/pypi/v/pyodesys.svg
    :target: https://pypi.python.org/pypi/pyodesys
