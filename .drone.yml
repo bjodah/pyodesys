@@ -7,33 +7,19 @@ build:
     - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov pyodesys --cov-report html
     - python2 setup.py sdist
     - pip install dist/*.tar.gz
+    - pip3 install dist/*.tar.gz
     - (cd examples/; ipython2 nbconvert --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
     - (cd examples/; ../scripts/render_index.sh *.html)
     - ./scripts/generate_docs.sh
-    - ./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
-    - touch doc/_build/html/.nojekyll
-    - git config --global user.name "drone"
-    - git config --global user.email "drone@nohost.com"
-    - mkdir -p deploy/public_html/$$BRANCH
-    - cp -r dist/* htmlcov/ examples/ doc/_build/html/ deploy/public_html/$$BRANCH/
-    - if bash -c '[[ "$DRONE_BRANCH" == "master" ]]'; then cp -r benchmarks/ deploy/; mkdir -p deploy/gh-pages; ./scripts/dir_to_branch.sh doc/_build/html bjodah pyodesys gh-pages deploy/gh-pages; fi
+    - ./scripts/prepare_deploy.sh
 
 deploy:
 
   rsync:
     host: hera.physchem.kth.se
-    user: pyodesys
     port: 22
+    user: pyodesys
     source: deploy/
     target: ~
     recursive: true
     delete: false
-
-  ssh:
-    when:
-      branch: master
-    host: hera.physchem.kth.se
-    user: pyodesys
-    port: 22
-    commands:
-      - source /etc/profile; asv run -k -e >asv-run.log; asv publish>asv-publish.log
