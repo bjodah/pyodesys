@@ -27,7 +27,7 @@ deploy:
     source: deploy/
     target: ~
     recursive: true
-    delete: true
+    delete: false
 
   ssh:
     when:
