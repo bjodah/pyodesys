@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+from __future__ import (absolute_import, division, print_function)
+
 import pytest
 import numpy as np
 from .. import OdeSys
@@ -93,3 +96,22 @@ def test_pre_post_processors():
     yref = A*np.exp(-k*xout)
     assert np.allclose(yout.flatten(), yref)
     assert np.allclose(odesys.internal_yout.flatten(), -odesys.internal_xout)
+
+
+def test_custom_module():
+    from pyodesys.core import RK4_example_integartor
+    odes = OdeSys(vdp_f, vdp_j)
+    xout, yout, info = odes.integrate(RK4_example_integartor,
+                                      [0, 2], [1, 0], params=[2.0],
+                                      first_step=1e-2)
+    # blessed values:
+    assert np.allclose(yout[0], [1, 0])
+    assert np.allclose(yout[-1], [-1.89021896, -0.71633577])
+    assert info['nrhs'] == 4*2/1e-2
+
+    xout, yout, info = odes.integrate(
+        RK4_example_integartor, np.linspace(0, 2, 150), [1, 0], params=[2.0])
+
+    assert np.allclose(yout[0], [1, 0])
+    assert np.allclose(yout[-1], [-1.89021896, -0.71633577])
+    assert info['nrhs'] == 4*149
