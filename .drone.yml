@@ -22,8 +22,8 @@ deploy:
 
   rsync:
     host: hera.physchem.kth.se
-    user: pyodesys
     port: 22
+    user: pyodesys
     source: deploy/
     target: ~
     recursive: true
@@ -34,6 +34,5 @@ deploy:
       branch: master
     host: hera.physchem.kth.se
     user: pyodesys
-    port: 22
     commands:
       - source /etc/profile; asv run -k -e >asv-run.log; asv publish>asv-publish.log
