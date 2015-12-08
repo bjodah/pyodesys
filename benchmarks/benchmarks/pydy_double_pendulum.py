@@ -1,6 +1,6 @@
 import numpy as np
 
-from pyodesys import SymbolicSys
+from pyodesys.symbolic import SymbolicSys
 
 
 def _get_equations(m_val, g_val, l_val):
