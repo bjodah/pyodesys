@@ -415,7 +415,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
                                pycvodes.integrate_predefined,
                                *args, **kwargs)
 
-    def _plot(self, cb, **kwargs):
+    def _plot(self, cb, xout=None, yout=None, params=None, **kwargs):
         kwargs = kwargs.copy()
         if 'x' in kwargs or 'y' in kwargs or 'params' in kwargs:
             raise ValueError("x and y from internal_xout and internal_yout")
@@ -425,9 +425,13 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
-
-        return cb(self.internal_xout, self.internal_yout,
-                  self.internal_params, **kwargs)
+        if (xout, yout, params) == (None, None, None):
+            xout = self.internal_xout
+            yout = self.internal_yout
+            params = self.internal_params
+        elif None in (xout, yout, params):
+            raise ValueError("Pass either all or none of xout, yout & params")
+        return cb(xout, yout, params, **kwargs)
 
     def plot_result(self, **kwargs):
         """ Plots the integrated dependent variables from last integration.
