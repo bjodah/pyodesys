@@ -1,3 +1,14 @@
+v0.5.0
+======
+- OdeSys.solve() changed signature: first arg "solver" moved to kwargs and
+  renamed "integrator". Default of None assumed (inspects $PYODESYS_INTEGRATOR)
+- OdeSys.integrate_* renamed ``_integrate_*`` (only for internal use).
+- Info dict from integrate() keys renamed (for consistency with pyneqsys):
+    - nrhs -> nfev
+    - njac -> njev
+    - internal_xout (new)
+    - internal_yout (new)
+
 v0.4.0
 ======
 - SymbolicSys not available directly from pyodesys (but from pyodesys.symbolic)

@@ -1,13 +1,9 @@
 build:
-  image: bjodah/bjodahimg:latest
+  image: bjodah/bjodahimg:v1.1
   commands:
-    - if bash -c '[[ "$DRONE_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]'; then export PYODESYS_RELEASE_VERSION=$DRONE_BRANCH; echo ${PYODESYS_RELEASE_VERSION} | tail -c +2 > __conda_version__.txt; fi
-    - pip install --user pyodeint pycvodes pygslodeiv2 pymbolic pysym
-    - pip3 install --user pyodeint pycvodes pygslodeiv2 pymbolic pysym
-    - PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov pyodesys --cov-report html
-    - python2 setup.py sdist
-    - pip install dist/*.tar.gz
-    - pip3 install dist/*.tar.gz
+    - pip install --user pygslodeiv2 pyodeint pycvodes pysym
+    - pip3 install --user pygslodeiv2 pyodeint pycvodes pysym
+    - ./scripts/ci.sh pyodesys
     - (cd examples/; ipython2 nbconvert --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
     - (cd examples/; ../scripts/render_index.sh *.html)
     - ./scripts/generate_docs.sh

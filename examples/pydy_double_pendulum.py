@@ -68,14 +68,15 @@ def get_equations(m_val, g_val, l_val):
 
 
 def main(m=1, g=9.81, l=1, q1=.1, q2=.2, u1=0, u2=0, tend=10., nt=200,
-         savefig='None', plot=False, savetxt='None', solver='scipy',
+         savefig='None', plot=False, savetxt='None', integrator='scipy',
          dpi=100, kwargs="", verbose=False):
     assert nt > 1
     kwargs = dict(eval(kwargs) if kwargs else {})
     odesys = SymbolicSys(get_equations(m, g, l))
     tout = np.linspace(0, tend, nt)
     y0 = [q1, q2, u1, u2]
-    xout, yout, info = odesys.integrate(solver, tout, y0, **kwargs)
+    xout, yout, info = odesys.integrate(
+        tout, y0, integrator=integrator, **kwargs)
     if verbose:
         print(info)
     if savetxt != 'None':

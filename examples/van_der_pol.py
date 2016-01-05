@@ -9,7 +9,8 @@ from pyodesys.util import stack_1d_on_left
 
 
 def main(y0='1,0', mu=1.0, tend=10., nt=50, savefig='None', plot=False,
-         savetxt='None', solver='scipy', dpi=100, kwargs='', verbose=False):
+         savetxt='None', integrator='scipy', dpi=100, kwargs='',
+         verbose=False):
     assert nt > 1
     y = sp.symarray('y', 2)
     p = sp.Symbol('p', real=True)
@@ -18,7 +19,8 @@ def main(y0='1,0', mu=1.0, tend=10., nt=50, savefig='None', plot=False,
     tout = np.linspace(0, tend, nt)
     y0 = list(map(float, y0.split(',')))
     kwargs = dict(eval(kwargs) if kwargs else {})
-    xout, yout, info = odesys.integrate(solver, tout, y0, [mu], **kwargs)
+    xout, yout, info = odesys.integrate(
+        tout, y0, [mu], integrator=integrator, **kwargs)
     if verbose:
         print(info)
     if savetxt != 'None':

@@ -338,7 +338,7 @@ class SymbolicSys(OdeSys):
             ]
         rhs.ncall = 0
 
-        cb = odefun(lambda x, y: rhs, xout[0], y0)
+        cb = odefun(rhs, xout[0], y0)
         yout = []
         for x in xout:
             yout.append(cb(x))
@@ -644,7 +644,7 @@ class PartiallySolvedSystem(SymbolicSys):
     >>> print(partsys.exprs)  # doctest: +SKIP
     (_Dummy_29*p_0*exp(-p_0*(-_Dummy_28 + x)) - p_1*y_1,)
     >>> y0, k = [3, 2], [3.5, 2.5]
-    >>> xout, yout, info = partsys.integrate('scipy', [0, 1], y0, k)
+    >>> xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
     >>> info['success'], yout.shape[1]
     (True, 2)
 

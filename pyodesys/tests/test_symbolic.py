@@ -39,7 +39,7 @@ def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1):
     y0 = [1e-20]*(len(k)+1)
     y0[0] = 1
     xout, yout, info = ts.integrate(
-        'cvode', [1e-12, 1], y0, k, atol=atol, rtol=rtol,
+        [1e-12, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol,
         first_step=first_step)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     np.set_printoptions(linewidth=240)
@@ -74,7 +74,7 @@ def test_ScaledSys():
     ss = ScaledSys(l, dep_scaling=1e8)
     y0 = [0]*(len(k)+1)
     y0[0] = 1
-    xout, yout, info = ss.integrate('cvode', [1e-12, 1], y0,
+    xout, yout, info = ss.integrate([1e-12, 1], y0, integrator='cvode',
                                     atol=1e-12, rtol=1e-12)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref, rtol=1e-12, atol=1e-12)
@@ -90,7 +90,7 @@ def test_ScaledSys_from_callback():
     k = [7, 3, 2]
     y0 = [0]*(len(k)+1)
     y0[0] = 1
-    xout, yout, info = odesys.integrate('scipy', [1e-12, 1], y0, k)
+    xout, yout, info = odesys.integrate([1e-12, 1], y0, k, integrator='scipy')
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref, rtol=3e-11, atol=3e-11)
 
@@ -106,8 +106,8 @@ def test_exp(method):
     x = sp.Symbol('x')
     symsys = SymbolicSys([(x, sp.exp(x))])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
-    xout, yout, info = symsys.integrate('odeint', tout, [1], method=method,
-                                        atol=1e-12, rtol=1e-12)
+    xout, yout, info = symsys.integrate(
+        tout, [1], method=method, integrator='odeint', atol=1e-12, rtol=1e-12)
     e = math.e
     ref = -math.log(1/e - 0.1)
     assert abs(yout[-1, 0] - ref) < 4e-8
@@ -119,7 +119,7 @@ def _test_mpmath():  # too slow
     symsys = SymbolicSys([(x, sp.exp(x))])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
     # import pudb; pudb.set_trace()
-    xout, yout, info = symsys.integrate('mpmath', tout, [1])
+    xout, yout, info = symsys.integrate(tout, [1], integrator='mpmath')
     e = math.e
     ref = -math.log(1/e - 0.1)
     assert abs(yout[-1, 0] - ref) < 4e-8
@@ -155,8 +155,8 @@ def test_SymbolicSys__from_callback_bateman(band):
     atol, rtol = 1e-11, 1e-11
     odesys = SymbolicSys.from_callback(decay_dydt_factory(k), len(k)+1,
                                        band=band)
-    xout, yout, info = odesys.integrate('scipy', tend, y0, atol=atol,
-                                        rtol=rtol)
+    xout, yout, info = odesys.integrate(
+        tend, y0, atol=atol, integrator='scipy', rtol=rtol)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref, rtol=rtol, atol=atol)
 
@@ -168,7 +168,7 @@ def test_SymbolicSys_bateman(band):
     dydt = decay_dydt_factory(k)
     f = dydt(0, y)
     odesys = SymbolicSys(zip(y, f), band=band)
-    xout, yout, info = odesys.integrate('scipy', tend, y0)
+    xout, yout, info = odesys.integrate(tend, y0, integrator='scipy')
     ref = np.array(bateman_full(y0, k+[0], xout-xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref)
 
@@ -225,16 +225,16 @@ def test_scipy(name, forgive):
     if name == 'vode':
         tout = [0]+[10**i for i in range(-10, 1)] if name == 'vode' else 1
         xout, yout, info = odesys_dens.integrate(
-            'scipy', tout, y0, name=name, atol=atol, rtol=rtol)
+            tout, y0, integrator='scipy', name=name, atol=atol, rtol=rtol)
         check(yout[-1, :], n, p, a, atol, rtol, forgive[0])
 
         xout, yout, info = odesys_dens.integrate(
-            'scipy', 1, y0, name=name, atol=atol, rtol=rtol)
+            1, y0, integrator='scipy', name=name, atol=atol, rtol=rtol)
         check(yout[-1, :], n, p, a, atol, rtol, forgive[1])
 
     else:
         xout, yout, info = odesys_dens.integrate(
-            'scipy', 1, y0, name=name, atol=atol, rtol=rtol)
+            1, y0, integrator='scipy', name=name, atol=atol, rtol=rtol)
         check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
@@ -249,8 +249,8 @@ def test_odeint(method, forgive):
     odesys_dens = SymbolicSys.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
     xout, yout, info = odesys_dens.integrate(
-        'odeint', [10**i for i in range(-15, 1)], y0, method=method,
-        atol=atol, rtol=rtol)
+        [10**i for i in range(-15, 1)], y0, integrator='odeint',
+        method=method, atol=atol, rtol=rtol)
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
@@ -261,8 +261,8 @@ def _gsl(tout, method, forgive):
     dydt = decay_dydt_factory(k)
     odesys_dens = SymbolicSys.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
-    xout, yout, info = odesys_dens.integrate('gsl', tout, y0, method=method,
-                                             atol=atol, rtol=rtol)
+    xout, yout, info = odesys_dens.integrate(
+        tout, y0, method=method, integrator='gsl', atol=atol, rtol=rtol)
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
@@ -285,8 +285,8 @@ def _cvode(tout, method, forgive):
     dydt = decay_dydt_factory(k)
     odesys_dens = SymbolicSys.from_callback(dydt, len(k)+1)
     # adaptive stepper fails to produce the accuracy asked for.
-    xout, yout, info = odesys_dens.integrate('cvode', tout, y0, method=method,
-                                             atol=atol, rtol=rtol)
+    xout, yout, info = odesys_dens.integrate(
+        tout, y0, method=method, integrator='cvode', atol=atol, rtol=rtol)
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
@@ -309,8 +309,8 @@ def test_long_chain_dense(n, forgive):
     y0, k, odesys_dens = get_special_chain(n, p, a)
     atol, rtol = 1e-12, 1e-12
     tout = 1
-    xout, yout, info = odesys_dens.integrate('scipy', tout, y0,
-                                             atol=atol, rtol=rtol)
+    xout, yout, info = odesys_dens.integrate(
+        tout, y0, integrator='scipy', atol=atol, rtol=rtol)
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
@@ -324,18 +324,18 @@ def test_long_chain_banded_scipy(n):
 
     def mk_callback(odesys):
         def callback(*args, **kwargs):
-            return odesys.integrate('scipy', *args, **kwargs)
+            return odesys.integrate(*args, integrator='scipy', **kwargs)
         return callback
     for _ in range(2):  # warmup
         time_dens, (xout_dens, yout_dens, info) = timeit(
             mk_callback(odesys_dens), tout, y0, atol=atol, rtol=rtol,
             name='vode', method='bdf', first_step=1e-10)
-        assert info['njac'] > 0
+        assert info['njev'] > 0
     for _ in range(2):  # warmup
         time_band, (xout_band, yout_band, info) = timeit(
             mk_callback(odesys_band), tout, y0, atol=atol, rtol=rtol,
             name='vode', method='bdf', first_step=1e-10)
-        assert info['njac'] > 0
+        assert info['njev'] > 0
     check(yout_dens[-1, :], n, p, a, atol, rtol, 1.5)
     check(yout_band[-1, :], n, p, a, atol, rtol, 1.5)
     assert time_dens > time_band  # will fail sometimes due to load
@@ -350,19 +350,19 @@ def test_long_chain_banded_cvode(n):
 
     def mk_callback(odesys):
         def callback(*args, **kwargs):
-            return odesys.integrate('cvode', *args, **kwargs)
+            return odesys.integrate(*args, integrator='cvode', **kwargs)
         return callback
     for _ in range(2):  # warmup
         time_band, (xout_band, yout_band, info) = timeit(
             mk_callback(odesys_band), 1, y0, atol=atol, rtol=rtol)
-        assert info['njac'] > 0
+        assert info['njev'] > 0
     for _ in range(2):  # warmup
         time_dens, (xout_dens, yout_dens, info) = timeit(
             mk_callback(odesys_dens), 1, y0, atol=atol, rtol=rtol)
-        assert info['njac'] > 0
+        assert info['njev'] > 0
     check(yout_dens[-1, :], n, p, a, atol, rtol, 7)
     check(yout_band[-1, :], n, p, a, atol, rtol, 25)  # suspicious
-    assert info['njac'] > 0
+    assert info['njev'] > 0
     try:
         assert time_dens > time_band
     except AssertionError:
@@ -382,6 +382,6 @@ def test_PartiallySolvedSystem():
     })
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 1.5]
-    xout, yout, info = partsys.integrate('scipy', [0, 1], y0, k)
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref)
