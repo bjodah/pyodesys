@@ -4,9 +4,7 @@ Core functionality from OdeSys.
 
 Note that it is possible to use new custom ODE integrators with pyodesys by
 providing a module with two functions named ``integrate_adaptive`` and
-``integrate_predefined``. See source code of :py:class`RK4_example_integartor`
-for an example.
-
+``integrate_predefined``. See the ``pyodesys.integrators`` module for examples.
 """
 
 from __future__ import absolute_import, division, print_function
@@ -20,8 +18,9 @@ from .plotting import plot_result, plot_phase_plane
 
 
 class OdeSys(object):
-    """
-    Object representing odesystem. Provides unified interface to:
+    """ Object representing an ODE system.
+
+    ``OdeSys`` provides unified interface to:
 
     - scipy.integarte.ode
     - pygslodeiv2
@@ -183,7 +182,7 @@ class OdeSys(object):
                 - 'odeint': :meth:`_integrate_odeint`
                 - 'cvode':  :meth:`_integrate_cvode`
             See respective method for more information.
-            If None: ``os.environ.get('PYODESYS_INTEGRATOR', 'scipy')``
+            If ``None``: ``os.environ.get('PYODESYS_INTEGRATOR', 'scipy')``
         atol: float
             Absolute tolerance
         rtol: float
@@ -202,7 +201,7 @@ class OdeSys(object):
         Length 3 tuple: (xout, yout, info)
         xout: array of values of the independent variable
         yout: array of the dependent variable(s) for the different values of x
-        info: dict ('nrhs' and 'njac' guaranteed to be there)
+        info: dict ('nfev' is guaranteed to be a key)
         """
         intern_xout, intern_y0, self.internal_params = self.pre_process(
             xout, y0, params)
@@ -462,6 +461,8 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         Calculate sittness ratio, i.e. the ratio between the largest and
         smallest absolute eigenvalue of the jacobian matrix (from SVD).
+        Note that this is a very expensive method for any but the smallest
+        systems.
 
         Parameters
         ----------

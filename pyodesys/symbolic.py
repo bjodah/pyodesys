@@ -120,8 +120,7 @@ def _symarray(backend=None):
 
 
 class SymbolicSys(OdeSys):
-    """
-    ODE System from symbolic expressions
+    """ ODE System from symbolic expressions
 
     Creates a :class:`OdeSys` instance
     from symbolic expressions. Jacboian and second derivatives
@@ -361,7 +360,8 @@ class TransformedSys(SymbolicSys):
         variables
     indep_transf: pair of expressions
         forward and backward transformation of the independent variable
-    params: see :class:`SymbolicSys`
+    params:
+        see :class:`SymbolicSys`
     exprs_process_cb: callbable
         signatrue f(exprs) -> exprs
         post processing of the expressions for the derivatives of the
@@ -618,7 +618,7 @@ def _concat(*args):
 
 
 class PartiallySolvedSystem(SymbolicSys):
-    """ Use analytic expressions some dependent variables
+    """ Use analytic expressions for some dependent variables
 
     Parameters
     ----------
