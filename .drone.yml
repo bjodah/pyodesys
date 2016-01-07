@@ -1,6 +1,8 @@
 build:
   image: bjodah/bjodahimg:v1.1
   commands:
+    - pip install --user pygslodeiv2 pyodeint pycvodes pysym
+    - pip3 install --user pygslodeiv2 pyodeint pycvodes pysym
     - ./scripts/ci.sh pyodesys
     - (cd examples/; ipython2 nbconvert --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
     - (cd examples/; ../scripts/render_index.sh *.html)
