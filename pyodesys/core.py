@@ -101,7 +101,7 @@ class OdeSys(object):
 
         for pre_processor in self.pre_processors:
             xout, y0, params = pre_processor(xout, y0, params)
-        return xout, y0, params
+        return np.atleast_1d(xout), np.atleast_1d(y0), np.atleast_1d(params)
 
     def post_process(self, xout, yout, params):
         """ Transforms internal values to output, used inernally. """
@@ -276,7 +276,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         if self.band is not None:
             kwargs['lband'], kwargs['uband'] = self.band
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
-        if self.internal_params is not ():
+        if len(self.internal_params) > 0:
             r.set_f_params(self.internal_params)
             r.set_jac_params(self.internal_params)
         r.set_initial_value(intern_y0, intern_xout[0])
