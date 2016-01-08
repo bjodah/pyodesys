@@ -65,8 +65,11 @@ The classic van der Pol oscillator (see `examples/van_der_pol.py <examples/van_d
    >>> from pyodesys.symbolic import SymbolicSys
    >>> def f(t, y, p):
    ...     return [y[1], -y[0] + p[0]*y[1]*(1 - y[0]**2)]
+   ...
    >>> odesys = SymbolicSys.from_callback(f, 2, 1)
-   >>> odesys.plot_result(odesys.integrate(10, [1, 0], [1], integrator='odeint'))  # doctest: +SKIP
+   >>> xout, yout, info = odesys.integrate(10, [1, 0], [1], integrator='odeint')
+   >>> _ = odesys.plot_result()
+   >>> import matplotlib.pyplot as plt; plt.show()  # doctest: +SKIP
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/van_der_pol.png
 
