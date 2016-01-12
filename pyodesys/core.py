@@ -4,24 +4,23 @@ Core functionality from OdeSys.
 
 Note that it is possible to use new custom ODE integrators with pyodesys by
 providing a module with two functions named ``integrate_adaptive`` and
-``integrate_predefined``. See source code of :py:class`RK4_example_integartor`
-for an example.
-
+``integrate_predefined``. See the ``pyodesys.integrators`` module for examples.
 """
 
 from __future__ import absolute_import, division, print_function
 
-import math
-
 import numpy as np
+
+import os
 
 from .util import ensure_3args
 from .plotting import plot_result, plot_phase_plane
 
 
 class OdeSys(object):
-    """
-    Object representing odesystem. Provides unified interface to:
+    """ Object representing an ODE system.
+
+    ``OdeSys`` provides unified interface to:
 
     - scipy.integarte.ode
     - pygslodeiv2
@@ -44,9 +43,9 @@ class OdeSys(object):
         Jacobian matrix (dfdy). Required for implicit methods.
     dfdx: callback
         Signature dfdx(x, y[:], p[:]) -> out[:] (used by e.g. GSL)
-    band: tuple of 2 ints or None (default: None)
+    band: tuple of 2 integers or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
-    names: iterable of str (default: None)
+    names: iterable of strings (default: None)
         names of variables, e.g. used for plotting
     pre_processors: iterable of callables (optional)
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:]
@@ -72,7 +71,7 @@ class OdeSys(object):
 
     Notes
     -----
-    banded jacobians are supported by "scipy" and "cvode" solvers
+    banded jacobians are supported by "scipy" and "cvode" integrators
     """
 
     def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None,
@@ -92,38 +91,30 @@ class OdeSys(object):
         self.post_processors = post_processors or []
 
     def pre_process(self, xout, y0, params=()):
-        """ Transforms input to internal values, used inernally.
-
-        Should be used by all methods matching "integrate_*"
-        """
+        """ Transforms input to internal values, used inernally. """
         try:
             nx = len(xout)
             if nx == 1:
-                xout = (0, xout[0])
+                xout = (0*xout[0], xout[0])
         except TypeError:
-            xout = (0, xout)
+            xout = (0*xout, xout)
 
         for pre_processor in self.pre_processors:
             xout, y0, params = pre_processor(xout, y0, params)
-        return xout, y0, params
+        return np.atleast_1d(xout), np.atleast_1d(y0), np.atleast_1d(params)
 
     def post_process(self, xout, yout, params):
-        """ Transforms internal values to output, used inernally.
-
-        Should be used by all methods matching "integrate_*"
-        """
-        self.internal_xout = np.asarray(xout, dtype=np.float64).copy()
-        self.internal_yout = np.asarray(yout, dtype=np.float64).copy()
+        """ Transforms internal values to output, used inernally. """
         for post_processor in self.post_processors:
             xout, yout, params = post_processor(xout, yout, params)
         return xout, yout, params
 
-    def adaptive(self, solver, y0, x0, xend, params=(), **kwargs):
-        """ Integrate with solver chosen output.
+    def adaptive(self, y0, x0, xend, params=(), **kwargs):
+        """ Integrate with integrator chosen output.
 
         Parameters
         ----------
-        solver: str
+        integrator: str
             see :meth:`integrate`
         y0: array_like
             see :meth:`integrate`
@@ -140,14 +131,15 @@ class OdeSys(object):
         -------
         Same as :meth:`integrate`
         """
-        return self.integrate(solver, (x0, xend), y0, params=params, **kwargs)
+        return self.integrate((x0, xend), y0,
+                              params=params, **kwargs)
 
-    def predefined(self, solver, y0, xout, params=(), **kwargs):
+    def predefined(self, y0, xout, params=(), **kwargs):
         """ Integrate with user chosen output.
 
         Parameters
         ----------
-        solver: str
+        integrator: str
             see :meth:`integrate`
         y0: array_like
             see :meth:`integrate`
@@ -162,24 +154,16 @@ class OdeSys(object):
         Length 2 tuple: (yout, info)
             see :meth:`integrate`
         """
-        xout, yout, info = self.integrate(solver, xout, y0, params=params,
+        xout, yout, info = self.integrate(xout, y0, params=params,
                                           force_predefined=True, **kwargs)
         return yout, info
 
-    def integrate(self, solver, xout, y0, params=(),
-                  **kwargs):
+    def integrate(self, xout, y0, params=(), **kwargs):
         """
         Integrate the system of ODE's.
 
         Parameters
         ----------
-        solver: str
-            Name of solver, one of:
-                - 'scipy': :meth:`integrate_scipy`
-                - 'gsl': :meth:`integrate_gsl`
-                - 'odeint': :meth:`integrate_odeint`
-                - 'cvode':  :meth:`integrate_cvode`
-            See respective method for more information.
         xout: array_like or pair (start and final time) or float
             if float:
                 make it a pair: (0, xout)
@@ -191,6 +175,14 @@ class OdeSys(object):
             Initial values at xout[0] for the dependent variables.
         params: array_like (default: tuple())
             Value of parameters passed to user-supplied callbacks.
+        integrator: str or None
+            Name of integrator, one of:
+                - 'scipy': :meth:`_integrate_scipy`
+                - 'gsl': :meth:`_integrate_gsl`
+                - 'odeint': :meth:`_integrate_odeint`
+                - 'cvode':  :meth:`_integrate_cvode`
+            See respective method for more information.
+            If ``None``: ``os.environ.get('PYODESYS_INTEGRATOR', 'scipy')``
         atol: float
             Absolute tolerance
         rtol: float
@@ -202,27 +194,40 @@ class OdeSys(object):
         force_predefined: bool (default: False)
             override behaviour of ``len(xout) == 2`` => :meth:`adaptive`
         \*\*kwargs:
-            Additional keyword arguments passed to ``integrate_$(solver)``.
+            Additional keyword arguments for ``_integrate_$(integrator)``.
 
         Returns
         -------
         Length 3 tuple: (xout, yout, info)
         xout: array of values of the independent variable
         yout: array of the dependent variable(s) for the different values of x
-        info: dict ('nrhs' and 'njac' guaranteed to be there)
+        info: dict ('nfev' is guaranteed to be a key)
         """
-        if isinstance(solver, str):
-            return getattr(self, 'integrate_'+solver)(
-                xout, y0, params, **kwargs)
+        intern_xout, intern_y0, self.internal_params = self.pre_process(
+            xout, y0, params)
+        integrator = kwargs.pop('integrator', None)
+        if integrator is None:
+            integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
+        if isinstance(integrator, str):
+            nfo = getattr(self, '_integrate_' + integrator)(
+                intern_xout, intern_y0, **kwargs)
         else:
-            kwargs['with_jacobian'] = getattr(solver, 'with_jacobian', None)
-            return self._integrate(solver.integrate_adaptive,
-                                   solver.integrate_predefined,
-                                   xout, y0, params, **kwargs)
+            kwargs['with_jacobian'] = getattr(integrator,
+                                              'with_jacobian', None)
+            nfo = self._integrate(integrator.integrate_adaptive,
+                                  integrator.integrate_predefined,
+                                  intern_xout, intern_y0, **kwargs)
 
-    def integrate_scipy(self, xout, y0, params=(), atol=1e-8, rtol=1e-8,
-                        first_step=None, with_jacobian=None,
-                        force_predefined=False, name='lsoda', **kwargs):
+        self.internal_xout = np.asarray(
+            nfo['internal_xout'], dtype=np.float64).copy()
+        self.internal_yout = np.asarray(
+            nfo['internal_yout'], dtype=np.float64).copy()
+        return self.post_process(nfo['internal_xout'], nfo['internal_yout'],
+                                 self.internal_params)[:2] + (nfo,)
+
+    def _integrate_scipy(self, intern_xout, intern_y0, atol=1e-8, rtol=1e-8,
+                         first_step=None, with_jacobian=None,
+                         force_predefined=False, name='lsoda', **kwargs):
         """ Do not use directly (use ``integrate('scipy', ...)``).
 
         Uses `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/\
@@ -233,7 +238,7 @@ generated/scipy.integrate.ode.html>`_
         \*args:
             see :meth:`integrate`
         name: str (default: 'lsoda')
-            what solver wrapped in scipy.integrate.ode to use.
+            what integrator wrapped in scipy.integrate.ode to use.
         \*\*kwargs:
             keyword arguments passed onto `set_integrator(...) <\
 http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.\
@@ -243,10 +248,8 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         -------
         See :meth:`integrate`
         """
-        ny = len(y0)
-        xout, intern_y0, self.internal_params = self.pre_process(
-            xout, y0, params)
-        nx = len(xout)
+        ny = len(intern_y0)
+        nx = len(intern_xout)
         if with_jacobian is None:
             if name == 'lsoda':  # lsoda might call jacobian
                 with_jacobian = True
@@ -273,41 +276,44 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         if self.band is not None:
             kwargs['lband'], kwargs['uband'] = self.band
         r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
-        if self.internal_params is not ():
+        if len(self.internal_params) > 0:
             r.set_f_params(self.internal_params)
             r.set_jac_params(self.internal_params)
-        r.set_initial_value(intern_y0, xout[0])
+        r.set_initial_value(intern_y0, intern_xout[0])
         if nx == 2 and not force_predefined:
+            # vode itask 2 (may overshoot)
             ysteps = [intern_y0]
-            xsteps = [xout[0]]
-            while r.t < xout[1]:
-                r.integrate(xout[1], step=True)  # vode itask 2 (may overshoot)
+            xsteps = [intern_xout[0]]
+            while r.t < intern_xout[1]:
+                r.integrate(intern_xout[1], step=True)
                 if not r.successful():
                     raise RuntimeError("failed")
                 xsteps.append(r.t)
                 ysteps.append(r.y)
             yout = np.array(ysteps)
-            xout = np.array(xsteps)
+            intern_xout = np.array(xsteps)
         else:
             yout = np.empty((nx, ny))
             yout[0, :] = intern_y0
             for idx in range(1, nx):
-                r.integrate(xout[idx])
+                r.integrate(intern_xout[idx])
                 if not r.successful():
                     raise RuntimeError("failed")
                 yout[idx, :] = r.y
-        info = {'success': r.successful(), 'nrhs': rhs.ncall,
-                'njac': jac.ncall}
-        return self.post_process(
-            xout, yout, self.internal_params)[:2] + (info,)
+        return {
+            'internal_xout': intern_xout,
+            'internal_yout': yout,
+            'success': r.successful(),
+            'nfev': rhs.ncall,
+            'njev': jac.ncall
+        }
 
-    def _integrate(self, adaptive, predefined, xout, y0, params=(),
+    def _integrate(self, adaptive, predefined, intern_xout, intern_y0,
                    atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
                    force_predefined=False, **kwargs):
-        xout, y0, self.internal_params = self.pre_process(xout, y0, params)
         if first_step is None:
-            first_step = 1e-14 + xout[0]*1e-14  # arbitrary, often works
-        nx = len(xout)
+            first_step = 1e-14 + intern_xout[0]*1e-14  # arbitrary, often works
+        nx = len(intern_xout)
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol, check_indexing=False)
         new_kwargs.update(kwargs)
@@ -348,13 +354,16 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
                     raise ValueError("cannot override nroots")
                 new_kwargs['nroots'] = self.nroots
         if nx == 2 and not force_predefined:
-            xout, yout, info = adaptive(_f, _j, y0, *xout, **new_kwargs)
+            intern_xout, yout, info = adaptive(_f, _j, intern_y0, *intern_xout,
+                                               **new_kwargs)
         else:
-            yout, info = predefined(_f, _j, y0, xout, **new_kwargs)
-        return self.post_process(
-            xout, yout, self.internal_params)[:2] + (info,)
+            yout, info = predefined(_f, _j, intern_y0, intern_xout,
+                                    **new_kwargs)
+        info['internal_xout'] = intern_xout
+        info['internal_yout'] = yout
+        return info
 
-    def integrate_gsl(self, *args, **kwargs):
+    def _integrate_gsl(self, *args, **kwargs):
         """ Do not use directly (use ``integrate('gsl', ...)``).
 
         Uses `GNU Scientific Library <http://www.gnu.org/software/gsl/>`_
@@ -375,35 +384,35 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         -------
         See :meth:`integrate`
         """
-        import pygslodeiv2  # Python interface GSL's "odeiv2" solvers
+        import pygslodeiv2  # Python interface GSL's "odeiv2" integrators
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bsimp') in pygslodeiv2.requires_jac
         return self._integrate(pygslodeiv2.integrate_adaptive,
                                pygslodeiv2.integrate_predefined,
                                *args, **kwargs)
 
-    def integrate_odeint(self, *args, **kwargs):
+    def _integrate_odeint(self, *args, **kwargs):
         """ Do not use directly (use ``integrate('odeint', ...)``).
 
         Uses `Boost.Numeric.Odeint <http://www.odeint.com>`_
         (via `pyodeint <https://pypi.python.org/pypi/pyodeint>`_) to integrate
         the ODE system.
         """
-        import pyodeint  # Python interface to boost's odeint solvers
+        import pyodeint  # Python interface to boost's odeint integrators
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'rosenbrock4') in pyodeint.requires_jac
         return self._integrate(pyodeint.integrate_adaptive,
                                pyodeint.integrate_predefined,
                                *args, **kwargs)
 
-    def integrate_cvode(self, *args, **kwargs):
+    def _integrate_cvode(self, *args, **kwargs):
         """ Do not use directly (use ``integrate('cvode', ...)``).
 
         Uses CVode from CVodes in
         `SUNDIALS <https://computation.llnl.gov/casc/sundials/>`_
         (via `pycvodes <https://pypi.python.org/pypi/pycvodes>`_)
         to integrate the ODE system. """
-        import pycvodes  # Python interface to SUNDIALS's cvodes solver
+        import pycvodes  # Python interface to SUNDIALS's cvodes integrators
         kwargs['with_jacobian'] = kwargs.get(
             'method', 'bdf') in pycvodes.requires_jac
         if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
@@ -452,6 +461,8 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         Calculate sittness ratio, i.e. the ratio between the largest and
         smallest absolute eigenvalue of the jacobian matrix (from SVD).
+        Note that this is a very expensive method for any but the smallest
+        systems.
 
         Parameters
         ----------
@@ -477,46 +488,3 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
-
-
-class RK4_example_integartor:
-    """
-    This is an example of how to implement a custom integrator.
-    It uses fixed step size and is usually not useful for real problems.
-    """
-
-    with_jacobian = False
-
-    @staticmethod
-    def integrate_adaptive(rhs, jac, y0, x0, xend, dx0, **kwargs):
-        xspan = xend - x0
-        n = int(math.ceil(xspan/dx0))
-        yout = [y0[:]]
-        xout = [x0]
-        k = [np.empty(len(y0)) for _ in range(4)]
-        for i in range(0, n+1):
-            x, y = xout[-1], yout[-1]
-            h = min(dx0, xend-x)
-            rhs(x,       y,            k[0])
-            rhs(x + h/2, y + h/2*k[0], k[1])
-            rhs(x + h/2, y + h/2*k[1], k[2])
-            rhs(x + h,   y + h*k[2],   k[3])
-            yout.append(y + h/6 * (k[0] + 2*k[1] + 2*k[2] + k[3]))
-            xout.append(x+h)
-        return np.array(xout), np.array(yout), {'nrhs': n*4}
-
-    @staticmethod
-    def integrate_predefined(rhs, jac, y0, xout, **kwargs):
-        x_old = xout[0]
-        yout = [y0[:]]
-        k = [np.empty(len(y0)) for _ in range(4)]
-        for i, x in enumerate(xout[1:], 1):
-            y = yout[-1]
-            h = x - x_old
-            rhs(x_old,       y,            k[0])
-            rhs(x_old + h/2, y + h/2*k[0], k[1])
-            rhs(x_old + h/2, y + h/2*k[1], k[2])
-            rhs(x_old + h,   y + h*k[2],   k[3])
-            yout.append(y + h/6 * (k[0] + 2*k[1] + 2*k[2] + k[3]))
-            x_old = x
-        return np.array(yout), {'nrhs': (len(xout)-1)*4}

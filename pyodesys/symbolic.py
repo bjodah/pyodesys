@@ -120,8 +120,7 @@ def _symarray(backend=None):
 
 
 class SymbolicSys(OdeSys):
-    """
-    ODE System from symbolic expressions
+    """ ODE System from symbolic expressions
 
     Creates a :class:`OdeSys` instance
     from symbolic expressions. Jacboian and second derivatives
@@ -338,7 +337,7 @@ class SymbolicSys(OdeSys):
             ]
         rhs.ncall = 0
 
-        cb = odefun(lambda x, y: rhs, xout[0], y0)
+        cb = odefun(rhs, xout[0], y0)
         yout = []
         for x in xout:
             yout.append(cb(x))
@@ -361,7 +360,8 @@ class TransformedSys(SymbolicSys):
         variables
     indep_transf: pair of expressions
         forward and backward transformation of the independent variable
-    params: see :class:`SymbolicSys`
+    params:
+        see :class:`SymbolicSys`
     exprs_process_cb: callbable
         signatrue f(exprs) -> exprs
         post processing of the expressions for the derivatives of the
@@ -618,7 +618,7 @@ def _concat(*args):
 
 
 class PartiallySolvedSystem(SymbolicSys):
-    """ Use analytic expressions some dependent variables
+    """ Use analytic expressions for some dependent variables
 
     Parameters
     ----------
@@ -644,7 +644,7 @@ class PartiallySolvedSystem(SymbolicSys):
     >>> print(partsys.exprs)  # doctest: +SKIP
     (_Dummy_29*p_0*exp(-p_0*(-_Dummy_28 + x)) - p_1*y_1,)
     >>> y0, k = [3, 2], [3.5, 2.5]
-    >>> xout, yout, info = partsys.integrate('scipy', [0, 1], y0, k)
+    >>> xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
     >>> info['success'], yout.shape[1]
     (True, 2)
 

@@ -49,9 +49,9 @@ Simplest way to install pyodesys and its (optional) dependencies is to use the `
 
 Optional requirements not listed in requirements.txt:
 
-- pygslodeiv2 (>=v0.4.1)
-- pyodeint (>=v0.5.0)
-- pycvodes (>=v0.2.0)
+- pygslodeiv2 (>=v0.5.0)
+- pyodeint (>=v0.6.0)
+- pycvodes (>=v0.3.0)
 
 Source distribution is available here:
 `<https://pypi.python.org/pypi/pyodesys>`_
@@ -65,8 +65,11 @@ The classic van der Pol oscillator (see `examples/van_der_pol.py <examples/van_d
    >>> from pyodesys.symbolic import SymbolicSys
    >>> def f(t, y, p):
    ...     return [y[1], -y[0] + p[0]*y[1]*(1 - y[0]**2)]
+   ...
    >>> odesys = SymbolicSys.from_callback(f, 2, 1)
-   >>> odesys.plot_result(odesys.integrate('odeint', 10, [1, 0], [1]))  # doctest: +SKIP
+   >>> xout, yout, info = odesys.integrate(10, [1, 0], [1], integrator='odeint')
+   >>> _ = odesys.plot_result()
+   >>> import matplotlib.pyplot as plt; plt.show()  # doctest: +SKIP
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/van_der_pol.png
 
