@@ -43,9 +43,9 @@ class OdeSys(object):
         Jacobian matrix (dfdy). Required for implicit methods.
     dfdx: callback
         Signature dfdx(x, y[:], p[:]) -> out[:] (used by e.g. GSL)
-    band: tuple of 2 ints or None (default: None)
+    band: tuple of 2 integers or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
-    names: iterable of str (default: None)
+    names: iterable of strings (default: None)
         names of variables, e.g. used for plotting
     pre_processors: iterable of callables (optional)
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:]
@@ -95,9 +95,9 @@ class OdeSys(object):
         try:
             nx = len(xout)
             if nx == 1:
-                xout = (0, xout[0])
+                xout = (0*xout[0], xout[0])
         except TypeError:
-            xout = (0, xout)
+            xout = (0*xout, xout)
 
         for pre_processor in self.pre_processors:
             xout, y0, params = pre_processor(xout, y0, params)
