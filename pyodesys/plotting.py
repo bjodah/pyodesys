@@ -13,7 +13,7 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, post_processors=()):
     """
-    Plot the depepndent variables vs. the dependent variable
+    Plot the depepndent variables vs. the independent variable
 
     Parameters
     ----------

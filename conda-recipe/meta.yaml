@@ -1,6 +1,6 @@
 package:
     name: pyodesys
-    version: 0.2.0.git
+    version: 0.6.0.git
 
 source:
     path: ../

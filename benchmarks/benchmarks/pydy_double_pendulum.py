@@ -63,13 +63,13 @@ class TimeDoublePendulum:
         self.y0 = [.1, .2, 0, 0]
 
     def time_integrate_scipy(self):
-        self.odesys.integrate('scipy', self.tout, self.y0)
+        self.odesys.integrate(self.tout, self.y0, integrator='scipy')
 
     def time_integrate_gsl(self):
-        self.odesys.integrate('gsl', self.tout, self.y0)
+        self.odesys.integrate(self.tout, self.y0, integrator='gsl')
 
     def time_integrate_odeint(self):
-        self.odesys.integrate('odeint', self.tout, self.y0)
+        self.odesys.integrate(self.tout, self.y0, integrator='odeint')
 
     def time_integrate_cvode(self):
-        self.odesys.integrate('cvode', self.tout, self.y0)
+        self.odesys.integrate(self.tout, self.y0, integrator='cvode')

@@ -242,7 +242,7 @@ class SymbolicSys(OdeSys):
         return args + tuple(params)
 
     def get_jac(self):
-        """ Derive the jacobian from ``self.exprs`` and ``self.dep``. """
+        """ Derives the jacobian from ``self.exprs`` and ``self.dep``. """
         if self._jac is True:
             if self.band is None:
                 f = self.Matrix(1, self.ny, lambda _, q: self.exprs[q])
@@ -257,7 +257,7 @@ class SymbolicSys(OdeSys):
         return self._jac
 
     def get_dfdx(self):
-        """ Calculate seond order derivatives in independent variable """
+        """ Calculates 2nd derivatives of ``self.exprs`` """
         if self._dfdx is True:
             if self.indep is None:
                 self._dfdx = [0]*self.ny
@@ -268,7 +268,7 @@ class SymbolicSys(OdeSys):
         return self._dfdx
 
     def get_f_ty_callback(self):
-        """ Generate a callback for evaluating ``self.exprs``. """
+        """ Generates a callback for evaluating ``self.exprs``. """
         cb = self.lambdify(list(chain(self._args(), self.params)), self.exprs)
 
         def f(x, y, params=()):
@@ -279,7 +279,7 @@ class SymbolicSys(OdeSys):
         return f
 
     def get_j_ty_callback(self):
-        """ Generate a callback for evaluating the jacobian. """
+        """ Generates a callback for evaluating the jacobian. """
         j_exprs = self.get_jac()
         if j_exprs is False:
             return None
@@ -534,13 +534,16 @@ class ScaledSys(TransformedSys):
 
     Parameters
     ----------
-    dep_exprs: see :class:`SymbolicSys`
-    indep: see :class:`SymbolicSys`
+    dep_exprs:
+        see :class:`SymbolicSys`
+    indep:
+        see :class:`SymbolicSys`
     dep_scaling: number (>0) or iterable of numbers
         scaling of the dependent variables (default: 1)
     indep_scaling: number (>0)
         scaling of the independent variable (default: 1)
-    params: see :class:`SymbolicSys`
+    params:
+        see :class:`SymbolicSys`
     \*\*kwargs:
         keyword arguments passed onto TransformedSys
 

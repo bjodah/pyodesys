@@ -48,12 +48,12 @@ class OdeSys(object):
     names: iterable of strings (default: None)
         names of variables, e.g. used for plotting
     pre_processors: iterable of callables (optional)
-        signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:]
-        insert at beginning
+        signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:].
+        When modifying: insert at beginning.
     post_processors: iterable of callables (optional)
         signature: f(x2[:], y2[:, :], params2[:]) -> x1[:], y1[:, :],
-            params1[:]
-        insert at end
+        params1[:]
+        When modifying: insert at end.
 
     Attributes
     ----------
@@ -72,6 +72,7 @@ class OdeSys(object):
     Notes
     -----
     banded jacobians are supported by "scipy" and "cvode" integrators
+
     """
 
     def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None,
