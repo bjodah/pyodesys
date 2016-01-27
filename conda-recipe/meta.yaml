@@ -16,9 +16,6 @@ requirements:
         - numpy
         - sympy
         - scipy
-        - pyodeint
-        - pygslodeiv2
-        - pycvodes
 
 test:
     imports:

@@ -11,7 +11,7 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
-                names=None, post_processors=()):
+                names=None, post_processors=(), xlabel=None, ylabel=None):
     """
     Plot the depepndent variables vs. the independent variable
 
@@ -92,6 +92,24 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
         if markers:
             plot(x_post, y_post[:, idx], **plot_kwargs_cb(
                 idx, lines=False, markers=markers, labels=names))
+
+    if xlabel is None:
+        import matplotlib.pyplot as plt
+        try:
+            plt.xlabel(x_post.dimensionality.latex)
+        except AttributeError:
+            pass
+    else:
+        plt.xlabel(xlabel)
+
+    if ylabel is None:
+        import matplotlib.pyplot as plt
+        try:
+            plt.ylabel(y_post.dimensionality.latex)
+        except AttributeError:
+            pass
+    else:
+        plt.ylabel(ylabel)
 
     if interpolate:
         if interpolate is True:
