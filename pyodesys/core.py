@@ -313,7 +313,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
                    atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
                    force_predefined=False, **kwargs):
         if first_step is None:
-            first_step = 1e-14 + intern_xout[0]*1e-14  # arbitrary, often works
+            first_step = 1e-14 + abs(intern_xout[0])*1e-14  # arbitrary, often works
         nx = len(intern_xout)
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol, check_indexing=False)
