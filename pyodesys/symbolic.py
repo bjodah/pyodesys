@@ -594,6 +594,15 @@ class ScaledSys(TransformedSys):
             scaling of the independent variable (default: 1)
         \*\*kwargs:
             keyword arguments passed onto :class:`ScaledSys`
+
+        Examples
+        --------
+        >>> def f(x, y, p):
+        ...     return [-y[0]*p[0]]
+        >>> odesys = ScaledSys.from_callback(f, 1, 1, dep_scaling=10)
+        >>> odesys.exprs
+        (-p_0*y_0/10,)
+
         """
         return TransformedSys.from_callback(
             cb, ny, nparams,
