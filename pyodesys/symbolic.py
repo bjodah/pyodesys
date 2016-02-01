@@ -608,6 +608,7 @@ class ScaledSys(TransformedSys):
             cb, ny, nparams,
             dep_transf_cbs=repeat(cls._scale_fw_bw(dep_scaling)),
             indep_transf_cbs=cls._scale_fw_bw(indep_scaling),
+            **kwargs
         )
 
 
