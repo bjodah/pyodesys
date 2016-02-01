@@ -11,7 +11,8 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
-                names=None, post_processors=(), xlabel=None, ylabel=None):
+                names=None, post_processors=(), xlabel=None, ylabel=None,
+                xscale=None, yscale=None):
     """
     Plot the depepndent variables vs. the independent variable
 
@@ -52,8 +53,6 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
         when None: ``scipy.interpolate.BPoly.from_derivatives``
     post_processors: iterable of callback (default: tuple())
     """
-    if indices is None:
-        indices = range(y.shape[-1])
     if plot is None:
         from matplotlib.pyplot import plot
     if plot_kwargs_cb is None:
@@ -83,6 +82,8 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
 
     x_post, y_post, params_post = post_process(x, y[:, 0, :] if interpolate and
                                                y.ndim == 3 else y, params)
+    if indices is None:
+        indices = range(y_post.shape[-1])  # e.g. PartiallySolvedSys
     if lines is None:
         lines = interpolate in (None, False)
     markers = len(x) < m_lim
@@ -142,6 +143,11 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
             plot(x_post2, y_post2[:, idx], **plot_kwargs_cb(
                 idx, lines=True, markers=False))
         return x_post2, y_post2
+
+    if xscale is not None:
+        plt.gca().set_xscale(xscale)
+    if yscale is not None:
+        plt.gca().set_yscale(yscale)
     return x_post, y_post
 
 

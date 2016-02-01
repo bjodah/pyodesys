@@ -131,6 +131,8 @@ class SymbolicSys(OdeSys):
     dep_exprs: iterable of (symbol, expression)-pairs
     indep: symbol
         independent variable (default: None => autonomous system)
+    params : iterable of symbols
+        parameters
     jac: ImmutableMatrix or bool (default: True)
         if True:
             calculate jacobian from exprs
@@ -169,6 +171,7 @@ class SymbolicSys(OdeSys):
     -----
     Works for a moderate number of unknowns, :py:func:`sympy.lambdify` has
     an upper limit on number of arguments.
+
     """
 
     def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True,
@@ -225,6 +228,28 @@ class SymbolicSys(OdeSys):
         p = kwargs.get('symarray', _symarray())('p', nparams)
         exprs = ensure_3args(cb)(x, y, p)
         return cls(zip(y, exprs), x, p, *args, **kwargs)
+
+    @classmethod
+    def _from_other(cls, ori, **kwargs):  # provisional
+        new_kw = kwargs.copy()
+        if ori.roots is not None:
+            raise NotImplementedError('roots currently unsupported')
+        if 'params' not in new_kw:
+            new_kw['params'] = ori.params
+
+        if len(ori.pre_processors) > 0:
+            if 'pre_processors' not in new_kw:
+                new_kw['pre_processors'] = []
+            new_kw['pre_processors'] = ori.pre_processors + new_kw[
+                'pre_processors']
+
+        if len(ori.post_processors) > 0:
+            if 'post_processors' not in new_kw:
+                new_kw['post_processors'] = []
+            new_kw['post_processors'] = ori.post_processors + new_kw[
+                'post_processors']
+
+        return cls(zip(ori.dep, ori.exprs), ori.indep, **new_kw)
 
     @property
     def ny(self):
@@ -345,6 +370,28 @@ class SymbolicSys(OdeSys):
         return self.post_process(
             xout, yout, self.internal_params)[:2] + (info,)
 
+    def _get_analytic_stiffness_cb(self):
+        J = self.get_jac()
+        eig_vals = list(J.eigenvals().keys())
+        cb = self.lambdify(list(chain(self._args(), self.params)), eig_vals)
+
+        def eigen_values(x, y, params):
+            if self.lambdify_unpack:
+                return np.asarray(cb(*self._args(x, y, params)))
+            else:
+                return np.asarray(cb(self._args(x, y, params)))
+        return eigen_values
+
+    def analytic_stiffness(self, xyp=None):
+        """ Running stiffness ratio from last integration.
+
+        Calculate sittness ratio, i.e. the ratio between the largest and
+        smallest absolute eigenvalue of the (analytic) jacobian matrix.
+
+        See :meth:`OdeSys.stiffness` for more info.
+        """
+        return self.stiffness(xyp, self._get_analytic_stiffness_cb())
+
 
 class TransformedSys(SymbolicSys):
     """ SymbolicSys with abstracted variable transformations.
@@ -378,6 +425,7 @@ class TransformedSys(SymbolicSys):
             self.dep_fw, self.dep_bw = zip(*dep_transf)
             exprs = transform_exprs_dep(self.dep_fw, self.dep_bw,
                                         list(zip(dep, exprs)))
+
         else:
             self.dep_fw, self.dep_bw = None, None
 
@@ -391,10 +439,13 @@ class TransformedSys(SymbolicSys):
         if exprs_process_cb is not None:
             exprs = exprs_process_cb(exprs)
 
+        pre_processors = kwargs.pop('pre_processors', [])
+        post_processors = kwargs.pop('post_processors', [])
         super(TransformedSys, self).__init__(
             zip(dep, exprs), indep, params,
-            pre_processors=[self._forward_transform_xy],
-            post_processors=[self._back_transform_out], **kwargs)
+            pre_processors=pre_processors + [self._forward_transform_xy],
+            post_processors=[self._back_transform_out] + post_processors,
+            **kwargs)
         # the pre- and post-processors need callbacks:
         args = self._args(indep, dep, params)
         self.f_dep = self.lambdify(args, self.dep_fw)
@@ -529,8 +580,7 @@ def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
 
 
 class ScaledSys(TransformedSys):
-    """
-    Special case of TransformedSys where the variables have been scaled.
+    """ Transformed system where the variables have been scaled linearly.
 
     Parameters
     ----------
@@ -555,7 +605,7 @@ class ScaledSys(TransformedSys):
 
     def __init__(self, dep_exprs, indep=None, dep_scaling=1, indep_scaling=1,
                  params=(), **kwargs):
-        dep, exprs = zip(*dep_exprs)
+        dep, exprs = list(zip(*dep_exprs))
         try:
             n = len(dep_scaling)
         except TypeError:
@@ -598,10 +648,10 @@ class ScaledSys(TransformedSys):
         Examples
         --------
         >>> def f(x, y, p):
-        ...     return [-y[0]*p[0]]
+        ...     return [p[0]*y[0]**2]
         >>> odesys = ScaledSys.from_callback(f, 1, 1, dep_scaling=10)
         >>> odesys.exprs
-        (-p_0*y_0/10,)
+        (p_0*y_0**2/10,)
 
         """
         return TransformedSys.from_callback(
@@ -668,7 +718,7 @@ class PartiallySolvedSystem(SymbolicSys):
         self.original_system = original_system
         self.analytic_factory = analytic_factory
         if original_system.roots is not None:
-            raise NotImplementedError('roots unsupported')
+            raise NotImplementedError('roots currently unsupported')
         Dummy = Dummy or _Dummy()
         self.init_indep = Dummy()
         self.init_dep = [Dummy() for _ in range(original_system.ny)]
@@ -681,7 +731,7 @@ class PartiallySolvedSystem(SymbolicSys):
         new_params = _append(original_system.params, (self.init_indep,),
                              self.init_dep)
         self.analytic_cb = self._get_analytic_cb(
-            original_system, list(analytic.values()), new_params)
+            original_system, list(analytic.values()), new_dep, new_params)
         analytic_ids = [original_system.dep.index(dep) for dep in analytic]
         nanalytic = len(analytic_ids)
         new_exprs = [expr.subs(analytic) for idx, expr in enumerate(
@@ -698,7 +748,7 @@ class PartiallySolvedSystem(SymbolicSys):
 
         def post_processor(x, y, p):
             new_y = np.empty(y.shape[:-1] + (y.shape[-1]+nanalytic,))
-            analyt_y = self.analytic_cb(x, p)
+            analyt_y = self.analytic_cb(x, y, p)
             analyt_idx = 0
             intern_idx = 0
             for idx in range(original_system.ny):
@@ -710,10 +760,13 @@ class PartiallySolvedSystem(SymbolicSys):
                     intern_idx += 1
             return x, new_y, p[:-(1+original_system.ny)]
 
-        new_kw['pre_processors'] = [
-            pre_processor] + original_system.pre_processors
-        new_kw['post_processors'] = original_system.post_processors + [
-            post_processor]
+        def _wrap_procs(procs):
+            return
+
+        new_kw['pre_processors'] = original_system.pre_processors + [
+            pre_processor]
+        new_kw['post_processors'] = [
+            post_processor] + original_system.post_processors
 
         super(PartiallySolvedSystem, self).__init__(
             zip(new_dep, new_exprs), original_system.indep, new_params,
@@ -724,14 +777,15 @@ class PartiallySolvedSystem(SymbolicSys):
             Dummy=original_system.Dummy,
             **new_kw)
 
-    def _get_analytic_cb(self, ori_sys, analytic_exprs, new_params):
-        cb = ori_sys.lambdify(_concat(ori_sys.indep, new_params),
+    def _get_analytic_cb(self, ori_sys, analytic_exprs, new_dep, new_params):
+        cb = ori_sys.lambdify(_concat(ori_sys.indep, new_dep, new_params),
                               analytic_exprs)
 
-        def analytic(x, params):
-            args = np.empty((len(x), 1+len(params)))
+        def analytic(x, y, params):
+            args = np.empty((len(x), 1+self.ny+len(params)))
             args[:, 0] = x
-            args[:, 1:] = params
+            args[:, 1:self.ny+1] = y
+            args[:, self.ny+1:] = params
             if ori_sys.lambdify_unpack:
                 return np.asarray(cb(*(args.T)))
             else:

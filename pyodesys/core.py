@@ -182,6 +182,7 @@ class OdeSys(object):
                 - 'gsl': :meth:`_integrate_gsl`
                 - 'odeint': :meth:`_integrate_odeint`
                 - 'cvode':  :meth:`_integrate_cvode`
+
             See respective method for more information.
             If ``None``: ``os.environ.get('PYODESYS_INTEGRATOR', 'scipy')``
         atol: float
@@ -313,7 +314,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
                    atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
                    force_predefined=False, **kwargs):
         if first_step is None:
-            first_step = 1e-14 + abs(intern_xout[0])*1e-14  # arbitrary, often works
+            first_step = 1e-14 + abs(intern_xout[0])*1e-14  # arbitrary, heur.
         nx = len(intern_xout)
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol, check_indexing=False)
@@ -436,7 +437,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
-        if (internal_xout, internal_yout, internal_params) == (None, None, None):
+        if (internal_xout, internal_yout, internal_params) == (None,)*3:
             internal_xout = self.internal_xout
             internal_yout = self.internal_yout
             internal_params = self.internal_params
@@ -458,7 +459,12 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
 
-    def stiffness(self, xyp=None):
+    def _jac_eigenvals_svd(self, xval, yvals, intern_p):
+        from scipy.linalg import svd
+        J = self.j_cb(xval, yvals, intern_p)
+        return svd(J, compute_uv=False)
+
+    def stiffness(self, xyp=None, eigenvals_cb=None):
         """ Running stiffness ratio from last integration.
 
         Calculate sittness ratio, i.e. the ratio between the largest and
@@ -471,8 +477,14 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         xyp: length 3 tuple (default: None)
             internal_xout, internal_yout, internal_params, taken
             from last integration if not specified.
+        eigenvals_cb: callback (optional)
+            signature (x, y, p) (internal variables)
+
         """
-        from scipy.linalg import svd
+        if eigenvals_cb is None:
+            if self.band is not None:
+                raise NotImplementedError
+            eigenvals_cb = self._jac_eigenvals_svd
 
         if xyp is None:
             x, y, intern_p = (self.internal_xout, self.internal_yout,
@@ -482,11 +494,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         singular_values = []
         for xval, yvals in zip(x, y):
-            J = self.j_cb(xval, yvals, intern_p)
-            if self.band is None:
-                singular_values.append(svd(J, compute_uv=False))
-            else:
-                raise NotImplementedError
+            singular_values.append(eigenvals_cb(xval, yvals, intern_p))
 
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
