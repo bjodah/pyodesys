@@ -5,6 +5,7 @@ v0.5.1
 - Make PartiallySolvedSys more general (allow use dependent variable)
 - Better choice of first_step when not specified (still arbitrary though)
 - Documentation fixes
+- SymbolicSys got a new classmethod: from_other
 
 v0.5.0
 ======

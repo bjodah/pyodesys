@@ -9,6 +9,7 @@ import sympy as sp
 import pytest
 import time
 
+from .. import OdeSys
 from ..symbolic import SymbolicSys
 from ..symbolic import ScaledSys, symmetricsys, PartiallySolvedSystem
 from .bateman import bateman_full  # analytic, never mind the details
@@ -424,7 +425,15 @@ def test_PartiallySolvedSystem__using_y():
 
 
 def test_SymbolicSys_from_other():
-    scaled = ScaledSys()
-    LogLogSys = symmetricsys(...)
+    scaled = ScaledSys.from_callback(lambda x, y: [y[0]*y[0]], 1,
+                                     dep_scaling=101)
+    LogLogSys = symmetricsys(logexp, logexp)
     transformed_scaled = LogLogSys.from_other(scaled)
-    assert False
+    tout = np.array([0, .2, .5])
+    y0 = [1.]
+    ref, nfo1 = OdeSys(lambda x, y: y[0]*y[0]).predefined(
+        y0, tout, first_step=1e-14)
+    analytic = 1/(1-tout.reshape(ref.shape))
+    assert np.allclose(ref, analytic)
+    yout, nfo0 = transformed_scaled.predefined(y0, tout+1)
+    assert np.allclose(yout, analytic)

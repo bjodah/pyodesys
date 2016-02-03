@@ -230,7 +230,7 @@ class SymbolicSys(OdeSys):
         return cls(zip(y, exprs), x, p, *args, **kwargs)
 
     @classmethod
-    def _from_other(cls, ori, **kwargs):  # provisional
+    def from_other(cls, ori, **kwargs):  # provisional
         new_kw = kwargs.copy()
         if ori.roots is not None:
             raise NotImplementedError('roots currently unsupported')
@@ -596,6 +596,14 @@ class ScaledSys(TransformedSys):
         see :class:`SymbolicSys`
     \*\*kwargs:
         keyword arguments passed onto TransformedSys
+
+    Examples
+    --------
+    >>> from sympy import Symbol
+    >>> x = Symbol('x')
+    >>> scaled = ScaledSys([(x, x*x)], dep_scaling=1000)
+    >>> scaled.exprs
+    (x**2/1000,)
 
     """
 

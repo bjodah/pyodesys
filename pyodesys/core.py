@@ -69,6 +69,14 @@ class OdeSys(object):
     internal_params : 1D array of floats
         internal parameter values before post-processing
 
+    Examples
+    --------
+    >>> odesys = OdeSys(lambda x, y, p: p[0]*x + p[1]*y[0]*y[0])
+    >>> yout, info = odesys.predefined([1], [0, .2, .5], [2, 1])
+    >>> print(info['success'])
+    True
+
+
     Notes
     -----
     banded jacobians are supported by "scipy" and "cvode" integrators
@@ -229,7 +237,7 @@ class OdeSys(object):
 
     def _integrate_scipy(self, intern_xout, intern_y0, atol=1e-8, rtol=1e-8,
                          first_step=None, with_jacobian=None,
-                         force_predefined=False, name='lsoda', **kwargs):
+                         force_predefined=False, name=None, **kwargs):
         """ Do not use directly (use ``integrate('scipy', ...)``).
 
         Uses `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/\
@@ -239,7 +247,7 @@ generated/scipy.integrate.ode.html>`_
         ----------
         \*args:
             see :meth:`integrate`
-        name: str (default: 'lsoda')
+        name: str (default: 'lsoda'/'dopri5' when jacobian is available/not)
             what integrator wrapped in scipy.integrate.ode to use.
         \*\*kwargs:
             keyword arguments passed onto `set_integrator(...) <\
@@ -252,6 +260,11 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         """
         ny = len(intern_y0)
         nx = len(intern_xout)
+        if name is None:
+            if self.j_cb is None:
+                name = 'dopri5'
+            else:
+                name = 'lsoda'
         if with_jacobian is None:
             if name == 'lsoda':  # lsoda might call jacobian
                 with_jacobian = True
@@ -266,10 +279,11 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
             return self.f_cb(t, y, p)
         rhs.ncall = 0
 
-        def jac(t, y, p=()):
-            jac.ncall += 1
-            return self.j_cb(t, y, p)
-        jac.ncall = 0
+        if self.j_cb is not None:
+            def jac(t, y, p=()):
+                jac.ncall += 1
+                return self.j_cb(t, y, p)
+            jac.ncall = 0
 
         r = ode(rhs, jac=jac if with_jacobian else None)
         if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
@@ -302,13 +316,15 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
                 if not r.successful():
                     raise RuntimeError("failed")
                 yout[idx, :] = r.y
-        return {
+        info = {
             'internal_xout': intern_xout,
             'internal_yout': yout,
             'success': r.successful(),
             'nfev': rhs.ncall,
-            'njev': jac.ncall
         }
+        if self.j_cb is not None:
+            info['njev'] = jac.ncall
+        return info
 
     def _integrate(self, adaptive, predefined, intern_xout, intern_y0,
                    atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
