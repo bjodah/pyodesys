@@ -9,6 +9,7 @@ import sympy as sp
 import pytest
 import time
 
+from .. import OdeSys
 from ..symbolic import SymbolicSys
 from ..symbolic import ScaledSys, symmetricsys, PartiallySolvedSystem
 from .bateman import bateman_full  # analytic, never mind the details
@@ -65,6 +66,7 @@ def test_TransformedSys_liny_logx():
 def test_ScaledSys():
     k = k0, k1, k2 = [7., 3, 2]
     y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
+    # this is actually a silly example since it is linear
     l = [
         (y0, -7*y0),
         (y1, 7*y0 - 3*y1),
@@ -81,18 +83,33 @@ def test_ScaledSys():
 
 
 def test_ScaledSys_from_callback():
+    # this is actually a silly example since it is linear
     def f(t, x, k):
         return [-k[0]*x[0],
                 k[0]*x[0] - k[1]*x[1],
                 k[1]*x[1] - k[2]*x[2],
                 k[2]*x[2]]
-    odesys = ScaledSys.from_callback(f, 4, 3, 1e8)
+    odesys = ScaledSys.from_callback(f, 4, 3, 3.14e8)
     k = [7, 3, 2]
     y0 = [0]*(len(k)+1)
     y0[0] = 1
     xout, yout, info = odesys.integrate([1e-12, 1], y0, k, integrator='scipy')
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref, rtol=3e-11, atol=3e-11)
+
+
+def test_ScaledSys_from_callback__exprs():
+    def f(t, x, k):
+        return [-k[0]*x[0]*x[0]*t]
+    x, y, nfo = SymbolicSys.from_callback(f, 1, 1).integrate(
+        [0, 1], [3.14], [2.78])
+    xs, ys, nfos = ScaledSys.from_callback(f, 1, 1, 100).integrate(
+        [0, 1], [3.14], [2.78])
+    from scipy.interpolate import interp1d
+    cb = interp1d(x, y[:, 0])
+    cbs = interp1d(xs, ys[:, 0])
+    t = np.linspace(0, 1)
+    assert np.allclose(cb(t), cbs(t))
 
 
 def timeit(callback, *args, **kwargs):
@@ -385,3 +402,38 @@ def test_PartiallySolvedSystem():
     xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref)
+
+
+def test_PartiallySolvedSystem__using_y():
+    odesys = SymbolicSys.from_callback(
+        lambda x, y, p: [
+            -p[0]*y[0],
+            p[0]*y[0] - p[1]*y[1],
+            p[1]*y[1]
+        ], 3, 3)
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
+        # TODO: make this work:
+        # odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0)),
+        odesys.dep[2]: y0[0] + y0[1] + y0[2] - odesys.dep[0] - odesys.dep[1]
+    })
+    y0 = [3, 2, 1]
+    k = [3.5, 2.5, 1.5]
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert np.allclose(yout[:, :-1], ref[:, :-1])
+    assert np.allclose(np.sum(yout, axis=1), sum(y0))
+
+
+def test_SymbolicSys_from_other():
+    scaled = ScaledSys.from_callback(lambda x, y: [y[0]*y[0]], 1,
+                                     dep_scaling=101)
+    LogLogSys = symmetricsys(logexp, logexp)
+    transformed_scaled = LogLogSys.from_other(scaled)
+    tout = np.array([0, .2, .5])
+    y0 = [1.]
+    ref, nfo1 = OdeSys(lambda x, y: y[0]*y[0]).predefined(
+        y0, tout, first_step=1e-14)
+    analytic = 1/(1-tout.reshape(ref.shape))
+    assert np.allclose(ref, analytic)
+    yout, nfo0 = transformed_scaled.predefined(y0, tout+1)
+    assert np.allclose(yout, analytic)

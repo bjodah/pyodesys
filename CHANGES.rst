@@ -1,3 +1,12 @@
+v0.5.1
+======
+- Added SymbolicSys.analytic_stiffness
+- Allow chaining pre-/post-processors in TransformedSys
+- Make PartiallySolvedSys more general (allow use dependent variable)
+- Better choice of first_step when not specified (still arbitrary though)
+- Documentation fixes
+- SymbolicSys got a new classmethod: from_other
+
 v0.5.0
 ======
 - OdeSys.solve() changed signature: first arg "solver" moved to kwargs and

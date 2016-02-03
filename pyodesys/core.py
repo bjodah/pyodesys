@@ -69,6 +69,14 @@ class OdeSys(object):
     internal_params : 1D array of floats
         internal parameter values before post-processing
 
+    Examples
+    --------
+    >>> odesys = OdeSys(lambda x, y, p: p[0]*x + p[1]*y[0]*y[0])
+    >>> yout, info = odesys.predefined([1], [0, .2, .5], [2, 1])
+    >>> print(info['success'])
+    True
+
+
     Notes
     -----
     banded jacobians are supported by "scipy" and "cvode" integrators
@@ -182,6 +190,7 @@ class OdeSys(object):
                 - 'gsl': :meth:`_integrate_gsl`
                 - 'odeint': :meth:`_integrate_odeint`
                 - 'cvode':  :meth:`_integrate_cvode`
+
             See respective method for more information.
             If ``None``: ``os.environ.get('PYODESYS_INTEGRATOR', 'scipy')``
         atol: float
@@ -228,7 +237,7 @@ class OdeSys(object):
 
     def _integrate_scipy(self, intern_xout, intern_y0, atol=1e-8, rtol=1e-8,
                          first_step=None, with_jacobian=None,
-                         force_predefined=False, name='lsoda', **kwargs):
+                         force_predefined=False, name=None, **kwargs):
         """ Do not use directly (use ``integrate('scipy', ...)``).
 
         Uses `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/\
@@ -238,7 +247,7 @@ generated/scipy.integrate.ode.html>`_
         ----------
         \*args:
             see :meth:`integrate`
-        name: str (default: 'lsoda')
+        name: str (default: 'lsoda'/'dopri5' when jacobian is available/not)
             what integrator wrapped in scipy.integrate.ode to use.
         \*\*kwargs:
             keyword arguments passed onto `set_integrator(...) <\
@@ -251,6 +260,11 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         """
         ny = len(intern_y0)
         nx = len(intern_xout)
+        if name is None:
+            if self.j_cb is None:
+                name = 'dopri5'
+            else:
+                name = 'lsoda'
         if with_jacobian is None:
             if name == 'lsoda':  # lsoda might call jacobian
                 with_jacobian = True
@@ -265,10 +279,11 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
             return self.f_cb(t, y, p)
         rhs.ncall = 0
 
-        def jac(t, y, p=()):
-            jac.ncall += 1
-            return self.j_cb(t, y, p)
-        jac.ncall = 0
+        if self.j_cb is not None:
+            def jac(t, y, p=()):
+                jac.ncall += 1
+                return self.j_cb(t, y, p)
+            jac.ncall = 0
 
         r = ode(rhs, jac=jac if with_jacobian else None)
         if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
@@ -301,19 +316,21 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
                 if not r.successful():
                     raise RuntimeError("failed")
                 yout[idx, :] = r.y
-        return {
+        info = {
             'internal_xout': intern_xout,
             'internal_yout': yout,
             'success': r.successful(),
             'nfev': rhs.ncall,
-            'njev': jac.ncall
         }
+        if self.j_cb is not None:
+            info['njev'] = jac.ncall
+        return info
 
     def _integrate(self, adaptive, predefined, intern_xout, intern_y0,
                    atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
                    force_predefined=False, **kwargs):
         if first_step is None:
-            first_step = 1e-14 + intern_xout[0]*1e-14  # arbitrary, often works
+            first_step = 1e-14 + abs(intern_xout[0])*1e-14  # arbitrary, heur.
         nx = len(intern_xout)
         new_kwargs = dict(dx0=first_step, atol=atol,
                           rtol=rtol, check_indexing=False)
@@ -436,7 +453,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
-        if (internal_xout, internal_yout, internal_params) == (None, None, None):
+        if (internal_xout, internal_yout, internal_params) == (None,)*3:
             internal_xout = self.internal_xout
             internal_yout = self.internal_yout
             internal_params = self.internal_params
@@ -458,7 +475,12 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
 
-    def stiffness(self, xyp=None):
+    def _jac_eigenvals_svd(self, xval, yvals, intern_p):
+        from scipy.linalg import svd
+        J = self.j_cb(xval, yvals, intern_p)
+        return svd(J, compute_uv=False)
+
+    def stiffness(self, xyp=None, eigenvals_cb=None):
         """ Running stiffness ratio from last integration.
 
         Calculate sittness ratio, i.e. the ratio between the largest and
@@ -471,8 +493,14 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         xyp: length 3 tuple (default: None)
             internal_xout, internal_yout, internal_params, taken
             from last integration if not specified.
+        eigenvals_cb: callback (optional)
+            signature (x, y, p) (internal variables)
+
         """
-        from scipy.linalg import svd
+        if eigenvals_cb is None:
+            if self.band is not None:
+                raise NotImplementedError
+            eigenvals_cb = self._jac_eigenvals_svd
 
         if xyp is None:
             x, y, intern_p = (self.internal_xout, self.internal_yout,
@@ -482,11 +510,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         singular_values = []
         for xval, yvals in zip(x, y):
-            J = self.j_cb(xval, yvals, intern_p)
-            if self.band is None:
-                singular_values.append(svd(J, compute_uv=False))
-            else:
-                raise NotImplementedError
+            singular_values.append(eigenvals_cb(xval, yvals, intern_p))
 
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
