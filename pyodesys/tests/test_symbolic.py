@@ -48,19 +48,19 @@ def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1):
 
 
 def test_TransformedSys_liny_linx():
-    _test_TransformedSys(idty2, idty2, 1e-11, 1e-11, 0, 10)
+    _test_TransformedSys(idty2, idty2, 1e-11, 1e-11, 0, 15)
 
 
 def test_TransformedSys_logy_logx():
-    _test_TransformedSys(logexp, logexp, 1e-7, 1e-7, 1e-4, 100)
+    _test_TransformedSys(logexp, logexp, 1e-7, 1e-7, 1e-4, 150)
 
 
 def test_TransformedSys_logy_linx():
-    _test_TransformedSys(logexp, idty2, 1e-8, 1e-8, 0, 100)
+    _test_TransformedSys(logexp, idty2, 1e-8, 1e-8, 0, 150)
 
 
 def test_TransformedSys_liny_logx():
-    _test_TransformedSys(idty2, logexp, 1e-9, 1e-9, 0, 100)
+    _test_TransformedSys(idty2, logexp, 1e-9, 1e-9, 0, 150)
 
 
 def test_ScaledSys():
@@ -79,7 +79,7 @@ def test_ScaledSys():
     xout, yout, info = ss.integrate([1e-12, 1], y0, integrator='cvode',
                                     atol=1e-12, rtol=1e-12)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
-    assert np.allclose(yout, ref, rtol=1e-12, atol=1e-12)
+    assert np.allclose(yout, ref, rtol=2e-11, atol=2e-11)
 
 
 def test_ScaledSys_from_callback():
@@ -308,14 +308,14 @@ def _cvode(tout, method, forgive):
 
 
 @pytest.mark.parametrize('method,forgive', zip(
-    'adams bdf'.split(), (.24, .9)))
+    'adams bdf'.split(), (1.3, 5.0)))
 def test_cvode_predefined(method, forgive):
     _cvode([10**i for i in range(-15, 1)], method, forgive)
 
 
 # cvode performs significantly better than vode:
 @pytest.mark.parametrize('method,forgive', zip(
-    'adams bdf'.split(), (.36, 2)))
+    'adams bdf'.split(), (1.5, 5)))
 def test_cvode_adaptive(method, forgive):
     _cvode(1, method, forgive)
 
