@@ -128,33 +128,33 @@ class SymbolicSys(OdeSys):
 
     Parameters
     ----------
-    dep_exprs: iterable of (symbol, expression)-pairs
-    indep: symbol
-        independent variable (default: None => autonomous system)
+    dep_exprs : iterable of (symbol, expression)-pairs
+    indep : symbol
+        Independent variable (default: None => autonomous system).
     params : iterable of symbols
         parameters
-    jac: ImmutableMatrix or bool (default: True)
+    jac : ImmutableMatrix or bool (default: True)
         if True:
             calculate jacobian from exprs
         if False:
             do not compute jacobian (use explicit steppers)
         if instance of ImmutableMatrix:
             user provided expressions for the jacobian
-    roots: iterable of expressions
-        equations to look for root's for during integration
-        (currently available through cvode)
-    lambdify: callback
-        default: :py:func:`sympy.lambdify`
-    lambdify_unpack: bool (default: True)
-        whether or not unpacking of args needed when calling lambdify callback
-    Matrix: class
-        default: :py:class:`sympy.Matrix`
-    Symbol: class
-        default: :py:class:`sympy.Symbol`
-    Dummy: class
-        default: :py:class:`sympy.Dummy`
-    symarray: callback
-        default: :py:class:`sympy.symarray`
+    roots : iterable of expressions
+        Equations to look for root's for during integration
+        (currently available through cvode).
+    lambdify : callback
+        default: :py:func:`sympy.lambdify`.
+    lambdify_unpack : bool (default: True)
+        Whether or not unpacking of args needed when calling lambdify callback.
+    Matrix : class
+        default: :py:class:`sympy.Matrix`.
+    Symbol : class
+        default: :py:class:`sympy.Symbol`.
+    Dummy : class
+        default: :py:class:`sympy.Dummy`.
+    symarray : callback
+        default: :py:class:`sympy.symarray`.
     \*\*kwargs:
         See :py:class:`OdeSys`
 

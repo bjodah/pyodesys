@@ -61,6 +61,8 @@ class OdeSys(object):
         for evaluating the vector of derivatives
     j_cb : callback
         for evaluating the Jacobian matrix of f
+    roots_cb : callback
+    nroots : int
     names : iterable of strings
     internal_xout : 1D array of floats
         internal values of dependent variable before post-processing
@@ -68,6 +70,7 @@ class OdeSys(object):
         internal values of dependent variable before post-processing
     internal_params : 1D array of floats
         internal parameter values before post-processing
+
 
     Examples
     --------
@@ -484,9 +487,11 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
         """ Running stiffness ratio from last integration.
 
         Calculate sittness ratio, i.e. the ratio between the largest and
-        smallest absolute eigenvalue of the jacobian matrix (from SVD).
-        Note that this is a very expensive method for any but the smallest
-        systems.
+        smallest absolute eigenvalue of the jacobian matrix. The user may
+        supply their own routine for calculating the eigenvalues, or they
+        will be calculated from the SVD (singular value decomposition).
+        Note that calculating the SVD for any but the smallest Jacobians may
+        prove to be prohibitively expensive.
 
         Parameters
         ----------
@@ -494,7 +499,8 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
             internal_xout, internal_yout, internal_params, taken
             from last integration if not specified.
         eigenvals_cb: callback (optional)
-            signature (x, y, p) (internal variables)
+            signature (x, y, p) (internal variables), when not provided an
+            internal routine will use ``self.j_cb`` and ``scipy.linalg.svd``.
 
         """
         if eigenvals_cb is None:
