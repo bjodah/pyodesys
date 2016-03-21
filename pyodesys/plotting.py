@@ -18,40 +18,42 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
 
     Parameters
     ----------
-    x: array_like
+    x : array_like
         Values of the independent variable.
-    y: array_like
+    y : array_like
         Values of the independent variable. This must hold
         ``y.shape[0] == len(x)``, plot_results will draw
         ``y.shape[1]`` lines. If ``interpolate != None``
         y is expected two be three dimensional, otherwise two dimensional.
-    params: array_like
-        parameters used
-    indices: iterable of integers
-        what indices to plot (default: None => all)
-    plot: callback (default: None)
-        If None, use ``matplotlib.pyplot.plot``
-    plot_kwargs_cb: callback(int) -> dict
-        kwargs for plot for each index (0:len(y)-1)
-    ls: iterable
-        linestyles to cycle through (only used if plot and plot_kwargs_cb
-        are both None)
-    c: iterable
-        colors to cycle through (only used if plot and plot_kwargs_cb
-        are both None)
-    m: iterable
-        markers to cycle through (only used if plot and plot_kwargs_cb
-        are both None and m_lim > 0)
-    m_lim: int (default: 0)
-        limit number of points to use markers instead of lines
-    lines: None
+    params : array_like
+        Parameters used.
+    indices : iterable of integers
+        What indices to plot (default: None => all).
+    plot : callback (default: None)
+        If None, use ``matplotlib.pyplot.plot``.
+    plot_kwargs_cb : callback(int) -> dict
+        Keyword arguments for plot for each index (0:len(y)-1).
+    ls : iterable
+        Linestyles to cycle through (only used if plot and plot_kwargs_cb
+        are both None).
+    c : iterable
+        Colors to cycle through (only used if plot and plot_kwargs_cb
+        are both None).
+    m : iterable
+        Markers to cycle through (only used if plot and plot_kwargs_cb
+        are both None and m_lim > 0).
+    m_lim : int (default: -1)
+        Upper limit (exclusive, number of points) for using markers instead of
+        lines.
+    lines : None
         default: draw between markers unless we are interpolating as well.
-    interpolate: bool or int (default: None)
-        density-multiplier for grid of independent variable when interpolating
+    interpolate : bool or int (default: None)
+        Density-multiplier for grid of independent variable when interpolating
         if True => 20. negative integer signifies log-spaced grid.
-    interp_from_deriv: callback (default: None)
-        when None: ``scipy.interpolate.BPoly.from_derivatives``
-    post_processors: iterable of callback (default: tuple())
+    interp_from_deriv : callback (default: None)
+        When ``None``: ``scipy.interpolate.BPoly.from_derivatives``
+    post_processors : iterable of callback (default: tuple())
+
     """
     if plot is None:
         from matplotlib.pyplot import plot
@@ -79,6 +81,9 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
         for post_processor in post_processors:
             x, y, params = post_processor(x, y, params)
         return x, y, params
+
+    if interpolate is None:
+        interpolate = y.ndim == 3 and y.shape[1] > 1
 
     x_post, y_post, params_post = post_process(x, y[:, 0, :] if interpolate and
                                                y.ndim == 3 else y, params)
@@ -139,7 +144,7 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
             y2[:, idx] = interp_cb(x_plot)
 
         x_post2, y_post2, params2 = post_process(x_plot, y2, params)
-        for idx in range(y.shape[-1]):
+        for idx in indices:
             plot(x_post2, y_post2[:, idx], **plot_kwargs_cb(
                 idx, lines=True, markers=False))
         return x_post2, y_post2
