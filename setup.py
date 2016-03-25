@@ -8,22 +8,26 @@ from setuptools import setup
 
 pkg_name = 'pyodesys'
 
-PYODESYS_RELEASE_VERSION = os.environ.get('PYODESYS_RELEASE_VERSION', '')  # v*
+RELEASE_VERSION = os.environ.get('PYODESYS_RELEASE_VERSION', '')  # v*
 
 # http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
 if os.environ.get('CONDA_BUILD', '0') == '1':
     try:
-        PYODESYS_RELEASE_VERSION = 'v' + open(
+        RELEASE_VERSION = 'v' + open(
             '__conda_version__.txt', 'rt').readline().rstrip()
     except IOError:
         pass
 
-release_py_path = os.path.join(pkg_name, '_release.py')
 
-if len(PYODESYS_RELEASE_VERSION) > 0:
-    if PYODESYS_RELEASE_VERSION[0] == 'v':
+def _path_under_setup(*args):
+    return os.path.join(os.path.dirname(__file__), *args)
+
+release_py_path = _path_under_setup(pkg_name, '_release.py')
+
+if len(RELEASE_VERSION) > 0:
+    if RELEASE_VERSION[0] == 'v':
         TAGGED_RELEASE = True
-        __version__ = PYODESYS_RELEASE_VERSION[1:]
+        __version__ = RELEASE_VERSION[1:]
     else:
         raise ValueError("Ill formated version")
 else:
@@ -43,13 +47,16 @@ tests = [
     'pyodesys.tests',
 ]
 
-with open(os.path.join(pkg_name, '__init__.py')) as f:
-    long_description = f.read().split('"""')[1]
-descr = 'Straightforward numerical integration of ODE systems from SymPy.'
+with open(_path_under_setup(pkg_name, '__init__.py'), 'rt') as f:
+    short_description = f.read().split('"""')[1].split('\n')[1]
+assert 10 < len(short_description) < 80
+long_description = open(_path_under_setup('README.rst')).read()
+assert len(long_description) > 100
+
 setup_kwargs = dict(
     name=pkg_name,
     version=__version__,
-    description=descr,
+    description=short_description,
     long_description=long_description,
     classifiers=classifiers,
     author='Björn Dahlgren',
