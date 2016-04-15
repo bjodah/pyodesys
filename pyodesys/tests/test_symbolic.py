@@ -437,3 +437,31 @@ def test_SymbolicSys_from_other():
     assert np.allclose(ref, analytic)
     yout, nfo0 = transformed_scaled.predefined(y0, tout+1)
     assert np.allclose(yout, analytic)
+
+
+def test_backend():
+
+    def f(x, y, p, backend=math):
+        return [backend.exp(p[0]*y[0])]
+
+    def analytic(x, p, y0):
+        # dydt = exp(p*y(t))
+        # y(t) = - log(p*(c1-t))/p
+        #
+        # y(0) = - log(p*c1)/p
+        # p*y(0) = -log(p) -log(c1)
+        # c1 = exp(-log(p)-p*y(0))
+        # c1 =
+        #
+        # y(t) = -log(p*(exp(-p*y(0))/p - t))/p
+        return -np.log(p*(np.exp(-p*y0)/p - x))/p
+
+    y0, tout, p = .07, [0, .1, .2], .3
+    ref = analytic(tout, p, y0)
+
+    def _test_odesys(odesys):
+        yout, info = odesys.predefined([y0], tout, [p])
+        assert np.allclose(yout.flatten(), ref)
+
+    _test_odesys(OdeSys(f))
+    _test_odesys(SymbolicSys.from_callback(f, 1, 1))

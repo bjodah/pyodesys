@@ -13,7 +13,7 @@ import numpy as np
 
 import os
 
-from .util import ensure_3args
+from .util import _ensure_4args
 from .plotting import plot_result, plot_phase_plane
 
 
@@ -37,8 +37,10 @@ class OdeSys(object):
     ----------
     f: callback
         first derivatives of dependent variables (y) with respect to
-        dependent variable (x). Signature rhs(x, y[:]) --> f[:] or
-        rhs(x, y[:], p[:]) --> f[:] or
+        dependent variable (x). Signature is any of:
+            - rhs(x, y[:]) --> f[:]
+            - rhs(x, y[:], p[:]) --> f[:]
+            - rhs(x, y[:], p[:], backend=math) --> f[:]
     jac: callback
         Jacobian matrix (dfdy). Required for implicit methods.
     dfdx: callback
@@ -89,8 +91,8 @@ class OdeSys(object):
     def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None,
                  band=None, names=None, pre_processors=None,
                  post_processors=None):
-        self.f_cb = ensure_3args(f)
-        self.j_cb = ensure_3args(jac) if jac is not None else None
+        self.f_cb = _ensure_4args(f)
+        self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
         self.roots_cb = roots
         self.nroots = nroots

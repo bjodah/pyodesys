@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import io
 import os
 import shutil
 from setuptools import setup
@@ -50,7 +51,8 @@ tests = [
 with open(_path_under_setup(pkg_name, '__init__.py'), 'rt') as f:
     short_description = f.read().split('"""')[1].split('\n')[1]
 assert 10 < len(short_description) < 80
-long_description = open(_path_under_setup('README.rst')).read()
+long_description = io.open(_path_under_setup('README.rst'),
+                           encoding='utf-8').read()
 assert len(long_description) > 100
 
 setup_kwargs = dict(

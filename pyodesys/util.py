@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+import inspect
+import math
 
 import numpy as np
-import inspect
 
 
 def stack_1d_on_left(x, y):
@@ -132,22 +133,27 @@ def transform_exprs_indep(fw, bw, dep_exprs, indep, check=True):
     return [(e/fw.diff(indep)).subs(indep, bw) for e in exprs]
 
 
-def ensure_3args(func):
-    """ Conditionally wrap function to ensure 3 input arguments
+def _ensure_4args(func):
+    """ Conditionally wrap function to ensure 4 input arguments
 
     Parameters
     ----------
     func: callable
-        with two or three positional arguments
+        with two, three or four positional arguments
 
     Returns
     -------
-    callable which possibly ignores a third positional argument
+    callable which possibly ignores 0, 1 or 2 positional arguments
+
     """
-    nargs = len(inspect.getargspec(func)[0])
-    if nargs == 2:
-        return lambda x, y, _ignored: func(x, y)
-    elif nargs == 3:
+    if func is None:
+        return None
+    self_arg = 1 if inspect.ismethod(func) else 0
+    if len(inspect.getargspec(func)[0]) == 4 + self_arg:
         return func
+    if len(inspect.getargspec(func)[0]) == 3 + self_arg:
+        return lambda x, y, p=(), backend=math: func(x, y, p)
+    elif len(inspect.getargspec(func)[0]) == 2 + self_arg:
+        return lambda x, y, p=(), backend=math: func(x, y)
     else:
-        raise NotImplementedError
+        raise ValueError("Incorrect numer of arguments")
