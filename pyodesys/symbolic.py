@@ -10,7 +10,7 @@ import numpy as np
 from .core import OdeSys
 from .util import (
     banded_jacobian, transform_exprs_dep,
-    transform_exprs_indep, ensure_3args
+    transform_exprs_indep, _ensure_4args
 )
 
 
@@ -97,9 +97,9 @@ def _symarray(backend=None):
 
             Parameters
             ----------
-            prefix: str
-            shape: tuple
-            Symbol: callable
+            prefix : str
+            shape : tuple
+            Symbol : callable
                 (defualt :func:`Symbol`)
             """
             # see https://github.com/sympy/sympy/pull/9939
@@ -203,31 +203,38 @@ class SymbolicSys(OdeSys):
             **kwargs)
 
     @classmethod
-    def from_callback(cls, cb, ny, nparams=0, *args, **kwargs):
+    def from_callback(cls, cb, ny, nparams=0, backend=None, **kwargs):
         """ Create an instance from a callback.
 
         Parameters
         ----------
-        cb: callbable
+        cb : callbable
             Signature rhs(x, y[:], p[:]) -> f[:]
-        ny: int
+        ny : int
             length of y
-        nparams: int (default: 0)
+        nparams : int (default: 0)
             length of p
-        \*args:
+        backend : module (optional)
+            default: sympy
+        \*args :
             arguments passed onto :class:`SymbolicSys`
-        \*\*kwargs:
+        \*\*kwargs :
             keyword arguments passed onto :class:`SymbolicSys`
 
         Returns
         -------
         An instance of :class:`SymbolicSys`.
         """
+        if backend is None:
+            import sympy as backend
         x = kwargs.get('Symbol', _Symbol())('x')
         y = kwargs.get('symarray', _symarray())('y', ny)
         p = kwargs.get('symarray', _symarray())('p', nparams)
-        exprs = ensure_3args(cb)(x, y, p)
-        return cls(zip(y, exprs), x, p, *args, **kwargs)
+        try:
+            exprs = cb(x, y, p, backend)
+        except TypeError:
+            exprs = _ensure_4args(cb)(x, y, p, backend)
+        return cls(zip(y, exprs), x, p, **kwargs)
 
     @classmethod
     def from_other(cls, ori, **kwargs):  # provisional
@@ -398,22 +405,22 @@ class TransformedSys(SymbolicSys):
 
     Parameters
     ----------
-    dep_exprs: iterable of pairs
+    dep_exprs : iterable of pairs
         see :class:`SymbolicSys`
-    indep: Symbol
+    indep : Symbol
         see :class:`SymbolicSys`
-    dep_transf: iterable of (expression, expression) pairs
+    dep_transf : iterable of (expression, expression) pairs
         pairs of (forward, backward) transformations for the dependents
         variables
-    indep_transf: pair of expressions
+    indep_transf : pair of expressions
         forward and backward transformation of the independent variable
-    params:
+    params :
         see :class:`SymbolicSys`
-    exprs_process_cb: callbable
+    exprs_process_cb : callbable
         signatrue f(exprs) -> exprs
         post processing of the expressions for the derivatives of the
         dependent variables after transformation have been applied.
-    \*\*kwargs:
+    \*\*kwargs :
         keyword arguments passed onto :class:`SymbolicSys`
     """
 
@@ -467,23 +474,23 @@ class TransformedSys(SymbolicSys):
 
         Parameters
         ----------
-        cb: callable
+        cb : callable
             Signature rhs(x, y[:], p[:]) -> f[:]
-        ny: int
+        ny : int
             length of y
-        nparams: int
+        nparams : int
             length of p
-        dep_transf_cbs: iterable of pairs callables
+        dep_transf_cbs : iterable of pairs callables
             callables should have the signature f(yi) -> expression in yi
-        indep_transf_cbs: pair of callbacks
+        indep_transf_cbs : pair of callbacks
             callables should have the signature f(x) -> expression in x
-        \*\*kwargs:
+        \*\*kwargs :
             keyword arguments passed onto :class:`TransformedSys`
         """
         x = kwargs.get('Symbol', _Symbol())('x')
         y = kwargs.get('symarray', _symarray())('y', ny)
         p = kwargs.get('symarray', _symarray())('p', nparams)
-        exprs = ensure_3args(cb)(x, y, p)
+        exprs = _ensure_4args(cb)(x, y, p)
         if dep_transf_cbs is not None:
             dep_transf = [(fw(yi), bw(yi)) for (fw, bw), yi
                           in zip(dep_transf_cbs, y)]
@@ -523,13 +530,13 @@ def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
 
     Parameters
     ----------
-    dep_tr: pair of callables (default: None)
+    dep_tr : pair of callables (default: None)
         Forward and backward transformation to be applied to the
         dependent variables
-    indep_tr: pair of callables (default: None)
+    indep_tr : pair of callables (default: None)
         Forward and backward transformation to be applied to the
         independent variable
-    \*\*kwargs:
+    \*\*kwargs :
         default keyword arguments for the TransformedSys subclass
 
     Returns

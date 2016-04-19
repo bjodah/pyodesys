@@ -1,3 +1,8 @@
+v0.5.2
+======
+- from_callback now respects backend paramter (e.g. ``math`` or
+  ``sympy``)
+
 v0.5.1
 ======
 - Added SymbolicSys.analytic_stiffness
