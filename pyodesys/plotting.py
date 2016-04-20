@@ -77,7 +77,7 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
                     try:
                         kwargs['label'] = '$' + getattr(labels[idx],
                                                         latex_attr) + '$'
-                    except AttributeError:
+                    except (AttributeError, TypeError):
                         pass
             return kwargs
     else:
