@@ -12,7 +12,7 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, post_processors=(), xlabel=None, ylabel=None,
-                xscale=None, yscale=None):
+                xscale=None, yscale=None, latex_attr='latex_name'):
     """
     Plot the depepndent variables vs. the independent variable
 
@@ -73,6 +73,12 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
 
             if labels:
                 kwargs['label'] = labels[idx]
+                if latex_attr:
+                    try:
+                        kwargs['label'] = '$' + getattr(labels[idx],
+                                                        latex_attr) + '$'
+                    except AttributeError:
+                        pass
             return kwargs
     else:
         plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
