@@ -13,7 +13,7 @@ import numpy as np
 
 import os
 
-from .util import _ensure_4args
+from .util import _ensure_4args, _default
 from .plotting import plot_result, plot_phase_plane
 
 
@@ -220,6 +220,9 @@ class OdeSys(object):
         """
         intern_xout, intern_y0, self.internal_params = self.pre_process(
             xout, y0, params)
+        if hasattr(self, 'ny'):
+            if len(intern_y0) != self.ny:
+                raise ValueError("Incorrect length of intern_y0")
         integrator = kwargs.pop('integrator', None)
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
@@ -458,13 +461,10 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
-        if (internal_xout, internal_yout, internal_params) == (None,)*3:
-            internal_xout = self.internal_xout
-            internal_yout = self.internal_yout
-            internal_params = self.internal_params
-        elif None in (internal_xout, internal_yout, internal_params):
-            raise ValueError("Pass either all or none of internal_* kwargs")
-        return cb(internal_xout, internal_yout, internal_params, **kwargs)
+
+        return cb(_default(internal_xout, self.internal_xout),
+                  _default(internal_yout, self.internal_yout),
+                  _default(internal_params, self.internal_params), **kwargs)
 
     def plot_result(self, **kwargs):
         """ Plots the integrated dependent variables from last integration.

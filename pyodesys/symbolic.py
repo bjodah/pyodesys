@@ -216,8 +216,6 @@ class SymbolicSys(OdeSys):
             length of p
         backend : module (optional)
             default: sympy
-        \*args :
-            arguments passed onto :class:`SymbolicSys`
         \*\*kwargs :
             keyword arguments passed onto :class:`SymbolicSys`
 
