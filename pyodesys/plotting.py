@@ -55,6 +55,8 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
     post_processors : iterable of callback (default: tuple())
 
     """
+    import matplotlib.pyplot as plt
+
     if plot is None:
         from matplotlib.pyplot import plot
     if plot_kwargs_cb is None:
@@ -106,7 +108,6 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
                 idx, lines=False, markers=markers, labels=names))
 
     if xlabel is None:
-        import matplotlib.pyplot as plt
         try:
             plt.xlabel(x_post.dimensionality.latex)
         except AttributeError:
@@ -115,7 +116,6 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
         plt.xlabel(xlabel)
 
     if ylabel is None:
-        import matplotlib.pyplot as plt
         try:
             plt.ylabel(y_post.dimensionality.latex)
         except AttributeError:

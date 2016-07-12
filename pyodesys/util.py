@@ -157,3 +157,7 @@ def _ensure_4args(func):
         return lambda x, y, p=(), backend=math: func(x, y)
     else:
         raise ValueError("Incorrect numer of arguments")
+
+
+def _default(arg, default):
+    return default if arg is None else arg

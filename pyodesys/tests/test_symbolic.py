@@ -22,6 +22,12 @@ idty2 = (identity, identity)
 logexp = (sp.log, sp.exp)
 
 
+def test_SymbolicSys():
+    odesys = SymbolicSys.from_callback(lambda x, y, p, be: [y[1], -y[0]], 2)
+    with pytest.raises(ValueError):
+        odesys.integrate(1, [0])
+
+
 def decay_rhs(t, y, k):
     ny = len(y)
     dydt = [0]*ny
@@ -96,6 +102,9 @@ def test_ScaledSys_from_callback():
     xout, yout, info = odesys.integrate([1e-12, 1], y0, k, integrator='scipy')
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref, rtol=3e-11, atol=3e-11)
+
+    with pytest.raises(TypeError):
+        odesys.integrate([1e-12, 1], [0]*len(k), k, integrator='scipy')
 
 
 def test_ScaledSys_from_callback__exprs():
