@@ -1,32 +1,33 @@
 package:
-    name: pyodesys
-    version: 0.6.0.git
+  name: pyodesys
+  version: 0.6.0.git
 
 source:
-    path: ../
+  path: ../
 
 build:
-    number: 0
+  number: 0
 
 requirements:
-    build:
-        - python
-    run:
-        - python
-        - numpy
-        - sympy
-        - scipy
+  build:
+    - python
+  run:
+    - python
+    - numpy
+    - sympy
+    - scipy
 
 test:
-    imports:
-        - pyodesys
-    requires:
-        - pytest
-        - scipy
-        - pyodeint
-        - pygslodeiv2
-        - pycvodes
+  imports:
+    - pyodesys
+  requires:
+    - pytest
+    - scipy
+    - pyodeint
+    - pygslodeiv2
+    - pycvodes
 
 about:
-    home: https://github.com/bjodah/pyodesys
-    license: BSD
+  home: https://github.com/bjodah/pyodesys
+  license: BSD
+  summary: Straightforward numerical integration of ODE systems from SymPy
