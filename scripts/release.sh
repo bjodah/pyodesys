@@ -27,15 +27,6 @@ git tag -a v$VERSION -m v$VERSION
 git push
 git push --tags
 twine upload dist/${PKG}-$VERSION.tar.gz
-MD5=$(md5sum dist/${PKG}-$VERSION.tar.gz | cut -f1 -d' ')
-cp -r conda-recipe/ dist/conda-recipe-$VERSION
-sed -i -E -e "s/version:(.+)/version: $VERSION/" -e "s/path:(.+)/fn: $PKG-$VERSION.tar.gz\n    url: https:\/\/pypi.python.org\/packages\/source\/${PKG:0:1}\/$PKG\/$PKG-$VERSION.tar.gz#md5=$MD5\n    md5: $MD5/" dist/conda-recipe-$VERSION/meta.yaml
-env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION python setup.py upload_sphinx
 
-# Specific for this project:
-SERVER=hera
-scp -r dist/conda-recipe-$VERSION/ $PKG@$SERVER:~/public_html/conda-recipes/
-scp dist/${PKG}-$VERSION.tar.gz $PKG@$SERVER:~/public_html/releases/
-for CONDA_PY in 2.7 3.4 3.5; do
-    ssh $PKG@$SERVER "source /etc/profile; conda-build --python $CONDA_PY ~/public_html/conda-recipes/conda-recipe-$VERSION/"
-done
+echo "Make a release on github with the new tag and manually attach the new .tar.gz file from ./dist/"
+echo "Then run ./scripts/post_release.sh $1 $2 MYGITHUBUSERNAME"
