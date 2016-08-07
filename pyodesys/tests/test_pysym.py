@@ -4,22 +4,11 @@ from ..symbolic import SymbolicSys
 from .test_core import vdp_f
 
 import numpy as np
-import pysym  # minimal alternative to SymPy
 import pytest
 
 
 def _get_symbolic_system(use_pysym):
-    kwargs = dict(
-        lambdify=pysym.Lambdify,
-        lambdify_unpack=False,
-        Matrix=pysym.Matrix,
-        Symbol=pysym.Symbol,
-        Dummy=pysym.Dummy,
-        symarray=pysym.symarray,
-    ) if use_pysym else {}
-
-    return SymbolicSys.from_callback(
-        vdp_f, 2, 1, **kwargs)
+    return SymbolicSys.from_callback(vdp_f, 2, 1, backend='pysym' if use_pysym else None)
 
 
 @pytest.mark.parametrize('use_pysym', [True, False])

@@ -402,9 +402,8 @@ def test_PartiallySolvedSystem():
             p[0]*y[0] - p[1]*y[1],
             p[1]*y[1] - p[2]*y[2]
         ], 3, 3)
-    dep0 = odesys.dep[0]
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
-        dep0: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+        odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
     })
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 1.5]
@@ -421,8 +420,6 @@ def test_PartiallySolvedSystem__using_y():
             p[1]*y[1]
         ], 3, 3)
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
-        # TODO: make this work:
-        # odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0)),
         odesys.dep[2]: y0[0] + y0[1] + y0[2] - odesys.dep[0] - odesys.dep[1]
     })
     y0 = [3, 2, 1]
