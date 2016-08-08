@@ -5,7 +5,11 @@ from __future__ import absolute_import, division, print_function
 from itertools import repeat
 
 import numpy as np
-from sym import Backend
+
+try:
+    from sym import Backend
+except ImportError:
+    Backend = 'sym-module-failed-to-import'
 
 from .core import OdeSys
 from .util import (
