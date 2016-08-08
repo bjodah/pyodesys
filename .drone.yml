@@ -2,7 +2,9 @@ build:
   image: bjodah/bjodahimgdev:latest
   commands:
     - conda config --add channels bjodah
+    - conda config --add channels conda-forge
     - conda config --add channels symengine/label/dev
+    - conda config --set show_channel_urls True
     - ./scripts/ci.sh pyodesys
     - (cd examples/; ipython2 nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
     - (cd examples/; ../scripts/render_index.sh *.html)
