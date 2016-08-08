@@ -55,8 +55,6 @@ class SymbolicSys(OdeSys):
         Roots to report for during integration.
     ny : int
         ``len(self.dep)``
-    autonomous : bool
-        ``self.indep == None``
     be : module
         Symbolic backend.
 
@@ -134,10 +132,6 @@ class SymbolicSys(OdeSys):
         return cls(zip(ori.dep, ori.exprs), ori.indep, **new_kw)
 
     @property
-    def autonomous(self):
-        return self.indep is None
-
-    @property
     def ny(self):
         """ Number of dependent variables in the system. """
         return len(self.exprs)
@@ -146,12 +140,10 @@ class SymbolicSys(OdeSys):
         """ Derives the jacobian from ``self.exprs`` and ``self.dep``. """
         if self._jac is True:
             if self.band is None:
-                f = self.be.Matrix(1, self.ny, lambda _, q: self.exprs[q])
-                self._jac = f.jacobian(self.dep)
-            else:
-                # Banded
-                self._jac = self.be.banded_jacobian(
-                    self.exprs, self.dep, *self.band)
+                f = self.be.Matrix(1, self.ny, self.exprs)
+                self._jac = f.jacobian(self.be.Matrix(1, self.ny, self.dep))
+            else:  # Banded
+                self._jac = self.be.banded_jacobian(self.exprs, self.dep, *self.band)
         elif self._jac is False:
             return False
 
@@ -160,7 +152,7 @@ class SymbolicSys(OdeSys):
     def get_dfdx(self):
         """ Calculates 2nd derivatives of ``self.exprs`` """
         if self._dfdx is True:
-            if self.autonomous:
+            if self.indep is None:
                 self._dfdx = [0]*self.ny
             else:
                 self._dfdx = [expr.diff(self.indep) for expr in self.exprs]

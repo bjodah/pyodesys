@@ -9,10 +9,19 @@ import sympy as sp
 import pytest
 import time
 
+try:
+    import sym
+except ImportError:
+    sym = None
+    sym_backends = []
+else:
+    sym_backends = sym.Backend.backends.keys()
+
 from .. import OdeSys
 from ..symbolic import SymbolicSys
 from ..symbolic import ScaledSys, symmetricsys, PartiallySolvedSystem
 from .bateman import bateman_full  # analytic, never mind the details
+from .test_core import vdp_f
 
 
 def identity(x):
@@ -22,6 +31,7 @@ idty2 = (identity, identity)
 logexp = (sp.log, sp.exp)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_SymbolicSys():
     odesys = SymbolicSys.from_callback(lambda x, y, p, be: [y[1], -y[0]], 2)
     with pytest.raises(ValueError):
@@ -53,22 +63,27 @@ def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1):
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_TransformedSys_liny_linx():
     _test_TransformedSys(idty2, idty2, 1e-11, 1e-11, 0, 15)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_TransformedSys_logy_logx():
     _test_TransformedSys(logexp, logexp, 1e-7, 1e-7, 1e-4, 150)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_TransformedSys_logy_linx():
     _test_TransformedSys(logexp, idty2, 1e-8, 1e-8, 0, 150)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_TransformedSys_liny_logx():
     _test_TransformedSys(idty2, logexp, 1e-9, 1e-9, 0, 150)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_ScaledSys():
     k = k0, k1, k2 = [7., 3, 2]
     y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
@@ -88,6 +103,7 @@ def test_ScaledSys():
     assert np.allclose(yout, ref, rtol=2e-11, atol=2e-11)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_ScaledSys_from_callback():
     # this is actually a silly example since it is linear
     def f(t, x, k):
@@ -107,6 +123,7 @@ def test_ScaledSys_from_callback():
         odesys.integrate([1e-12, 1], [0]*len(k), k, integrator='scipy')
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_ScaledSys_from_callback__exprs():
     def f(t, x, k):
         return [-k[0]*x[0]*x[0]*t]
@@ -127,6 +144,7 @@ def timeit(callback, *args, **kwargs):
     return time.clock() - t0, result
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('method', ['bs', 'rosenbrock4'])
 def test_exp(method):
     x = sp.Symbol('x')
@@ -173,6 +191,7 @@ def decay_dydt_factory(k):
 
 # Short decay chains, using Bateman's equation
 # --------------------------------------------
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('band', [(1, 0), None])
 def test_SymbolicSys__from_callback_bateman(band):
     # Decay chain of 3 species (2 decays)
@@ -188,6 +207,7 @@ def test_SymbolicSys__from_callback_bateman(band):
 
 
 @pytest.mark.parametrize('band', [(1, 0), None])
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_SymbolicSys_bateman(band):
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
@@ -232,6 +252,7 @@ def get_special_chain(n, p, a, **kwargs):
     return y0, k, SymbolicSys.from_callback(dydt, n, **kwargs)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('p', [0, 1, 2, 3])
 def test_check(p):
     n, a = 7, 5
@@ -242,6 +263,7 @@ def test_check(p):
 
 # adaptive stepsize with vode is performing ridiculously
 # poorly for this problem
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('name,forgive', zip(
     'dopri5 dop853 vode'.split(), (1, 1, (3, 3e6))))
 def test_scipy(name, forgive):
@@ -265,6 +287,7 @@ def test_scipy(name, forgive):
 
 
 # (dopri5, .2), (bs, .03) <-- works in boost 1.59
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('method,forgive', zip(
     'rosenbrock4'.split(), (.2,)))
 def test_odeint(method, forgive):
@@ -292,12 +315,14 @@ def _gsl(tout, method, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('method,forgive', zip(
     'bsimp msadams msbdf rkck'.split(), (0.02, 5, 14, 0.2)))
 def test_gsl_predefined(method, forgive):
     _gsl([10**i for i in range(-15, 1)], method, forgive)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('method,forgive', zip(
     'bsimp msadams msbdf rkck'.split(), (0.004, 4, 14, 0.21)))
 def test_gsl_adaptive(method, forgive):
@@ -323,12 +348,14 @@ def test_cvode_predefined(method, forgive):
 
 
 # cvode performs significantly better than vode:
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('method,forgive', zip(
     'adams bdf'.split(), (1.5, 5)))
 def test_cvode_adaptive(method, forgive):
     _cvode(1, method, forgive)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('n,forgive', [(4, 1), (17, 1), (42, 7)])
 def test_long_chain_dense(n, forgive):
     p, a = 0, n
@@ -340,6 +367,7 @@ def test_long_chain_dense(n, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('n', [29, 30])  # something maxes out at 31
 def test_long_chain_banded_scipy(n):
     p, a = 0, n
@@ -367,6 +395,7 @@ def test_long_chain_banded_scipy(n):
     assert time_dens > time_band  # will fail sometimes due to load
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('n', [29, 79])
 def test_long_chain_banded_cvode(n):
     p, a = 0, n
@@ -395,6 +424,7 @@ def test_long_chain_banded_cvode(n):
         pass  # will fail sometimes due to load
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_PartiallySolvedSystem():
     odesys = SymbolicSys.from_callback(
         lambda x, y, p: [
@@ -412,6 +442,7 @@ def test_PartiallySolvedSystem():
     assert np.allclose(yout, ref)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_PartiallySolvedSystem__using_y():
     odesys = SymbolicSys.from_callback(
         lambda x, y, p: [
@@ -430,6 +461,7 @@ def test_PartiallySolvedSystem__using_y():
     assert np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_SymbolicSys_from_other():
     scaled = ScaledSys.from_callback(lambda x, y: [y[0]*y[0]], 1,
                                      dep_scaling=101)
@@ -445,6 +477,7 @@ def test_SymbolicSys_from_other():
     assert np.allclose(yout, analytic)
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_backend():
 
     def f(x, y, p, backend=math):
@@ -471,3 +504,14 @@ def test_backend():
 
     _test_odesys(OdeSys(f))
     _test_odesys(SymbolicSys.from_callback(f, 1, 1))
+
+
+@pytest.mark.skipif(sym is None, reason='package sym missing')
+@pytest.mark.parametrize('backend', sym_backends)
+def test_SymbolicSys_from_callback__backends(backend):
+    ss = SymbolicSys.from_callback(vdp_f, 2, 1, backend=backend)
+    xout, yout, info = ss.integrate([0, 1, 2], [1, 0], params=[2.0])
+    # blessed values:
+    ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
+    assert np.allclose(yout, ref)
+    assert info['nfev'] > 0

@@ -1,8 +1,8 @@
 build:
-  image: bjodah/bjodahimg:v1.1
+  image: bjodah/bjodahimgdev:latest
   commands:
-    - pip install --user pygslodeiv2 pyodeint pycvodes pysym
-    - pip3 install --user pygslodeiv2 pyodeint pycvodes pysym
+    - conda config --add channels bjodah
+    - conda config --add channels symengine/label/dev
     - ./scripts/ci.sh pyodesys
     - (cd examples/; ipython2 nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
     - (cd examples/; ../scripts/render_index.sh *.html)
