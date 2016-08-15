@@ -368,7 +368,7 @@ def test_long_chain_dense(n, forgive):
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
-@pytest.mark.parametrize('n', [29, 30])  # something maxes out at 31
+@pytest.mark.parametrize('n', [29])  # something maxes out at 31
 def test_long_chain_banded_scipy(n):
     p, a = 0, n
     y0, k, odesys_dens = get_special_chain(n, p, a)
@@ -380,19 +380,22 @@ def test_long_chain_banded_scipy(n):
         def callback(*args, **kwargs):
             return odesys.integrate(*args, integrator='scipy', **kwargs)
         return callback
-    for _ in range(2):  # warmup
+    min_time_dens, min_time_band = float('inf'), float('inf')
+    for _ in range(3):  # warmup
         time_dens, (xout_dens, yout_dens, info) = timeit(
             mk_callback(odesys_dens), tout, y0, atol=atol, rtol=rtol,
             name='vode', method='bdf', first_step=1e-10)
         assert info['njev'] > 0
-    for _ in range(2):  # warmup
+        min_time_dens = min(min_time_dens, time_dens)
+    for _ in range(3):  # warmup
         time_band, (xout_band, yout_band, info) = timeit(
             mk_callback(odesys_band), tout, y0, atol=atol, rtol=rtol,
             name='vode', method='bdf', first_step=1e-10)
         assert info['njev'] > 0
+        min_time_band = min(min_time_band, time_band)
     check(yout_dens[-1, :], n, p, a, atol, rtol, 1.5)
     check(yout_band[-1, :], n, p, a, atol, rtol, 1.5)
-    assert time_dens > time_band  # will fail sometimes due to load
+    assert min_time_dens > min_time_band  # will fail sometimes due to load
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
