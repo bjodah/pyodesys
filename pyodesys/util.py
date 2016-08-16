@@ -16,40 +16,9 @@ def stack_1d_on_left(x, y):
     y: 2D array
         Requirement: ``shape[0] == x.size``
     """
-    return np.hstack((np.asarray(x).reshape(len(x), 1),
-                      np.asarray(y)))
-
-
-def banded_jacobian(y, x, ml, mu):
-    """ Calculates a banded version of the jacobian
-
-    Compatible with the format requested by
-    :func:`scipy.integrate.ode` (for SciPy >= v0.15).
-
-    Parameters
-    ----------
-    y: array_like of expressions
-    x: array_like of symbols
-    ml: int
-        number of lower bands
-    mu: int
-        number of upper bands
-
-    Returns
-    -------
-    2D array of shape ``(1+ml+mu, len(y))``
-    """
-    ny = len(y)
-    nx = len(x)
-    packed = np.zeros((mu+ml+1, nx), dtype=object)
-
-    def set(ri, ci, val):
-        packed[ri-ci+mu, ci] = val
-
-    for ri in range(ny):
-        for ci in range(max(0, ri-ml), min(nx, ri+mu+1)):
-            set(ri, ci, y[ri].diff(x[ci]))
-    return packed
+    _x = np.atleast_1d(x)
+    _y = np.atleast_1d(y)
+    return np.hstack((_x.reshape(_x.size, 1), _y))
 
 
 def check_transforms(fw, bw, symbs):
@@ -133,6 +102,10 @@ def transform_exprs_indep(fw, bw, dep_exprs, indep, check=True):
     return [(e/fw.diff(indep)).subs(indep, bw) for e in exprs]
 
 
+class _Blessed(object):
+    pass
+
+
 def _ensure_4args(func):
     """ Conditionally wrap function to ensure 4 input arguments
 
@@ -148,6 +121,9 @@ def _ensure_4args(func):
     """
     if func is None:
         return None
+    if isinstance(func, _Blessed):  # inspect on __call__ is a hassle...
+        return func
+
     self_arg = 1 if inspect.ismethod(func) else 0
     if len(inspect.getargspec(func)[0]) == 4 + self_arg:
         return func
@@ -161,3 +137,28 @@ def _ensure_4args(func):
 
 def _default(arg, default):
     return default if arg is None else arg
+
+
+class _Wrapper(_Blessed):
+
+    def __init__(self, callback, ny):
+        self.callback = callback
+        self.ny = ny
+
+    def __call__(self, x, y, params=(), backend=None):
+        _x = np.asarray(x)
+        _y = np.asarray(y)
+        if _y.shape[-1] != self.ny:
+            raise TypeError("Incorrect shape of y")
+        input_width = self.ny + len(params) + 1
+        if _x.ndim == 0:
+            inp_shape = (input_width,)
+        elif _x.ndim == 1:
+            inp_shape = (_x.size, input_width)
+        else:
+            raise NotImplementedError("Don't know what to do with multi-dimensional x")
+        inp = np.empty(inp_shape)
+        inp[..., 0] = _x
+        inp[..., 1:(1+self.ny)] = _y
+        inp[..., (1+self.ny):] = params
+        return self.callback(inp)

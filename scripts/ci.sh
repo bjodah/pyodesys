@@ -1,15 +1,19 @@
 #!/bin/bash -xeu
-PKG_NAME=${1:-${CI_REPO##*/}}
-if [[ "$CI_BRANCH" =~ ^v[0-9]+.[0-9]?* ]]; then
-    eval export ${PKG_NAME^^}_RELEASE_VERSION=\$CI_BRANCH
-    echo ${CI_BRANCH} | tail -c +2 > __conda_version__.txt
-fi
-python2.7 setup.py sdist
-for PYTHON in python2.7 python3.4; do
-    (cd dist/; $PYTHON -m pip install $1-$($PYTHON ../setup.py --version).tar.gz)
-    (cd /; $PYTHON -m pytest --pyargs $1)
-    $PYTHON -m pip install --user -e .[all]
-done
-PYTHONPATH=$(pwd) PYTHON=python2.7 ./scripts/run_tests.sh
-PYTHONPATH=$(pwd) PYTHON=python3.4 ./scripts/run_tests.sh --cov $1 --cov-report html
+
+# Py3
+conda create -q -n test3 python=3.5 scipy matplotlib sym sympy pysym symcxx pip pytest pytest-cov pytest-flakes pytest-pep8 pygslodeiv2 pyodeint pycvodes python-symengine
+source activate test3
+python setup.py install
+# (cd /; python -m pytest --pyargs $1)
+PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov $1 --cov-report html
+./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
+#source deactivate
+
+# Py2
+conda create -q -n test2 python=2.7 scipy matplotlib sym sympy pysym symcxx pip pytest pytest-cov pygslodeiv2 pyodeint pycvodes python-symengine
+source activate test2
+python setup.py sdist
+pip install dist/*.tar.gz
+(cd /; python -m pytest --pyargs $1)
+
 ! grep "DO-NOT-MERGE!" -R . --exclude ci.sh

@@ -172,21 +172,21 @@ class OdeSys(object):
                                           force_predefined=True, **kwargs)
         return yout, info
 
-    def integrate(self, xout, y0, params=(), **kwargs):
+    def integrate(self, x, y0, params=(), **kwargs):
         """
         Integrate the system of ODE's.
 
         Parameters
         ----------
-        xout: array_like or pair (start and final time) or float
+        x: array_like or pair (start and final time) or float
             if float:
-                make it a pair: (0, xout)
+                make it a pair: (0, x)
             if pair or length-2 array:
                 initial and final value of the independent variable
             if array_like:
                 values of independent variable report at
         y0: array_like
-            Initial values at xout[0] for the dependent variables.
+            Initial values at x[0] for the dependent variables.
         params: array_like (default: tuple())
             Value of parameters passed to user-supplied callbacks.
         integrator: str or None
@@ -207,39 +207,36 @@ class OdeSys(object):
             done automatically (only used when required). This matters
             when jacobian is derived at runtime (high computational cost).
         force_predefined: bool (default: False)
-            override behaviour of ``len(xout) == 2`` => :meth:`adaptive`
+            override behaviour of ``len(x) == 2`` => :meth:`adaptive`
         \*\*kwargs:
             Additional keyword arguments for ``_integrate_$(integrator)``.
 
         Returns
         -------
-        Length 3 tuple: (xout, yout, info)
-        xout: array of values of the independent variable
+        Length 3 tuple: (x, yout, info)
+        x: array of values of the independent variable
         yout: array of the dependent variable(s) for the different values of x
         info: dict ('nfev' is guaranteed to be a key)
         """
-        intern_xout, intern_y0, self.internal_params = self.pre_process(
-            xout, y0, params)
+        intern_x, intern_y0, self.internal_params = self.pre_process(x, y0, params)
+        intern_x = intern_x.squeeze()
+        intern_y0 = np.atleast_1d(intern_y0.squeeze())
         if hasattr(self, 'ny'):
-            if len(intern_y0) != self.ny:
-                raise ValueError("Incorrect length of intern_y0")
+            if intern_y0.shape != (self.ny,):
+                raise ValueError("Incorrect shape of intern_y0")
         integrator = kwargs.pop('integrator', None)
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
         if isinstance(integrator, str):
-            nfo = getattr(self, '_integrate_' + integrator)(
-                intern_xout, intern_y0, **kwargs)
+            nfo = getattr(self, '_integrate_' + integrator)(intern_x, intern_y0, **kwargs)
         else:
-            kwargs['with_jacobian'] = getattr(integrator,
-                                              'with_jacobian', None)
+            kwargs['with_jacobian'] = getattr(integrator, 'with_jacobian', None)
             nfo = self._integrate(integrator.integrate_adaptive,
                                   integrator.integrate_predefined,
-                                  intern_xout, intern_y0, **kwargs)
+                                  intern_x, intern_y0, **kwargs)
 
-        self.internal_xout = np.asarray(
-            nfo['internal_xout'], dtype=np.float64).copy()
-        self.internal_yout = np.asarray(
-            nfo['internal_yout'], dtype=np.float64).copy()
+        self.internal_xout = np.asarray(nfo['internal_xout'], dtype=np.float64).copy()
+        self.internal_yout = np.asarray(nfo['internal_yout'], dtype=np.float64).copy()
         return self.post_process(nfo['internal_xout'], nfo['internal_yout'],
                                  self.internal_params)[:2] + (nfo,)
 
@@ -248,8 +245,7 @@ class OdeSys(object):
                          force_predefined=False, name=None, **kwargs):
         """ Do not use directly (use ``integrate('scipy', ...)``).
 
-        Uses `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/\
-generated/scipy.integrate.ode.html>`_
+        Uses `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html>`_
 
         Parameters
         ----------
@@ -258,9 +254,9 @@ generated/scipy.integrate.ode.html>`_
         name: str (default: 'lsoda'/'dopri5' when jacobian is available/not)
             what integrator wrapped in scipy.integrate.ode to use.
         \*\*kwargs:
-            keyword arguments passed onto `set_integrator(...) <\
-http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.\
-set_integrator.html#scipy.integrate.ode.set_integrator>`_
+            keyword arguments passed onto `set_integrator(...) <
+        http://docs.scipy.org/doc/scipy/reference/generated/
+        scipy.integrate.ode.set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         Returns
         -------
@@ -329,6 +325,7 @@ set_integrator.html#scipy.integrate.ode.set_integrator>`_
             'internal_yout': yout,
             'success': r.successful(),
             'nfev': rhs.ncall,
+            'name': name
         }
         if self.j_cb is not None:
             info['njev'] = jac.ncall
