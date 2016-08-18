@@ -1,3 +1,11 @@
+v0.6.0
+======
+- depend on package ``sym`` for symbolic backend
+
+v0.5.3
+======
+- minor fixes
+
 v0.5.2
 ======
 - from_callback now respects backend paramter (e.g. ``math`` or

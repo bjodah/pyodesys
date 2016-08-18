@@ -14,7 +14,7 @@ if [[ -d "dist/conda-recipe-$VERSION" ]]; then
 fi
 cp -r conda-recipe/ dist/conda-recipe-$VERSION
 sed -i -E -e "s/version:(.+)/version: $VERSION/" -e "s/path:(.+)/fn: $PKG-$VERSION.tar.gz\n  url: https:\/\/github.com\/$GITHUBUSER\/$PKG\/releases\/download\/v$VERSION\/$PKG-$VERSION.tar.gz\n  md5: $MD5/" dist/conda-recipe-$VERSION/meta.yaml
-                                                                                                  
+
 env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION python setup.py upload_sphinx
 
 # Specific for this project:
