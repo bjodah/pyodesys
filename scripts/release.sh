@@ -27,10 +27,12 @@ git tag -a v$VERSION -m v$VERSION
 git push
 git push --tags
 twine upload dist/${PKG}-$VERSION.tar.gz
+
 set +x
 echo ""
-echo "    Make a release on github with the new tag and manually attach"
-echo "    the new .tar.gz file from the ./dist/ directory. Then run:"
+echo "    Make a github release of the tag \"v$VERSION\" and name "
+echo "    it \"${PKG}-${VERSION}\", manually attach the new .tar.gz"
+echo "    file from the ./dist/ directory. Then run:"
 echo ""
 echo "        $ ./scripts/post_release.sh $1 MYSERVER MYGITHUBUSERNAME"
 echo ""
