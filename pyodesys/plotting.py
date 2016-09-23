@@ -85,10 +85,10 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
     else:
         plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
 
-    def post_process(x, y, params):
+    def post_process(x, y, p):
         for post_processor in post_processors:
-            x, y, params = post_processor(x, y, params)
-        return x, y, params
+            x, y, p = post_processor(x, y, p)
+        return x, y, p
 
     if interpolate is None:
         interpolate = y.ndim == 3 and y.shape[1] > 1

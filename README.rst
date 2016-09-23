@@ -60,10 +60,7 @@ alternatively you may also use `pip`:
 
    $ python -m pip install --user pyodesys[all]
 
-see `setup.py`_ for optional requirements.
-
-Source distribution is available here:
-`<https://pypi.python.org/pypi/pyodesys>`_
+see `setup.py <setup.py>`_ for optional requirements.
 
 Example
 -------

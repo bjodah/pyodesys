@@ -9,9 +9,10 @@ providing a module with two functions named ``integrate_adaptive`` and
 
 from __future__ import absolute_import, division, print_function
 
-import numpy as np
 
 import os
+
+import numpy as np
 
 from .util import _ensure_4args, _default
 from .plotting import plot_result, plot_phase_plane
@@ -234,11 +235,29 @@ class OdeSys(object):
             nfo = self._integrate(integrator.integrate_adaptive,
                                   integrator.integrate_predefined,
                                   intern_x, intern_y0, **kwargs)
-
         self.internal_xout = np.asarray(nfo['internal_xout'], dtype=np.float64).copy()
         self.internal_yout = np.asarray(nfo['internal_yout'], dtype=np.float64).copy()
         return self.post_process(nfo['internal_xout'], nfo['internal_yout'],
                                  self.internal_params)[:2] + (nfo,)
+
+    def _integrate_multiple(self, x, y0, params=None, processes=None, **kwargs):
+        """ Unofficial API: may break"""
+        from multiprocessing import Pool
+        import dill
+        if kwargs.get('integrator', 'scipy') != 'scipy':
+            raise NotImplementedError("Only made to work with SciPy at the moment")
+        y0 = np.asarray(y0)
+        if y0.ndim != 2:
+            raise ValueError("Expected a two dimensional array for y0")
+        if params is None:
+            params = [()]*y0.shape[0]
+        if len(params) != y0.shape[0]:
+            raise ValueError("Expected y0 and params to have equal number of rows")
+        args = [dill.dumps((self, (x, y, p), kwargs)) for y, p in zip(y0, params)]
+        pool = Pool(1)
+        results = pool.map(_integrate_wrapper, args)
+        pool.close()
+        return results
 
     def _integrate_scipy(self, intern_xout, intern_y0, atol=1e-8, rtol=1e-8,
                          first_step=None, with_jacobian=None,
@@ -377,8 +396,7 @@ class OdeSys(object):
                     raise ValueError("cannot override nroots")
                 new_kwargs['nroots'] = self.nroots
         if nx == 2 and not force_predefined:
-            intern_xout, yout, info = adaptive(_f, _j, intern_y0, *intern_xout,
-                                               **new_kwargs)
+            intern_xout, yout, info = adaptive(_f, _j, intern_y0, *intern_xout, **new_kwargs)
         else:
             yout, info = predefined(_f, _j, intern_y0, intern_xout,
                                     **new_kwargs)
@@ -519,3 +537,11 @@ class OdeSys(object):
 
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
+
+
+def _integrate_wrapper(obj_args_kwargs):
+    """ Unofficial API: may break"""
+    import dill
+    obj, args, kwargs = dill.loads(obj_args_kwargs)
+    result = obj.integrate(*args, **kwargs)
+    return result, dill.dumps(obj)

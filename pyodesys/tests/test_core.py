@@ -5,6 +5,11 @@ import pytest
 import numpy as np
 from .. import OdeSys
 
+try:
+    import dill
+except ImportError:
+    dill = None
+
 
 def vdp_f(t, y, p):
     return [y[1], -y[0] + p[0]*y[1]*(1 - y[0]**2)]
@@ -117,3 +122,29 @@ def test_custom_module():
     assert np.allclose(yout[0], [1, 0])
     assert np.allclose(yout[-1], [-1.89021896, -0.71633577])
     assert info['nfev'] == 4*149
+
+
+@pytest.mark.skipif(dill is None, reason="Test requires dill to be installed")
+def test_OdeSys_serialisation():
+    _odes = OdeSys(vdp_f, vdp_j)
+    s = dill.dumps(_odes)
+    odes = dill.loads(s)
+    xout, yout, info = odes.integrate([0, 1, 2], [1, 0], params=[2.0],
+                                      integrator='scipy')
+    # blessed values:
+    ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
+    assert np.allclose(yout, ref)
+    assert info['nfev'] > 0
+
+
+@pytest.mark.skipif(dill is None, reason="Test requires dill to be installed")
+@pytest.mark.parametrize('integrator', ['scipy'])  # 'cvode', 'odeint', 'gsl'
+def test_integrate_multiple(integrator):
+    # Unofficial API
+    odes = OdeSys(vdp_f, vdp_j)
+    results = odes._integrate_multiple(
+        [0, 2], [[0.5, 0.5], [1, 0], [0, 1]],
+        params=([1.0], [2.0], [3.0]),
+        integrator=integrator)
+    xout, yout, info = results[1][0]
+    assert np.allclose(yout[-1, :], [-1.89021896, -0.71633577])

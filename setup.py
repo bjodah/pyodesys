@@ -44,8 +44,13 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Mathematics',
 ]
 
+submodules = [
+    'pyodesys.native',
+]
+
 tests = [
     'pyodesys.tests',
+    'pyodesys.native.tests',
 ]
 
 with open(_path_under_setup(pkg_name, '__init__.py'), 'rt') as f:
@@ -65,8 +70,13 @@ setup_kwargs = dict(
     author_email='bjodah@DELETEMEgmail.com',
     url='https://github.com/bjodah/' + pkg_name,
     license='BSD',
-    packages=[pkg_name] + tests,
-    extras_require={'all': ['sym', 'sympy', 'scipy', 'pyodeint', 'pycvodes', 'pygslodeiv2']}
+    packages=[pkg_name] + submodules + tests,
+    include_package_data=True,
+    extras_require={
+        'all': ['appdirs', 'dill', 'sym', 'sympy', 'scipy', 'pyodeint',
+                'pycvodes', 'pygslodeiv2', 'pycompilation', 'pycodeexport'],
+        'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc']
+    }
 )
 
 if __name__ == '__main__':

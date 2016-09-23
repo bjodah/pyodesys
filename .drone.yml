@@ -1,12 +1,11 @@
 build:
-  image: bjodah/bjodahimgdev:latest
+  image: bjodah/bjodahimg16dev:latest
   commands:
-    - conda config --add channels bjodah
-    - conda config --add channels conda-forge
     - conda config --add channels symengine/label/dev
-    - conda config --set show_channel_urls True
+    - conda config --add channels bjodah
     - ./scripts/ci.sh pyodesys
     - ./scripts/render_notebooks.sh
+    - python -m pip install .[docs]
     - ./scripts/generate_docs.sh
     - ./scripts/prepare_deploy.sh
 
