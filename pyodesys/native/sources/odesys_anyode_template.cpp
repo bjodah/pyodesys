@@ -8,6 +8,8 @@
 #include <vector>
 #include "odesys_anyode.hpp"
 
+using odesys_anyode::OdeSys;
+
 OdeSys::OdeSys(const double * const params) {
     m_p.assign(params, params + ${len(p_odesys.params)});
     m_nfev = 0;

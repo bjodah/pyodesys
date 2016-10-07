@@ -4,6 +4,8 @@
 import io
 import os
 import shutil
+from itertools import chain
+
 from setuptools import setup
 
 
@@ -60,6 +62,14 @@ long_description = io.open(_path_under_setup('README.rst'),
                            encoding='utf-8').read()
 assert len(long_description) > 100
 
+extras_req = {
+    'integrators': ['pyodeint', 'pycvodes', 'pygslodeiv2'],
+    'symbolic': ['sym', 'sympy'],
+    'native': ['pycompilation', 'pycodeexport', 'appdirs'],
+    'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
+}
+extras_req['all'] = list(chain(extras_req.values())) + ['dill']  # maybe also: 'symcxx', 'symengine'
+
 setup_kwargs = dict(
     name=pkg_name,
     version=__version__,
@@ -72,11 +82,8 @@ setup_kwargs = dict(
     license='BSD',
     packages=[pkg_name] + submodules + tests,
     include_package_data=True,
-    extras_require={
-        'all': ['appdirs', 'dill', 'sym', 'sympy', 'scipy', 'pyodeint',
-                'pycvodes', 'pygslodeiv2', 'pycompilation', 'pycodeexport'],
-        'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc']
-    }
+    install_requires=['numpy', 'scipy'],
+    extras_require=extras_req
 )
 
 if __name__ == '__main__':

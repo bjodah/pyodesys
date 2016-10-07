@@ -10,7 +10,8 @@ from libcpp.vector cimport vector
 from libcpp.string cimport string
 
 cimport numpy as cnp
-from odesys_anyode cimport OdeSys, adaptive_return
+from odesys_anyode cimport OdeSys
+from odesys_util cimport adaptive_return
 from cvodes_cxx_nogil cimport simple_predefined, simple_adaptive
 
 import numpy as np
@@ -55,7 +56,7 @@ cdef pair[pair[vector[double], vector[double]], unordered_map[string, int]] _int
             dx0, dx_min, dx_max, mxsteps, with_jacobian, iter_type, linear_solver)
         return adaptive_return(result, odesys.last_integration_info)
     finally:
-        del odesys    
+        del odesys
 
 
 def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=1] y0,
