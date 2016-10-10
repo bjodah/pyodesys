@@ -5,7 +5,7 @@ build:
     - conda config --add channels symengine/label/dev
     - conda config --add channels bjodah
     - ./scripts/ci.sh pyodesys
-    - bash -c "source activate test3; python3 -m pip install .[all] gr"
+    - bash -c "source activate test3; python -m pip install .[all] gr"
     - bash -c "source activate test3; PYTHONPATH=$(pwd) ./scripts/render_notebooks.sh"
     - bash -c "source activate test3; ./scripts/generate_docs.sh"
     - bash -c "source activate test3; ./scripts/prepare_deploy.sh"
