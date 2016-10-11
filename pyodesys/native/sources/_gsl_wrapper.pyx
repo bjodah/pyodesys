@@ -8,8 +8,8 @@ from libcpp.vector cimport vector
 
 cimport numpy as cnp
 from odesys_anyode cimport OdeSys
-from gsl_odeiv2_numpy cimport PyErrorHandler
-from gsl_odeiv2_cxx_nogil cimport styp_from_name, simple_predefined, simple_adaptive
+from gsl_odeiv2_cxx cimport styp_from_name
+from gsl_odeiv2_anyode_nogil cimport simple_predefined, simple_adaptive
 
 import numpy as np
 
@@ -29,7 +29,6 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=1] y0,
                          double dx0=0.0, double dx_min=0.0, double dx_max=0.0, long int mxsteps=0,
                          str method='bsimp'):
     cdef:
-        PyErrorHandler * err_handler = new PyErrorHandler()
         OdeSys * odesys
         cnp.ndarray[cnp.float64_t, ndim=2] yout
 
@@ -39,8 +38,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=1] y0,
     try:
         yout = np.empty((xout.size, odesys.get_ny()))
         simple_predefined[OdeSys](odesys, atol, rtol, styp_from_name(method.upper().encode('UTF-8')),
-                                  &y0[0], xout.size, &xout[0], &yout[0, 0],
-                                  dx0, dx_min, dx_max, mxsteps)
+                                  &y0[0], xout.size, &xout[0], &yout[0, 0], mxsteps,
+                                  dx0, dx_min, dx_max)
         return yout, get_last_info(odesys)
     finally:
         del odesys
@@ -54,7 +53,6 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=1] y0,
                        double dx0=0.0, double dx_min=0.0, double dx_max=0.0, long int mxsteps=0,
                        str method='bsimp'):
     cdef:
-        PyErrorHandler * err_handler = new PyErrorHandler()
         OdeSys * odesys
         size_t nsteps
 
@@ -64,7 +62,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=1] y0,
     try:
         xout, yout = simple_adaptive[OdeSys](
             odesys, atol, rtol, styp_from_name(method.upper().encode('UTF-8')),
-            &y0[0], x0, xend, dx0, dx_min, dx_max, mxsteps)
+            &y0[0], x0, xend, mxsteps, dx0, dx_min, dx_max)
         yout = np.asarray(yout)
         return np.asarray(xout), yout.reshape((len(xout), odesys.get_ny())), get_last_info(odesys)
     finally:

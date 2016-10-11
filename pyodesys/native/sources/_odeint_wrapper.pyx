@@ -38,8 +38,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=1] y0,
     try:
         yout = np.empty((xout.size, odesys.get_ny()))
         simple_predefined[OdeSys](odesys, atol, rtol, styp_from_name(method.lower().encode('UTF-8')),
-                                  &y0[0], xout.size, &xout[0], &yout[0, 0],
-                                  dx0, mxsteps)
+                                  &y0[0], xout.size, &xout[0], &yout[0, 0], mxsteps, dx0)
         return yout, get_last_info(odesys)
     finally:
         del odesys
@@ -62,7 +61,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=1] y0,
     try:
         xout, yout = simple_adaptive[OdeSys](
             odesys, atol, rtol, styp_from_name(method.lower().encode('UTF-8')),
-            &y0[0], x0, xend, dx0, mxsteps)
+            &y0[0], x0, xend, mxsteps, dx0)
         yout = np.asarray(yout)
         return np.asarray(xout), yout.reshape((len(xout), odesys.get_ny())), get_last_info(odesys)
     finally:
