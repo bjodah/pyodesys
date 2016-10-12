@@ -7,7 +7,9 @@ import sympy as sp
 
 from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys
 
-from pyodesys.tests.test_core import vdp_f
+from pyodesys.tests.test_core import (
+    vdp_f, _test_integrate_multiple_adaptive, _test_integrate_multiple_predefined, sine, decay
+)
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
 from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory
 
@@ -84,3 +86,13 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     np.set_printoptions(linewidth=240)
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
+
+
+def _test_multiple_adaptive(NativeSys, **kwargs):
+    native = NativeSys.from_callback(sine, 2, 1)
+    _test_integrate_multiple_adaptive(native, integrator='native', **kwargs)
+
+
+def _test_multiple_predefined(NativeSys, **kwargs):
+    native = NativeSys.from_callback(decay, 2, 1)
+    _test_integrate_multiple_predefined(native, integrator='native', **kwargs)

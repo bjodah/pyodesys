@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function
 
 
 import os
+import warnings
 
 import numpy as np
 
@@ -36,24 +37,24 @@ class OdeSys(object):
 
     Parameters
     ----------
-    f: callback
+    f : callback
         first derivatives of dependent variables (y) with respect to
         dependent variable (x). Signature is any of:
             - rhs(x, y[:]) --> f[:]
             - rhs(x, y[:], p[:]) --> f[:]
             - rhs(x, y[:], p[:], backend=math) --> f[:]
-    jac: callback
+    jac : callback
         Jacobian matrix (dfdy). Required for implicit methods.
-    dfdx: callback
+    dfdx : callback
         Signature dfdx(x, y[:], p[:]) -> out[:] (used by e.g. GSL)
-    band: tuple of 2 integers or None (default: None)
+    band : tuple of 2 integers or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
-    names: iterable of strings (default: None)
+    names : iterable of strings (default: None)
         names of variables, e.g. used for plotting
-    pre_processors: iterable of callables (optional)
+    pre_processors : iterable of callables (optional)
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:].
         When modifying: insert at beginning.
-    post_processors: iterable of callables (optional)
+    post_processors : iterable of callables (optional)
         signature: f(x2[:], y2[:, :], params2[:]) -> x1[:], y1[:, :],
         params1[:]
         When modifying: insert at end.
@@ -90,7 +91,7 @@ class OdeSys(object):
     """
 
     def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None,
-                 band=None, names=None, pre_processors=None,
+                 band=None, names=None, description=None, pre_processors=None,
                  post_processors=None):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
@@ -102,11 +103,12 @@ class OdeSys(object):
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
         self.names = names
+        self.description = description
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
 
     def pre_process(self, xout, y0, params=()):
-        """ Transforms input to internal values, used inernally. """
+        """ Transforms input to internal values, used internally. """
         try:
             nx = len(xout)
             if nx == 1:
@@ -119,7 +121,7 @@ class OdeSys(object):
         return np.atleast_1d(xout), np.atleast_1d(y0), np.atleast_1d(params)
 
     def post_process(self, xout, yout, params):
-        """ Transforms internal values to output, used inernally. """
+        """ Transforms internal values to output, used internally. """
         for post_processor in self.post_processors:
             xout, yout, params = post_processor(xout, yout, params)
         return xout, yout, params
@@ -129,18 +131,18 @@ class OdeSys(object):
 
         Parameters
         ----------
-        integrator: str
-            see :meth:`integrate`
-        y0: array_like
-            see :meth:`integrate`
-        x0: float
-            initial value of the independent variable
-        xend: float
-            final value of the independent variable
-        params: array_like
-            see :meth:`integrate`
-        \*\*kwargs:
-            see :meth:`integrate`
+        integrator : str
+            See :meth:`integrate`.
+        y0 : array_like
+            See :meth:`integrate`.
+        x0 : float
+            Initial value of the independent variable.
+        xend : float
+            Final value of the independent variable.
+        params : array_like
+            See :meth:`integrate`.
+        \*\*kwargs :
+            See :meth:`integrate`.
 
         Returns
         -------
@@ -154,20 +156,20 @@ class OdeSys(object):
 
         Parameters
         ----------
-        integrator: str
-            see :meth:`integrate`
-        y0: array_like
-            see :meth:`integrate`
-        xout: array_like
-        params: array_like
-            see :meth:`integrate`
+        integrator : str
+            See :meth:`integrate`.
+        y0 : array_like
+            See :meth:`integrate`.
+        xout : array_like
+        params : array_like
+            See :meth:`integrate`.
         \*\*kwargs:
-            see :meth:`integrate`
+            See :meth:`integrate`
 
         Returns
         -------
-        Length 2 tuple: (yout, info)
-            see :meth:`integrate`
+        Length 2 tuple : (yout, info)
+            See :meth:`integrate`.
         """
         xout, yout, info = self.integrate(xout, y0, params=params,
                                           force_predefined=True, **kwargs)
@@ -175,22 +177,22 @@ class OdeSys(object):
 
     def integrate(self, x, y0, params=(), **kwargs):
         """
-        Integrate the system of ODE's.
+        Integrate the system of ordinary differential equations.
 
         Parameters
         ----------
-        x: array_like or pair (start and final time) or float
+        x : array_like or pair (start and final time) or float
             if float:
                 make it a pair: (0, x)
             if pair or length-2 array:
                 initial and final value of the independent variable
             if array_like:
                 values of independent variable report at
-        y0: array_like
+        y0 : array_like
             Initial values at x[0] for the dependent variables.
-        params: array_like (default: tuple())
+        params : array_like (default: tuple())
             Value of parameters passed to user-supplied callbacks.
-        integrator: str or None
+        integrator : str or None
             Name of integrator, one of:
                 - 'scipy': :meth:`_integrate_scipy`
                 - 'gsl': :meth:`_integrate_gsl`
@@ -199,15 +201,15 @@ class OdeSys(object):
 
             See respective method for more information.
             If ``None``: ``os.environ.get('PYODESYS_INTEGRATOR', 'scipy')``
-        atol: float
+        atol : float
             Absolute tolerance
-        rtol: float
+        rtol : float
             Relative tolerance
-        with_jacobian: bool or None (default)
+        with_jacobian : bool or None (default)
             Whether to use the jacobian. When ``None`` the choice is
             done automatically (only used when required). This matters
             when jacobian is derived at runtime (high computational cost).
-        force_predefined: bool (default: False)
+        force_predefined : bool (default: False)
             override behaviour of ``len(x) == 2`` => :meth:`adaptive`
         \*\*kwargs:
             Additional keyword arguments for ``_integrate_$(integrator)``.
@@ -215,52 +217,53 @@ class OdeSys(object):
         Returns
         -------
         Length 3 tuple: (x, yout, info)
-        x: array of values of the independent variable
-        yout: array of the dependent variable(s) for the different values of x
-        info: dict ('nfev' is guaranteed to be a key)
+            x : array of values of the independent variable
+            yout : array of the dependent variable(s) for the different values of x
+            info : dict ('nfev' is guaranteed to be a key)
         """
-        intern_x, intern_y0, self.internal_params = self.pre_process(x, y0, params)
+        intern_x, intern_y0, intern_p = self.pre_process(x, y0, params)
         intern_x = intern_x.squeeze()
         intern_y0 = np.atleast_1d(intern_y0.squeeze())
         if hasattr(self, 'ny'):
-            if intern_y0.shape != (self.ny,):
+            if intern_y0.shape[-1] != self.ny:
                 raise ValueError("Incorrect shape of intern_y0")
         integrator = kwargs.pop('integrator', None)
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
+
+        ndims = (intern_x.ndim, intern_y0.ndim, intern_p.ndim)
+        if ndims == (1, 1, 1):
+            twodim = False
+        elif ndims == (2, 2, 2):
+            twodim = True
+        else:
+            raise ValueError("Mixed number of dimensions")
+
+        args = map(np.atleast_2d, (intern_x, intern_y0, intern_p))
+
         if isinstance(integrator, str):
-            nfo = getattr(self, '_integrate_' + integrator)(intern_x, intern_y0, **kwargs)
+            nfo = getattr(self, '_integrate_' + integrator)(*args, **kwargs)
         else:
             kwargs['with_jacobian'] = getattr(integrator, 'with_jacobian', None)
             nfo = self._integrate(integrator.integrate_adaptive,
                                   integrator.integrate_predefined,
-                                  intern_x, intern_y0, **kwargs)
-        self.internal_xout = np.asarray(nfo['internal_xout'], dtype=np.float64).copy()
-        self.internal_yout = np.asarray(nfo['internal_yout'], dtype=np.float64).copy()
-        return self.post_process(nfo['internal_xout'], nfo['internal_yout'],
-                                 self.internal_params)[:2] + (nfo,)
+                                  *args, **kwargs)
+        if twodim:
+            if nfo[0]['mode'] == 'predefined':
+                _xout = np.array([d['internal_xout'] for d in nfo])
+                _yout = np.array([d['internal_yout'] for d in nfo])
+            else:
+                _xout = [d['internal_xout'] for d in nfo]
+                _yout = [d['internal_yout'] for d in nfo]
+        else:
+            _xout = nfo[0]['internal_xout']
+            _yout = nfo[0]['internal_yout']
+            self._internal = _xout.copy(), _yout.copy(), intern_p
+            nfo = nfo[0]
+        return self.post_process(_xout, _yout, intern_p)[:2] + (nfo,)
 
-    def _integrate_multiple(self, x, y0, params=None, processes=None, **kwargs):
-        """ Unofficial API: may break"""
-        from multiprocessing import Pool
-        import dill
-        if kwargs.get('integrator', 'scipy') != 'scipy':
-            raise NotImplementedError("Only made to work with SciPy at the moment")
-        y0 = np.asarray(y0)
-        if y0.ndim != 2:
-            raise ValueError("Expected a two dimensional array for y0")
-        if params is None:
-            params = [()]*y0.shape[0]
-        if len(params) != y0.shape[0]:
-            raise ValueError("Expected y0 and params to have equal number of rows")
-        args = [dill.dumps((self, (x, y, p), kwargs)) for y, p in zip(y0, params)]
-        pool = Pool(1)
-        results = pool.map(_integrate_wrapper, args)
-        pool.close()
-        return results
-
-    def _integrate_scipy(self, intern_xout, intern_y0, atol=1e-8, rtol=1e-8,
-                         first_step=None, with_jacobian=None,
+    def _integrate_scipy(self, intern_xout, intern_y0, intern_p,
+                         atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
                          force_predefined=False, name=None, **kwargs):
         """ Do not use directly (use ``integrate('scipy', ...)``).
 
@@ -268,141 +271,165 @@ class OdeSys(object):
 
         Parameters
         ----------
-        \*args:
-            see :meth:`integrate`
-        name: str (default: 'lsoda'/'dopri5' when jacobian is available/not)
-            what integrator wrapped in scipy.integrate.ode to use.
-        \*\*kwargs:
-            keyword arguments passed onto `set_integrator(...) <
+        \*args :
+            See :meth:`integrate`.
+        name : str (default: 'lsoda'/'dopri5' when jacobian is available/not)
+            What integrator wrapped in scipy.integrate.ode to use.
+        \*\*kwargs :
+            Keyword arguments passed onto `set_integrator(...) <
         http://docs.scipy.org/doc/scipy/reference/generated/
         scipy.integrate.ode.set_integrator.html#scipy.integrate.ode.set_integrator>`_
 
         Returns
         -------
-        See :meth:`integrate`
+        See :meth:`integrate`.
         """
-        ny = len(intern_y0)
-        nx = len(intern_xout)
-        if name is None:
-            if self.j_cb is None:
-                name = 'dopri5'
-            else:
-                name = 'lsoda'
-        if with_jacobian is None:
-            if name == 'lsoda':  # lsoda might call jacobian
-                with_jacobian = True
-            elif name in ('dop853', 'dopri5'):
-                with_jacobian = False  # explicit steppers
-            elif name == 'vode':
-                with_jacobian = kwargs.get('method', 'adams') == 'bdf'
         from scipy.integrate import ode
+        ny = intern_y0.shape[-1]
+        nx = intern_xout.shape[-1]
+        results = []
+        for _xout, _y0, _p in zip(intern_xout, intern_y0, intern_p):
+            if name is None:
+                if self.j_cb is None:
+                    name = 'dopri5'
+                else:
+                    name = 'lsoda'
+            if with_jacobian is None:
+                if name == 'lsoda':  # lsoda might call jacobian
+                    with_jacobian = True
+                elif name in ('dop853', 'dopri5'):
+                    with_jacobian = False  # explicit steppers
+                elif name == 'vode':
+                    with_jacobian = kwargs.get('method', 'adams') == 'bdf'
 
-        def rhs(t, y, p=()):
-            rhs.ncall += 1
-            return self.f_cb(t, y, p)
-        rhs.ncall = 0
+            def rhs(t, y, p=()):
+                rhs.ncall += 1
+                return self.f_cb(t, y, p)
+            rhs.ncall = 0
 
-        if self.j_cb is not None:
-            def jac(t, y, p=()):
-                jac.ncall += 1
-                return self.j_cb(t, y, p)
-            jac.ncall = 0
+            if self.j_cb is not None:
+                def jac(t, y, p=()):
+                    jac.ncall += 1
+                    return self.j_cb(t, y, p)
+                jac.ncall = 0
 
-        r = ode(rhs, jac=jac if with_jacobian else None)
-        if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
-            raise ValueError("lband and uband set locally (set `band` at"
-                             " initialization instead)")
-        if self.band is not None:
-            kwargs['lband'], kwargs['uband'] = self.band
-        r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
-        if len(self.internal_params) > 0:
-            r.set_f_params(self.internal_params)
-            r.set_jac_params(self.internal_params)
-        r.set_initial_value(intern_y0, intern_xout[0])
-        if nx == 2 and not force_predefined:
-            # vode itask 2 (may overshoot)
-            ysteps = [intern_y0]
-            xsteps = [intern_xout[0]]
-            while r.t < intern_xout[1]:
-                r.integrate(intern_xout[1], step=True)
-                if not r.successful():
-                    raise RuntimeError("failed")
-                xsteps.append(r.t)
-                ysteps.append(r.y)
-            yout = np.array(ysteps)
-            intern_xout = np.array(xsteps)
-        else:
-            yout = np.empty((nx, ny))
-            yout[0, :] = intern_y0
-            for idx in range(1, nx):
-                r.integrate(intern_xout[idx])
-                if not r.successful():
-                    raise RuntimeError("failed")
-                yout[idx, :] = r.y
-        info = {
-            'internal_xout': intern_xout,
-            'internal_yout': yout,
-            'success': r.successful(),
-            'nfev': rhs.ncall,
-            'name': name
-        }
-        if self.j_cb is not None:
-            info['njev'] = jac.ncall
-        return info
+            r = ode(rhs, jac=jac if with_jacobian else None)
+            if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
+                raise ValueError("lband and uband set locally (set `band` at"
+                                 " initialization instead)")
+            if self.band is not None:
+                kwargs['lband'], kwargs['uband'] = self.band
+            r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
+            if len(_p) > 0:
+                r.set_f_params(_p)
+                r.set_jac_params(_p)
+            r.set_initial_value(_y0, _xout[0])
+            if nx == 2 and not force_predefined:
+                mode = 'adaptive'
+                if name in ('vode', 'lsoda'):
+                    warnings.warn("'adaptive' mode with SciPy's integrator (vode/lsoda) may overshoot (itask=2)")
+                    # vode itask 2 (may overshoot)
+                    ysteps = [_y0]
+                    xsteps = [_xout[0]]
+                    while r.t < _xout[1]:
+                        r.integrate(_xout[1], step=True)
+                        if not r.successful():
+                            raise RuntimeError("failed")
+                        xsteps.append(r.t)
+                        ysteps.append(r.y)
+                else:
+                    xsteps, ysteps = [], []
 
-    def _integrate(self, adaptive, predefined, intern_xout, intern_y0,
+                    def solout(x, y):
+                        xsteps.append(x)
+                        ysteps.append(y)
+                    r.set_solout(solout)
+                    r.integrate(_xout[1])
+                    if not r.successful():
+                        raise RuntimeError("failed")
+                _yout = np.array(ysteps)
+                _xout = np.array(xsteps)
+
+            else:  # predefined
+                mode = 'predefined'
+                _yout = np.empty((nx, ny))
+                _yout[0, :] = _y0
+                for idx in range(1, nx):
+                    r.integrate(_xout[idx])
+                    if not r.successful():
+                        raise RuntimeError("failed")
+                    _yout[idx, :] = r.y
+            info = {
+                'internal_xout': _xout,
+                'internal_yout': _yout,
+                'success': r.successful(),
+                'nfev': rhs.ncall,
+                'name': name,
+                'mode': mode
+            }
+            if self.j_cb is not None:
+                info['njev'] = jac.ncall
+            results.append(info)
+        return results
+
+    def _integrate(self, adaptive, predefined, intern_xout, intern_y0, intern_p,
                    atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
                    force_predefined=False, **kwargs):
-        if first_step is None:
-            first_step = 1e-14 + abs(intern_xout[0])*1e-14  # arbitrary, heur.
-        nx = len(intern_xout)
-        new_kwargs = dict(dx0=first_step, atol=atol,
-                          rtol=rtol, check_indexing=False)
-        new_kwargs.update(kwargs)
+        nx = intern_xout.shape[-1]
+        results = []
+        for _xout, _y0, _p in zip(intern_xout, intern_y0, intern_p):
+            if first_step is None:
+                first_step = 1e-14 + abs(_xout[0])*1e-14  # arbitrary, heur.
+            new_kwargs = dict(dx0=first_step, atol=atol,
+                              rtol=rtol, check_indexing=False)
+            new_kwargs.update(kwargs)
 
-        def _f(x, y, fout):
-            if len(self.internal_params) > 0:
-                fout[:] = self.f_cb(x, y, self.internal_params)
-            else:
-                fout[:] = self.f_cb(x, y)
-
-        if with_jacobian is None:
-            raise ValueError("Need to pass with_jacobian")
-        elif with_jacobian is True:
-            def _j(x, y, jout, dfdx_out=None, fy=None):
-                if len(self.internal_params) > 0:
-                    jout[:, :] = self.j_cb(x, y, self.internal_params)
+            def _f(x, y, fout):
+                if len(_p) > 0:
+                    fout[:] = self.f_cb(x, y, _p)
                 else:
-                    jout[:, :] = self.j_cb(x, y)
-                if dfdx_out is not None:
-                    if len(self.internal_params) > 0:
-                        dfdx_out[:] = self.dfdx_cb(x, y, self.internal_params)
+                    fout[:] = self.f_cb(x, y)
+
+            if with_jacobian is None:
+                raise ValueError("Need to pass with_jacobian")
+            elif with_jacobian is True:
+                def _j(x, y, jout, dfdx_out=None, fy=None):
+                    if len(_p) > 0:
+                        jout[:, :] = self.j_cb(x, y, _p)
                     else:
-                        dfdx_out[:] = self.dfdx_cb(x, y)
-        else:
-            _j = None
-
-        if self.roots_cb is not None:
-            def _roots(x, y, out):
-                if len(self.internal_params) > 0:
-                    out[:] = self.roots_cb(x, y, self.internal_params)
-                else:
-                    out[:] = self.roots_cb(x, y)
-            if 'roots' in new_kwargs:
-                raise ValueError("cannot override roots")
+                        jout[:, :] = self.j_cb(x, y)
+                    if dfdx_out is not None:
+                        if len(_p) > 0:
+                            dfdx_out[:] = self.dfdx_cb(x, y, _p)
+                        else:
+                            dfdx_out[:] = self.dfdx_cb(x, y)
             else:
-                new_kwargs['roots'] = _roots
-                if 'nroots' in new_kwargs:
-                    raise ValueError("cannot override nroots")
-                new_kwargs['nroots'] = self.nroots
-        if nx == 2 and not force_predefined:
-            intern_xout, yout, info = adaptive(_f, _j, intern_y0, *intern_xout, **new_kwargs)
-        else:
-            yout, info = predefined(_f, _j, intern_y0, intern_xout,
-                                    **new_kwargs)
-        info['internal_xout'] = intern_xout
-        info['internal_yout'] = yout
-        return info
+                _j = None
+
+            if self.roots_cb is not None:
+                def _roots(x, y, out):
+                    if len(_p) > 0:
+                        out[:] = self.roots_cb(x, y, _p)
+                    else:
+                        out[:] = self.roots_cb(x, y)
+                if 'roots' in new_kwargs:
+                    raise ValueError("cannot override roots")
+                else:
+                    new_kwargs['roots'] = _roots
+                    if 'nroots' in new_kwargs:
+                        raise ValueError("cannot override nroots")
+                    new_kwargs['nroots'] = self.nroots
+            if nx == 2 and not force_predefined:
+                _xout, yout, info = adaptive(_f, _j, _y0, *_xout, **new_kwargs)
+                info['mode'] = 'adaptive'
+            else:
+                yout, info = predefined(_f, _j, _y0, _xout, **new_kwargs)
+                info['mode'] = 'predefined'
+
+            info['internal_xout'] = _xout
+            info['internal_yout'] = yout
+            results.append(info)
+        return results
 
     def _integrate_gsl(self, *args, **kwargs):
         """ Do not use directly (use ``integrate('gsl', ...)``).
@@ -413,11 +440,11 @@ class OdeSys(object):
 
         Parameters
         ----------
-        \*args:
+        \*args :
             see :meth:`integrate`
-        method: str (default: 'bsimp')
+        method : str (default: 'bsimp')
             what stepper to use, see :py:attr:`gslodeiv2.steppers`
-        \*\*kwargs:
+        \*\*kwargs :
             keyword arguments passed onto
             :py:func:`gslodeiv2.integrate_adaptive`/:py:func:`gslodeiv2.integrate_predefined`
 
@@ -477,9 +504,9 @@ class OdeSys(object):
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
 
-        return cb(_default(internal_xout, self.internal_xout),
-                  _default(internal_yout, self.internal_yout),
-                  _default(internal_params, self.internal_params), **kwargs)
+        return cb(_default(internal_xout, self._internal[0]),
+                  _default(internal_yout, self._internal[1]),
+                  _default(internal_params, self._internal[2]), **kwargs)
 
     def plot_result(self, **kwargs):
         """ Plots the integrated dependent variables from last integration.
@@ -512,11 +539,11 @@ class OdeSys(object):
 
         Parameters
         ----------
-        xyp: length 3 tuple (default: None)
+        xyp : length 3 tuple (default: None)
             internal_xout, internal_yout, internal_params, taken
             from last integration if not specified.
-        eigenvals_cb: callback (optional)
-            signature (x, y, p) (internal variables), when not provided an
+        eigenvals_cb : callback (optional)
+            Signature (x, y, p) (internal variables), when not provided an
             internal routine will use ``self.j_cb`` and ``scipy.linalg.svd``.
 
         """
@@ -526,8 +553,7 @@ class OdeSys(object):
             eigenvals_cb = self._jac_eigenvals_svd
 
         if xyp is None:
-            x, y, intern_p = (self.internal_xout, self.internal_yout,
-                              self.internal_params)
+            x, y, intern_p = self._internal
         else:
             x, y, intern_p = self.pre_process(*xyp)
 
@@ -537,11 +563,3 @@ class OdeSys(object):
 
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
-
-
-def _integrate_wrapper(obj_args_kwargs):
-    """ Unofficial API: may break"""
-    import dill
-    obj, args, kwargs = dill.loads(obj_args_kwargs)
-    result = obj.integrate(*args, **kwargs)
-    return result, dill.dumps(obj)

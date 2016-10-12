@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+This module contains a subclass of OdeSys which allows the user to generate
+auxiliary expressions from a canonical set of symbolic expressions. Subclasses
+are also provided for dealing with variable transformations and partially
+solved systems.
+"""
 
 from __future__ import absolute_import, division, print_function
 

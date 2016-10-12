@@ -120,28 +120,31 @@ class NativeSys(SymbolicSys):
 
         return super(NativeSys, self).integrate(*args, **kwargs)
 
-    def _integrate_native(self, intern_xout, intern_y0, force_predefined=False,
+    def _integrate_native(self, intern_xout, intern_y0, intern_p, force_predefined=False,
                           atol=1e-8, rtol=1e-8, nsteps=500, first_step=0.0, **kwargs):
         atol = np.atleast_1d(atol)
-        y0 = np.asarray(intern_y0, dtype=np.float64)
-        params = np.asarray(self.internal_params, dtype=np.float64)
+        y0 = np.ascontiguousarray(intern_y0, dtype=np.float64)
+        params = np.ascontiguousarray(intern_p, dtype=np.float64)
         if atol.size != 1 and atol.size != self.ny:
             raise ValueError("atol needs to be of length 1 or %d" % self.ny)
-        if len(intern_xout) == 2 and not force_predefined:
+        if intern_xout.shape[-1] == 2 and not force_predefined:
             intern_xout, yout, info = self._native.mod.integrate_adaptive(
-                y0=y0, x0=intern_xout[0], xend=intern_xout[1],
+                y0=y0,
+                x0=np.ascontiguousarray(intern_xout[:, 0], dtype=np.float64),
+                xend=np.ascontiguousarray(intern_xout[:, 1], dtype=np.float64),
                 params=params, atol=atol, rtol=rtol,
                 mxsteps=nsteps, dx0=first_step, **kwargs)
         else:
             yout, info = self._native.mod.integrate_predefined(
-                y0=y0, xout=np.asarray(intern_xout, dtype=np.float64),
+                y0=y0, xout=np.ascontiguousarray(intern_xout, dtype=np.float64),
                 params=params, atol=atol, rtol=rtol,
                 mxsteps=nsteps, dx0=first_step, **kwargs)
-        info['internal_xout'] = intern_xout
-        info['internal_yout'] = yout
-        info['success'] = True
-        if 'nfev' not in info:
-            info['nfev'] = info['n_rhs_evals']
-        if 'njev' not in info:
-            info['njev'] = info['dense_n_dls_jac_evals']
+        for idx in range(len(info)):
+            info[idx]['internal_xout'] = intern_xout[idx]
+            info[idx]['internal_yout'] = yout[idx]
+            info[idx]['success'] = True
+            if 'nfev' not in info[idx]:
+                info[idx]['nfev'] = info[idx]['n_rhs_evals']
+            if 'njev' not in info[idx]:
+                info[idx]['njev'] = info[idx]['dense_n_dls_jac_evals']
         return info

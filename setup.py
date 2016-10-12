@@ -11,7 +11,7 @@ from setuptools import setup
 
 pkg_name = 'pyodesys'
 
-RELEASE_VERSION = os.environ.get('PYODESYS_RELEASE_VERSION', '')  # v*
+RELEASE_VERSION = os.environ.get('%s_RELEASE_VERSION' % pkg_name, '')  # v*
 
 # http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
 if os.environ.get('CONDA_BUILD', '0') == '1':
@@ -39,7 +39,7 @@ else:
     exec(open(release_py_path).read())
 
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Topic :: Scientific/Engineering',
@@ -68,7 +68,7 @@ extras_req = {
     'native': ['pycompilation', 'pycodeexport', 'appdirs'],
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
 }
-extras_req['all'] = list(chain(extras_req.values())) + ['dill']  # maybe also: 'symcxx', 'symengine'
+extras_req['all'] = list(chain(extras_req.values()))
 
 setup_kwargs = dict(
     name=pkg_name,

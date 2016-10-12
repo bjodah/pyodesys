@@ -284,6 +284,7 @@ def test_scipy(name, forgive):
         xout, yout, info = odesys_dens.integrate(
             1, y0, integrator='scipy', name=name, atol=atol, rtol=rtol)
         check(yout[-1, :], n, p, a, atol, rtol, forgive)
+    assert yout.shape[0] > 2
 
 
 # (dopri5, .2), (bs, .03) <-- works in boost 1.59
@@ -317,9 +318,9 @@ def _gsl(tout, method, forgive):
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('method,forgive', zip(
-    'bsimp msadams msbdf rkck'.split(), (0.02, 5, 14, 0.2)))
+    'msadams msbdf rkck bsimp'.split(), (5, 14, 0.2, 0.02)))
 def test_gsl_predefined(method, forgive):
-    _gsl([10**i for i in range(-15, 1)], method, forgive)
+    _gsl([10**i for i in range(-14, 1)], method, forgive)
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')

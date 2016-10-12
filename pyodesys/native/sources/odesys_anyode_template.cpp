@@ -2,6 +2,7 @@
 // -*- ${'mode: read-only'} -*-
 // ${_message_for_rendered}
 
+// User provided system description: ${p_odesys.description}
 // Names of dependent variables: ${p_odesys.names}
 
 #include <math.h>
