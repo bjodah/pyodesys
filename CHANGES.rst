@@ -1,3 +1,8 @@
+v0.7.0
+======
+- Generate (multi-threaded) native code (against pyodeint, pycvodes, pygslodeiv2)
+- OdeSys.internal_* -> OdeSys._internal
+
 v0.6.0
 ======
 - depend on package ``sym`` for symbolic backend
