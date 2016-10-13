@@ -65,7 +65,8 @@ class NativeCode(Cpp_Code):
                 try:
                     compile_sources([_src], cwd=tmpdir, metadir=cachedir,
                                     logger=logger, **self.compile_kwargs)
-                    shutil.copy(os.path.join(tmpdir, os.path.basename(_src)[:-4] + '.o'), _dest)
+                    shutil.copy(os.path.join(tmpdir, os.path.basename(_src)[:-4] + '.o'),
+                                _dest)
                 finally:
                     if not kwargs.get('save_temp', False):
                         shutil.rmtree(tmpdir)
@@ -78,9 +79,11 @@ class NativeCode(Cpp_Code):
         if self.odesys.band is not None:
             raise NotImplementedError("Banded jacobian not yet implemented.")
 
-        subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for idx, k in enumerate(self.odesys.dep)}
+        subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for
+                 idx, k in enumerate(self.odesys.dep)}
         subsd[self.odesys.indep] = self.odesys.be.Symbol('t')
-        subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for idx, k in enumerate(self.odesys.params)})
+        subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
+                      idx, k in enumerate(self.odesys.params)})
 
         def _ccode(expr):
             return self.odesys.be.ccode(expr.xreplace(subsd))
@@ -143,8 +146,8 @@ class NativeSys(SymbolicSys):
             info[idx]['internal_xout'] = intern_xout[idx]
             info[idx]['internal_yout'] = yout[idx]
             info[idx]['success'] = True
-            if 'nfev' not in info[idx]:
+            if 'nfev' not in info[idx] and 'n_rhs_evals' in info[idx]:
                 info[idx]['nfev'] = info[idx]['n_rhs_evals']
-            if 'njev' not in info[idx]:
+            if 'njev' not in info[idx] and 'dense_n_dls_jac_evals' in info[idx]:
                 info[idx]['njev'] = info[idx]['dense_n_dls_jac_evals']
         return info

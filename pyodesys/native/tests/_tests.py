@@ -20,7 +20,8 @@ def _test_NativeSys(NativeSys, **kwargs):
     # blessed values:
     ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
     assert np.allclose(yout, ref)
-    assert info['nfev'] > 0
+    if 'nfev' in info:
+        assert info['nfev'] > 0
 
 
 def _test_NativeSys_two(NativeSys, nsteps=500):
@@ -37,7 +38,8 @@ def _test_NativeSys_two(NativeSys, nsteps=500):
     # blessed values:
     ref1 = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
     assert np.allclose(yout1, ref1)
-    assert info1['nfev'] > 0
+    if 'nfev' in info1:
+        assert info1['nfev'] > 0
 
     ref2 = np.array(bateman_full(y02, k2+[0], xout2 - xout2[0], exp=np.exp)).T
     assert np.allclose(yout2, ref2, rtol=150*rtol2, atol=150*atol2)
