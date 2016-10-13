@@ -42,7 +42,7 @@ class NativeCode(Cpp_Code):
     wrapper_name = None
     basedir = os.path.dirname(__file__)
     templates = ('sources/odesys_anyode_template.cpp',)
-    # build_files = ('sources/odesys_anyode.hpp', 'sources/anyode/anyode.hpp', 'sources/anyode/anyode_parallel.hpp')
+    build_files = ()  # ('sources/odesys_anyode.hpp', ...)
     source_files = ('odesys_anyode.cpp',)
     obj_files = ('odesys_anyode.o',)
 

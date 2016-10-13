@@ -13,8 +13,6 @@ using odesys_anyode::OdeSys;
 
 OdeSys::OdeSys(const double * const params) {
     m_p.assign(params, params + ${len(p_odesys.params)});
-    m_nfev = 0;
-    m_njev = 0;
 }
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
@@ -30,7 +28,7 @@ AnyODE::Status OdeSys::rhs(double t,
   % for i, expr in enumerate(p_rhs_exprs):
     f[${i}] = ${expr};
   % endfor
-    m_nfev++;
+    this->nfev++;
     return AnyODE::Status::success;
 }
 
@@ -63,7 +61,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
         dfdt[${idx}] = ${expr};
       % endfor
     }
-    m_njev++;
+    this->njev++;
     return AnyODE::Status::success;
 }
 % endfor

@@ -1,11 +1,11 @@
 #ifdef ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37
 
-#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 4
+#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 5
 #error "Multiple anyode.hpp files included with version mismatch"
 #endif
 
 #else
-#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 4
+#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 5
 
 
 #include <string>
@@ -17,6 +17,7 @@ namespace AnyODE {
     enum class Status : int {success = 0, recoverable_error = 1, unrecoverable_error = -1};
 
     struct OdeSysBase {
+        int nfev=0, njev=0;
         void * integrator = nullptr;
         std::unordered_map<std::string, int> last_integration_info;
         std::unordered_map<std::string, double> last_integration_info_dbl;
