@@ -22,3 +22,6 @@ done
 
 PYTHON=python2 ./scripts/run_tests.sh
 PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
+
+./scripts/render_notebooks.sh
+./scripts/generate_docs.sh

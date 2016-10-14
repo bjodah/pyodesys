@@ -10,6 +10,7 @@ source:
 
 build:
   number: 0
+  script: python setup.py install --single-version-externally-managed --record record.txt
 
 requirements:
   build:
@@ -26,6 +27,7 @@ test:
   imports:
     - {{ name }}
   requires:
+    - python
     - pytest
     - scipy
     - pyodeint
@@ -36,15 +38,14 @@ test:
     - python-symengine
     - symcxx
     - pysym
-  commands:
-    - python -m pytest --pyargs {{ name }}
+    - matplotlib
 
 about:
   home: https://github.com/bjodah/{{ name }}
   license: BSD 2-Clause
   license_file: LICENSE
   summary: 'Straightforward numerical integration of systems of ordinary differential equations'
-  doc_url: https://bjodah.github.io/{{ name }}
+  doc_url: https://bjodah.github.io/{{ name }}/latest
 
 extra:
   recipe-maintainers:

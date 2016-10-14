@@ -38,13 +38,14 @@ _ext_suffix = '.so'  # sysconfig.get_config_var('EXT_SUFFIX')
 _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
 
 
-class NativeCode(Cpp_Code):
+class _NativeCodeBase(Cpp_Code):
     wrapper_name = None
     basedir = os.path.dirname(__file__)
     templates = ('sources/odesys_anyode_template.cpp',)
     build_files = ()  # ('sources/odesys_anyode.hpp', ...)
     source_files = ('odesys_anyode.cpp',)
     obj_files = ('odesys_anyode.o',)
+    _save_temp = False
 
     def __init__(self, odesys, *args, **kwargs):
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
@@ -72,7 +73,7 @@ class NativeCode(Cpp_Code):
                         shutil.rmtree(tmpdir)
                 if not os.path.exists(_dest):
                     raise OSError("Failed to place prebuilt file at: %s" % _dest)
-        super(NativeCode, self).__init__(*args, logger=logger, **kwargs)
+        super(_NativeCodeBase, self).__init__(*args, logger=logger, **kwargs)
 
     def variables(self):
         ny = self.odesys.ny
@@ -105,13 +106,13 @@ class NativeCode(Cpp_Code):
         return ns
 
 
-class NativeSys(SymbolicSys):
+class _NativeSysBase(SymbolicSys):
 
     _NativeCode = None
     _native_name = None
 
     def __init__(self, *args, **kwargs):
-        super(NativeSys, self).__init__(*args, **kwargs)
+        super(_NativeSysBase, self).__init__(*args, **kwargs)
         self._native = self._NativeCode(self)
 
     def integrate(self, *args, **kwargs):
@@ -121,7 +122,7 @@ class NativeSys(SymbolicSys):
         else:
             kwargs['integrator'] = 'native'
 
-        return super(NativeSys, self).integrate(*args, **kwargs)
+        return super(_NativeSysBase, self).integrate(*args, **kwargs)
 
     def _integrate_native(self, intern_xout, intern_y0, intern_p, force_predefined=False,
                           atol=1e-8, rtol=1e-8, nsteps=500, first_step=0.0, **kwargs):

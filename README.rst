@@ -19,11 +19,14 @@ pyodesys
 .. image:: http://hera.physchem.kth.se/~pyodesys/branches/master/htmlcov/coverage.svg
    :target: http://hera.physchem.kth.se/~pyodesys/branches/master/htmlcov
    :alt: coverage
+.. image:: https://zenodo.org/badge/43131469.svg
+   :target: https://zenodo.org/badge/latestdoi/43131469
+   :alt: Zenodo DOI
 
 `pyodesys <https://github.com/bjodah/pyodesys>`_ provides a straightforward way
-of numerically integrating systems of ordinary differential equations. It unifies
-the interface of several libraries. It also provides a convenience class for 
-representing and integrating ODE systems defined by `SymPy <http://www.sympy.org>`_
+of numerically integrating systems of ordinary differential equations (intial value problems).
+It unifies the interface of several python libraries. It also provides a convenience class for 
+representing and integrating ODE systems defined by symbolic expressions, e.g. `SymPy <http://www.sympy.org>`_
 expressions.
 
 The numerical integration is perfomed using eiher:
@@ -33,9 +36,13 @@ The numerical integration is perfomed using eiher:
 - `pyodeint <https://github.com/bjodah/pyodeint>`_
 - `pycvodes <https://github.com/bjodah/pycvodes>`_
 
-
 Note that implicit steppers which require a user supplied
 callback for calculating the jacobian is provided automatically by pyodesys.
+
+When performance is of outmost importance, e.g. in model fitting where results are needed
+for a large set of initial conditions and parameters choices, the user may transparently
+rely on compiled native code (code generation). This has the benefit that there is no need
+to manually rewrite the corresponing expressions in another programming language.
 
 Documentation
 -------------
