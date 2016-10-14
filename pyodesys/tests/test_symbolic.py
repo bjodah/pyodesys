@@ -519,18 +519,3 @@ def test_SymbolicSys_from_callback__backends(backend):
     ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
     assert np.allclose(yout, ref)
     assert info['nfev'] > 0
-
-
-@pytest.mark.xfail  # _integrate_multiple must handle SymbolicSys before public
-@pytest.mark.skipif(sym is None, reason='package sym missing')
-@pytest.mark.parametrize('name', 'dopri5 dop853'.split())
-def test_sine_multi(name):
-    odesys = SymbolicSys.from_callback(
-        lambda x, y, p, be: [y[1], -y[0]*p[0]*p[0]], 2, 1)
-    params = [[2], [3], [4]]
-    y0 = [(0, 2), (0, 3), (0, 4)]
-    atol, rtol = 1e-10, 1e-10
-    results = odesys._integrate_multiple(
-        1, y0, params, integrator='scipy', name=name, atol=atol, rtol=rtol)
-    for p, ((xout, yout, info), obj) in zip(params, results):
-        assert np.allclose(yout, np.sin(p*xout), rtol=rtol, atol=atol)
