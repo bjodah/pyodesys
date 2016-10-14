@@ -1,9 +1,12 @@
+{% set name = "pyodesys" %}
+{% set version = "0.7.0.git" %}
+
 package:
-  name: pyodesys
-  version: 0.6.0.git
+  name: {{ name|lower }}
+  version: {{ version }}
 
 source:
-  path: ../
+  git_url: ../
 
 build:
   number: 0
@@ -14,20 +17,35 @@ requirements:
   run:
     - python
     - numpy
+    - sym
     - sympy
     - scipy
+    - appdirs
 
 test:
   imports:
-    - pyodesys
+    - {{ name }}
   requires:
     - pytest
     - scipy
     - pyodeint
     - pygslodeiv2
     - pycvodes
+    - pycompilation
+    - pycodeexport
+    - python-symengine
+    - symcxx
+    - pysym
+  commands:
+    - python -m pytest --pyargs {{ name }}
 
 about:
-  home: https://github.com/bjodah/pyodesys
-  license: BSD
-  summary: Straightforward numerical integration of ODE systems from SymPy
+  home: https://github.com/bjodah/{{ name }}
+  license: BSD 2-Clause
+  license_file: LICENSE
+  summary: 'Straightforward numerical integration of systems of ordinary differential equations'
+  doc_url: https://bjodah.github.io/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - bjodah
