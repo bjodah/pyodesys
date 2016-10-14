@@ -4,12 +4,14 @@
 import io
 import os
 import shutil
+from itertools import chain
+
 from setuptools import setup
 
 
 pkg_name = 'pyodesys'
 
-RELEASE_VERSION = os.environ.get('PYODESYS_RELEASE_VERSION', '')  # v*
+RELEASE_VERSION = os.environ.get('%s_RELEASE_VERSION' % pkg_name, '')  # v*
 
 # http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
 if os.environ.get('CONDA_BUILD', '0') == '1':
@@ -37,15 +39,20 @@ else:
     exec(open(release_py_path).read())
 
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Topic :: Scientific/Engineering',
     'Topic :: Scientific/Engineering :: Mathematics',
 ]
 
+submodules = [
+    'pyodesys.native',
+]
+
 tests = [
     'pyodesys.tests',
+    'pyodesys.native.tests',
 ]
 
 with open(_path_under_setup(pkg_name, '__init__.py'), 'rt') as f:
@@ -54,6 +61,15 @@ assert 10 < len(short_description) < 80
 long_description = io.open(_path_under_setup('README.rst'),
                            encoding='utf-8').read()
 assert len(long_description) > 100
+
+extras_req = {
+    'integrators': ['pyodeint>=0.7.0', 'pycvodes>=0.6.0', 'pygslodeiv2>=0.6.0'],
+    'symbolic': ['sym', 'sympy'],
+    'native': ['pycompilation>=0.4.3', 'pycodeexport>=0.1.1', 'appdirs'],
+    'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
+    'testing': ['pytest', 'pytest-cov', 'pytest-flakes', 'pytest-pep8']
+}
+extras_req['all'] = list(chain(extras_req.values()))
 
 setup_kwargs = dict(
     name=pkg_name,
@@ -65,8 +81,10 @@ setup_kwargs = dict(
     author_email='bjodah@DELETEMEgmail.com',
     url='https://github.com/bjodah/' + pkg_name,
     license='BSD',
-    packages=[pkg_name] + tests,
-    extras_require={'all': ['sym', 'sympy', 'scipy', 'pyodeint', 'pycvodes', 'pygslodeiv2']}
+    packages=[pkg_name] + submodules + tests,
+    include_package_data=True,
+    install_requires=['numpy', 'scipy'],
+    extras_require=extras_req
 )
 
 if __name__ == '__main__':

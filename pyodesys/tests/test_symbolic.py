@@ -49,7 +49,7 @@ def decay_rhs(t, y, k):
     return dydt
 
 
-def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1):
+def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1, **kwargs):
     k = [7., 3, 2]
     ts = symmetricsys(dep_tr, indep_tr).from_callback(
         decay_rhs, len(k)+1, len(k))
@@ -57,7 +57,7 @@ def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1):
     y0[0] = 1
     xout, yout, info = ts.integrate(
         [1e-12, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol,
-        first_step=first_step)
+        first_step=first_step, **kwargs)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     np.set_printoptions(linewidth=240)
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
@@ -70,12 +70,12 @@ def test_TransformedSys_liny_linx():
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_TransformedSys_logy_logx():
-    _test_TransformedSys(logexp, logexp, 1e-7, 1e-7, 1e-4, 150)
+    _test_TransformedSys(logexp, logexp, 1e-7, 1e-7, 1e-4, 150, nsteps=800)
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_TransformedSys_logy_linx():
-    _test_TransformedSys(logexp, idty2, 1e-8, 1e-8, 0, 150)
+    _test_TransformedSys(logexp, idty2, 1e-8, 1e-8, 0, 150, nsteps=1700)
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
@@ -98,7 +98,7 @@ def test_ScaledSys():
     y0 = [0]*(len(k)+1)
     y0[0] = 1
     xout, yout, info = ss.integrate([1e-12, 1], y0, integrator='cvode',
-                                    atol=1e-12, rtol=1e-12)
+                                    atol=1e-12, rtol=1e-12, nsteps=1000)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref, rtol=2e-11, atol=2e-11)
 
@@ -271,7 +271,7 @@ def test_scipy(name, forgive):
     atol, rtol = 1e-10, 1e-10
     y0, k, odesys_dens = get_special_chain(n, p, a)
     if name == 'vode':
-        tout = [0]+[10**i for i in range(-10, 1)] if name == 'vode' else 1
+        tout = [0]+[10**i for i in range(-10, 1)]
         xout, yout, info = odesys_dens.integrate(
             tout, y0, integrator='scipy', name=name, atol=atol, rtol=rtol)
         check(yout[-1, :], n, p, a, atol, rtol, forgive[0])
@@ -284,6 +284,7 @@ def test_scipy(name, forgive):
         xout, yout, info = odesys_dens.integrate(
             1, y0, integrator='scipy', name=name, atol=atol, rtol=rtol)
         check(yout[-1, :], n, p, a, atol, rtol, forgive)
+    assert yout.shape[0] > 2
 
 
 # (dopri5, .2), (bs, .03) <-- works in boost 1.59
@@ -317,9 +318,9 @@ def _gsl(tout, method, forgive):
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('method,forgive', zip(
-    'bsimp msadams msbdf rkck'.split(), (0.02, 5, 14, 0.2)))
+    'msadams msbdf rkck bsimp'.split(), (5, 14, 0.2, 0.02)))
 def test_gsl_predefined(method, forgive):
-    _gsl([10**i for i in range(-15, 1)], method, forgive)
+    _gsl([10**i for i in range(-14, 1)], method, forgive)
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')

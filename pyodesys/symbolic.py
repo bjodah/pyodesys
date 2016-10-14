@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+This module contains a subclass of OdeSys which allows the user to generate
+auxiliary expressions from a canonical set of symbolic expressions. Subclasses
+are also provided for dealing with variable transformations and partially
+solved systems.
+"""
 
 from __future__ import absolute_import, division, print_function
 
@@ -9,7 +15,9 @@ import numpy as np
 try:
     from sym import Backend
 except ImportError:
-    Backend = 'sym-module-failed-to-import'
+    class Backend(object):
+        def __call__(self, *args, **kwargs):
+            raise ImportError("Could not import package 'sym'.")
 
 from .core import OdeSys
 from .util import (
@@ -49,8 +57,11 @@ class SymbolicSys(OdeSys):
 
     Attributes
     ----------
-    dep : iterable of symbols
+    dep : tuple of symbols
         Dependent variables.
+    exprs : tuple of expressions
+        Expressions for the derivatives of the dependent variables
+        (:attr:`dep`) with respect to the independent variable (:attr:`indep`).
     indep : Symbol or None
         Independent variable (``None`` indicates autonomous system).
     params : iterable of symbols
@@ -140,6 +151,15 @@ class SymbolicSys(OdeSys):
         """ Number of dependent variables in the system. """
         return len(self.exprs)
 
+    @property
+    def autonomous(self):
+        if self.indep is None:
+            return True
+        for expr in self.exprs:
+            if expr.has(self.indep):
+                return False
+        return True
+
     def get_jac(self):
         """ Derives the jacobian from ``self.exprs`` and ``self.dep``. """
         if self._jac is True:
@@ -157,9 +177,10 @@ class SymbolicSys(OdeSys):
         """ Calculates 2nd derivatives of ``self.exprs`` """
         if self._dfdx is True:
             if self.indep is None:
-                self._dfdx = [0]*self.ny
+                zero = 0*self.be.Dummy()**0
+                self._dfdx = self.be.Matrix(1, self.ny, [zero]*self.ny)
             else:
-                self._dfdx = [expr.diff(self.indep) for expr in self.exprs]
+                self._dfdx = self.be.Matrix(1, self.ny, [expr.diff(self.indep) for expr in self.exprs])
         elif self._dfdx is False:
             return False
         return self._dfdx
@@ -355,7 +376,7 @@ class TransformedSys(SymbolicSys):
                 self.f_dep(x[0], y, p), p)
 
 
-def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
+def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs):
     """
     A factory function for creating symmetrically transformed systems.
 
@@ -367,12 +388,13 @@ def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
     indep_tr : pair of callables (default: None)
         Forward and backward transformation to be applied to the
         independent variable.
+    SuperClass : class
     \*\*kwargs :
         Default keyword arguments for the TransformedSys subclass.
 
     Returns
     -------
-    Subclass of :class:`TransformedSys`.
+    Subclass of SuperClass (by default :class:`TransformedSys`).
 
     Examples
     --------
@@ -390,7 +412,7 @@ def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
         if not callable(indep_tr[0]) or not callable(indep_tr[1]):
             raise ValueError("Exceptected indep_tr to be a pair of callables")
 
-    class _Sys(TransformedSys):
+    class _Sys(SuperClass):
         def __init__(self, dep_exprs, indep=None, **inner_kwargs):
             new_kwargs = kwargs.copy()
             new_kwargs.update(inner_kwargs)
@@ -409,7 +431,7 @@ def symmetricsys(dep_tr=None, indep_tr=None, **kwargs):
         def from_callback(cls, cb, ny, nparams=0, **inner_kwargs):
             new_kwargs = kwargs.copy()
             new_kwargs.update(inner_kwargs)
-            return TransformedSys.from_callback(
+            return SuperClass.from_callback(
                 cb, ny, nparams,
                 dep_transf_cbs=repeat(dep_tr) if dep_tr is not None else None,
                 indep_transf_cbs=indep_tr,

@@ -1,14 +1,11 @@
 build:
-  image: bjodah/bjodahimgdev:latest
+  image: bjodah/bjodahimg16:v1.2
   commands:
-    - conda config --add channels bjodah
-    - conda config --add channels conda-forge
-    - conda config --add channels symengine/label/dev
-    - conda config --set show_channel_urls True
+    - bash -c '[[ $(python setup.py --version) =~ ^[0-9]+.* ]]'
     - ./scripts/ci.sh pyodesys
-    - ./scripts/render_notebooks.sh
-    - ./scripts/generate_docs.sh
+#    - ./scripts/ci_conda.sh pyodesys
     - ./scripts/prepare_deploy.sh
+    - if grep "DO-NOT-MERGE!" -R . --exclude ".drone.yml"; then exit 1; fi
 
 deploy:
 

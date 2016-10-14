@@ -1,19 +1,24 @@
-#!/bin/bash -xeu
+#!/bin/bash -xe
 
-# Py3
-conda create -q -n test3 python=3.5 scipy matplotlib sym sympy pysym symcxx pip pytest pytest-cov pytest-flakes pytest-pep8 pygslodeiv2 pyodeint pycvodes python-symengine
-source activate test3
-python setup.py install
-# (cd /; python -m pytest --pyargs $1)
-PYTHONPATH=$(pwd) ./scripts/run_tests.sh --cov $1 --cov-report html
-./scripts/coverage_badge.py htmlcov/ htmlcov/coverage.svg
-#source deactivate
+export PKG_NAME=$1
 
-# Py2
-conda create -q -n test2 python=2.7 scipy matplotlib sym sympy pysym symcxx pip pytest pytest-cov pygslodeiv2 pyodeint pycvodes python-symengine
-source activate test2
+echo "deb http://ppa.launchpad.net/symengine/ppa/ubuntu xenial main" >>/etc/apt/sources.list
+apt-get update
+apt-get install python-symengine python3-symengine
+
+for PY in python2 python3; do
+    $PY -c "import symengine"  # make sure symengine is installed
+    $PY -m pip install symcxx pysym  # unofficial backends
+done
+
 python setup.py sdist
-pip install dist/*.tar.gz
-(cd /; python -m pytest --pyargs $1)
+(cd dist/; python -m pip install --force-reinstall --upgrade $PKG_NAME-*.tar.gz)
 
-! grep "DO-NOT-MERGE!" -R . --exclude ci.sh
+
+for PY in python2 python3; do
+    $PY -m pip install --upgrade pip
+    $PY -m pip install --upgrade .[all]
+done
+
+PYTHON=python2 ./scripts/run_tests.sh
+PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
