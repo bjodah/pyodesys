@@ -9,7 +9,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; pyodesys 0.4.0.git documentation</title>
+  <title>Index &mdash; pyodesys 0.7.0 documentation</title>
   
 
   
@@ -31,7 +31,7 @@
   
 
   
-    <link rel="top" title="pyodesys 0.4.0.git documentation" href="index.html"/> 
+    <link rel="top" title="pyodesys 0.7.0 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -59,7 +59,7 @@
             
             
               <div class="version">
-                0.4.0.git
+                0.7.0
               </div>
             
           
@@ -116,6 +116,8 @@
       <li class="wy-breadcrumbs-aside">
         
           
+            <a href="https://github.com/bjodah/pyodesys/blob/v0.7.0/doc/genindex.rst" class="fa fa-github"> Edit on GitHub</a>
+          
         
       </li>
   </ul>
@@ -131,16 +133,17 @@
  <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
- | <a href="#E"><strong>E</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
- | <a href="#L"><strong>L</strong></a>
  | <a href="#N"><strong>N</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
  
 </div>
 <h2 id="A">A</h2>
@@ -150,10 +153,14 @@
   <dt><a href="pyodesys.html#pyodesys.core.OdeSys.adaptive">adaptive() (pyodesys.core.OdeSys method)</a>
   </dt>
 
+      
+  <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.analytic_stiffness">analytic_stiffness() (pyodesys.symbolic.SymbolicSys method)</a>
+  </dt>
+
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.args">args() (pyodesys.symbolic.SymbolicSys method)</a>
+  <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.autonomous">autonomous (pyodesys.symbolic.SymbolicSys attribute)</a>
   </dt>
 
   </dl></td>
@@ -163,13 +170,13 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="pyodesys.html#pyodesys.symbolic.TransformedSys.back_transform_out">back_transform_out() (pyodesys.symbolic.TransformedSys method)</a>
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeCode.basedir">basedir (pyodesys.native.base.NativeCode attribute)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="pyodesys.html#pyodesys.util.banded_jacobian">banded_jacobian() (in module pyodesys.util)</a>
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeCode.build_files">build_files (pyodesys.native.base.NativeCode attribute)</a>
   </dt>
 
   </dl></td>
@@ -185,24 +192,8 @@
   </dl></td>
 </tr></table>
 
-<h2 id="E">E</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="pyodesys.html#pyodesys.util.ensure_3args">ensure_3args() (in module pyodesys.util)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="pyodesys.html#pyodesys.symbolic.TransformedSys.forward_transform_xy">forward_transform_xy() (pyodesys.symbolic.TransformedSys method)</a>
-  </dt>
-
-  </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="pyodesys.html#pyodesys.symbolic.ScaledSys.from_callback">from_callback() (pyodesys.symbolic.ScaledSys class method)</a>
@@ -218,6 +209,12 @@
   </dt>
 
       </dl></dd>
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.from_other">from_other() (pyodesys.symbolic.SymbolicSys class method)</a>
+  </dt>
+
   </dl></td>
 </tr></table>
 
@@ -260,14 +257,20 @@
   <dt><a href="pyodesys.html#pyodesys.core.OdeSys.integrate">integrate() (pyodesys.core.OdeSys method)</a>
   </dt>
 
-  </dl></td>
-</tr></table>
+      <dd><dl>
+        
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeSys.integrate">(pyodesys.native.base.NativeSys method)</a>
+  </dt>
 
-<h2 id="L">L</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
+      </dl></dd>
+      
+  <dt><a href="pyodesys.html#pyodesys.integrators.RK4_example_integartor.integrate_adaptive">integrate_adaptive() (pyodesys.integrators.RK4_example_integartor static method)</a>
+  </dt>
+
+  </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.lambdify">lambdify() (pyodesys.symbolic.SymbolicSys static method)</a>
+  <dt><a href="pyodesys.html#pyodesys.integrators.RK4_example_integartor.integrate_predefined">integrate_predefined() (pyodesys.integrators.RK4_example_integartor static method)</a>
   </dt>
 
   </dl></td>
@@ -277,11 +280,39 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.num_transformer_factory">num_transformer_factory() (pyodesys.symbolic.SymbolicSys class method)</a>
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeCode">NativeCode (class in pyodesys.native.base)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.cvode.NativeCvodeCode">NativeCvodeCode (class in pyodesys.native.cvode)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.cvode.NativeCvodeSys">NativeCvodeSys (class in pyodesys.native.cvode)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.gsl.NativeGSLCode">NativeGSLCode (class in pyodesys.native.gsl)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.gsl.NativeGSLSys">NativeGSLSys (class in pyodesys.native.gsl)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.odeint.NativeOdeintCode">NativeOdeintCode (class in pyodesys.native.odeint)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.odeint.NativeOdeintSys">NativeOdeintSys (class in pyodesys.native.odeint)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeSys">NativeSys (class in pyodesys.native.base)</a>
+  </dt>
+
       
   <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.ny">ny (pyodesys.symbolic.SymbolicSys attribute)</a>
   </dt>
@@ -291,6 +322,12 @@
 
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeCode.obj_files">obj_files (pyodesys.native.base.NativeCode attribute)</a>
+  </dt>
+
+  </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="pyodesys.html#pyodesys.core.OdeSys">OdeSys (class in pyodesys.core)</a>
@@ -338,14 +375,38 @@
   <dt><a href="pyodesys.html#pyodesys.core.OdeSys.predefined">predefined() (pyodesys.core.OdeSys method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="pyodesys.html#module-pyodesys">pyodesys (module)</a>
   </dt>
 
       
   <dt><a href="pyodesys.html#module-pyodesys.core">pyodesys.core (module)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.html#module-pyodesys.integrators">pyodesys.integrators (module)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="pyodesys.native.html#module-pyodesys.native">pyodesys.native (module)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#module-pyodesys.native.base">pyodesys.native.base (module)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#module-pyodesys.native.cvode">pyodesys.native.cvode (module)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#module-pyodesys.native.gsl">pyodesys.native.gsl (module)</a>
+  </dt>
+
+      
+  <dt><a href="pyodesys.native.html#module-pyodesys.native.odeint">pyodesys.native.odeint (module)</a>
   </dt>
 
       
@@ -363,33 +424,35 @@
   </dl></td>
 </tr></table>
 
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="pyodesys.html#pyodesys.integrators.RK4_example_integartor">RK4_example_integartor (class in pyodesys.integrators)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="pyodesys.html#pyodesys.symbolic.ScaledSys.scale_fw_bw">scale_fw_bw() (pyodesys.symbolic.ScaledSys static method)</a>
+  <dt><a href="pyodesys.html#pyodesys.symbolic.ScaledSys">ScaledSys (class in pyodesys.symbolic)</a>
   </dt>
 
       
-  <dt><a href="pyodesys.html#pyodesys.symbolic.ScaledSys">ScaledSys (class in pyodesys.symbolic)</a>
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeCode.source_files">source_files (pyodesys.native.base.NativeCode attribute)</a>
   </dt>
 
       
   <dt><a href="pyodesys.html#pyodesys.util.stack_1d_on_left">stack_1d_on_left() (in module pyodesys.util)</a>
   </dt>
 
-      
-  <dt><a href="pyodesys.html#pyodesys.core.OdeSys.stiffness">stiffness() (pyodesys.core.OdeSys method)</a>
-  </dt>
-
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.symarray">symarray() (pyodesys.symbolic.SymbolicSys class method)</a>
-  </dt>
-
-      
-  <dt><a href="pyodesys.html#pyodesys.symbolic.SymbolicSys.Symbol">Symbol() (pyodesys.symbolic.SymbolicSys static method)</a>
+  <dt><a href="pyodesys.html#pyodesys.core.OdeSys.stiffness">stiffness() (pyodesys.core.OdeSys method)</a>
   </dt>
 
       
@@ -407,19 +470,63 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="pyodesys.html#pyodesys.util.transform_exprs_dep">transform_exprs_dep() (in module pyodesys.util)</a>
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeCode.templates">templates (pyodesys.native.base.NativeCode attribute)</a>
   </dt>
 
       
-  <dt><a href="pyodesys.html#pyodesys.util.transform_exprs_indep">transform_exprs_indep() (in module pyodesys.util)</a>
+  <dt><a href="pyodesys.html#pyodesys.util.transform_exprs_dep">transform_exprs_dep() (in module pyodesys.util)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="pyodesys.html#pyodesys.util.transform_exprs_indep">transform_exprs_indep() (in module pyodesys.util)</a>
+  </dt>
+
+      
   <dt><a href="pyodesys.html#pyodesys.symbolic.TransformedSys">TransformedSys (class in pyodesys.symbolic)</a>
   </dt>
 
+  </dl></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeCode.variables">variables() (pyodesys.native.base.NativeCode method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="pyodesys.html#pyodesys.integrators.RK4_example_integartor.with_jacobian">with_jacobian (pyodesys.integrators.RK4_example_integartor attribute)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="pyodesys.native.html#pyodesys.native.base.NativeCode.wrapper_name">wrapper_name (pyodesys.native.base.NativeCode attribute)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="pyodesys.native.html#pyodesys.native.cvode.NativeCvodeCode.wrapper_name">(pyodesys.native.cvode.NativeCvodeCode attribute)</a>
+  </dt>
+
+        
+  <dt><a href="pyodesys.native.html#pyodesys.native.gsl.NativeGSLCode.wrapper_name">(pyodesys.native.gsl.NativeGSLCode attribute)</a>
+  </dt>
+
+        
+  <dt><a href="pyodesys.native.html#pyodesys.native.odeint.NativeOdeintCode.wrapper_name">(pyodesys.native.odeint.NativeOdeintCode attribute)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
 </tr></table>
 
@@ -434,7 +541,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Bjoern I. Dahlgren &lt;bjodah@gmail.com&gt;.
+        &copy; Copyright 2016, Bjoern I. Dahlgren &lt;bjodah@gmail.com&gt;.
 
     </p>
   </div>
@@ -456,7 +563,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.4.0.git',
+            VERSION:'0.7.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

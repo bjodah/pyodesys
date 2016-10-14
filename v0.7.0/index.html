@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to pyodesys’s documentation! &mdash; pyodesys 0.4.0.git documentation</title>
+  <title>Welcome to pyodesys’s documentation! &mdash; pyodesys 0.7.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="pyodesys 0.4.0.git documentation" href="#"/>
+    <link rel="top" title="pyodesys 0.7.0 documentation" href="#"/>
         <link rel="next" title="pyodesys package" href="pyodesys.html"/> 
 
   
@@ -59,7 +59,7 @@
             
             
               <div class="version">
-                0.4.0.git
+                0.7.0
               </div>
             
           
@@ -104,7 +104,7 @@
         <div class="rst-content">
           
 
-
+ 
 
 
 
@@ -116,7 +116,7 @@
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/index.txt" rel="nofollow"> View page source</a>
+            <a href="https://github.com/bjodah/pyodesys/blob/v0.7.0/doc/index.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -132,8 +132,21 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="pyodesys.html">pyodesys package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyodesys.native.html">pyodesys.native package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyodesys.native.html#pyodesys-native">pyodesys.native</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyodesys.native.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyodesys.native.html#module-pyodesys.native.base">pyodesys.native.base module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyodesys.native.html#module-pyodesys.native.cvode">pyodesys.native.cvode module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyodesys.native.html#module-pyodesys.native.gsl">pyodesys.native.gsl module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyodesys.native.html#module-pyodesys.native.odeint">pyodesys.native.odeint module</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="pyodesys.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.core">pyodesys.core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.integrators">pyodesys.integrators module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.plotting">pyodesys.plotting module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.symbolic">pyodesys.symbolic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.util">pyodesys.util module</a></li>
@@ -145,18 +158,19 @@
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span>Index</span></a></li>
-<li><a class="reference internal" href="py-modindex.html"><span>Module Index</span></a></li>
-<li><a class="reference internal" href="search.html"><span>Search Page</span></a></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
 </div>
-<div class="section" id="pyodesys">
-<h1>pyodesys<a class="headerlink" href="#pyodesys" title="Permalink to this headline">¶</a></h1>
-<a class="reference external image-reference" href="http://hera.physchem.kth.se:8080/github.com/bjodah/pyodesys"><img alt="Build status" src="http://hera.physchem.kth.se:8080/github.com/bjodah/pyodesys/status.svg?branch=master" /></a>
+<div class="section" id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<a class="reference external image-reference" href="http://hera.physchem.kth.se:9090/bjodah/pyodesys"><img alt="Build status" src="http://hera.physchem.kth.se:9090/api/badges/bjodah/pyodesys/status.svg" /></a>
 <a class="reference external image-reference" href="https://pypi.python.org/pypi/pyodesys"><img alt="PyPI version" src="https://img.shields.io/pypi/v/pyodesys.svg" /></a>
+<a class="reference external image-reference" href="https://www.python.org/"><img alt="Python version" src="https://img.shields.io/badge/python-2.7,3.4,3.5-blue.svg" /></a>
 <a class="reference external image-reference" href="https://github.com/bjodah/pyodesys/blob/master/LICENSE"><img alt="License" src="https://img.shields.io/pypi/l/pyodesys.svg" /></a>
 <a class="reference external image-reference" href="http://hera.physchem.kth.se/~pyodesys/benchmarks"><img alt="airspeedvelocity" src="http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat" /></a>
-<a class="reference external image-reference" href="http://hera.physchem.kth.se/~pyodesys/master/htmlcov"><img alt="coverage" src="http://hera.physchem.kth.se/~pyodesys/master/htmlcov/coverage.svg" /></a>
+<a class="reference external image-reference" href="http://hera.physchem.kth.se/~pyodesys/branches/master/htmlcov"><img alt="coverage" src="http://hera.physchem.kth.se/~pyodesys/branches/master/htmlcov/coverage.svg" /></a>
 <p><a class="reference external" href="https://github.com/bjodah/pyodesys">pyodesys</a> provides a straightforward way
 of numerically integrating systems of ordinary differential equations. It unifies
 the interface of several libraries. It also provides a convenience class for
@@ -173,37 +187,40 @@ expressions.</p>
 callback for calculating the jacobian is provided automatically by pyodesys.</p>
 <div class="section" id="documentation">
 <h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
-<p>Autogenerated API documentation is found here: <a class="reference external" href="https://bjodah.github.com/pyodesys">https://bjodah.github.com/pyodesys</a></p>
+<p>Autogenerated API documentation for latest stable release is found here:
+<a class="reference external" href="https://bjodah.github.io/pyodesys/latest">https://bjodah.github.io/pyodesys/latest</a>
+(and the development version for the current master branch are found here:
+<a class="reference external" href="http://hera.physchem.kth.se/~pyodesys/branches/master/html">http://hera.physchem.kth.se/~pyodesys/branches/master/html</a>).</p>
 </div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
 <p>Simplest way to install pyodesys and its (optional) dependencies is to use the <a class="reference external" href="http://conda.pydata.org/docs/">conda package manager</a>:</p>
-<div class="highlight-python"><div class="highlight"><pre>$ conda install -c bjodah pyodesys pytest
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ conda install -c bjodah pyodesys pytest
 $ python -m pytest --pyargs pyodesys
 </pre></div>
 </div>
-<p>Optional requirements not listed in requirements.txt:</p>
-<ul class="simple">
-<li>pygslodeiv2 (&gt;=v0.4.1)</li>
-<li>pyodeint (&gt;=v0.5.0)</li>
-<li>pycvodes (&gt;=v0.2.0)</li>
-</ul>
-<p>Source distribution is available here:
-<a class="reference external" href="https://pypi.python.org/pypi/pyodesys">https://pypi.python.org/pypi/pyodesys</a></p>
+<p>alternatively you may also use <cite>pip</cite>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ python -m pip install --user pyodesys[all]
+</pre></div>
+</div>
+<p>see <a class="reference external" href="setup.py">setup.py</a> for optional requirements.</p>
 </div>
 <div class="section" id="example">
 <h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
 <p>The classic van der Pol oscillator (see <a class="reference external" href="examples/van_der_pol.py">examples/van_der_pol.py</a>)</p>
-<div class="code python highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyodesys</span> <span class="kn">import</span> <span class="n">SymbolicSys</span>
+<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyodesys.symbolic</span> <span class="k">import</span> <span class="n">SymbolicSys</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="k">return</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)]</span>
+<span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">odesys</span> <span class="o">=</span> <span class="n">SymbolicSys</span><span class="o">.</span><span class="n">from_callback</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">odesys</span><span class="o">.</span><span class="n">plot_result</span><span class="p">(</span><span class="n">odesys</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="s">&#39;odeint&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]))</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">odesys</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">integrator</span><span class="o">=</span><span class="s1">&#39;odeint&#39;</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">odesys</span><span class="o">.</span><span class="n">plot_result</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span><span class="p">;</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>  
 </pre></div>
 </div>
 <img alt="https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/van_der_pol.png" src="https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/van_der_pol.png" />
 <p>for more examples, see <a class="reference external" href="https://github.com/bjodah/pyodesys/tree/master/examples">examples/</a>, and rendered jupyter notebooks here:
-<a class="reference external" href="http://hera.physchem.kth.se/~pyodesys/master/examples">http://hera.physchem.kth.se/~pyodesys/master/examples</a></p>
+<a class="reference external" href="http://hera.physchem.kth.se/~pyodesys/branches/master/examples">http://hera.physchem.kth.se/~pyodesys/branches/master/examples</a></p>
 </div>
 <div class="section" id="license">
 <h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
@@ -237,7 +254,7 @@ Contributors are welcome to suggest improvements at <a class="reference external
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Bjoern I. Dahlgren &lt;bjodah@gmail.com&gt;.
+        &copy; Copyright 2016, Bjoern I. Dahlgren &lt;bjodah@gmail.com&gt;.
 
     </p>
   </div>
@@ -259,7 +276,7 @@ Contributors are welcome to suggest improvements at <a class="reference external
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.4.0.git',
+            VERSION:'0.7.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
