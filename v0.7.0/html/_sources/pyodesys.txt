@@ -1,0 +1,59 @@
+pyodesys package
+================
+
+.. automodule:: pyodesys
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    pyodesys.native
+
+Submodules
+----------
+
+pyodesys.core module
+--------------------
+
+.. automodule:: pyodesys.core
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyodesys.integrators module
+---------------------------
+
+.. automodule:: pyodesys.integrators
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyodesys.plotting module
+------------------------
+
+.. automodule:: pyodesys.plotting
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyodesys.symbolic module
+------------------------
+
+.. automodule:: pyodesys.symbolic
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyodesys.util module
+--------------------
+
+.. automodule:: pyodesys.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+

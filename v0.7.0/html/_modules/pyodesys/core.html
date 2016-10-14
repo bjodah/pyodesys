@@ -1,0 +1,757 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyodesys.core &mdash; pyodesys 0.7.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="pyodesys 0.7.0 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> pyodesys
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../pyodesys.html">pyodesys package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">pyodesys</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>pyodesys.core</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/bjodah/pyodesys/blob/v0.7.0/doc/_modules/pyodesys/core.rst" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pyodesys.core</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Core functionality from OdeSys.</span>
+
+<span class="sd">Note that it is possible to use new custom ODE integrators with pyodesys by</span>
+<span class="sd">providing a module with two functions named ``integrate_adaptive`` and</span>
+<span class="sd">``integrate_predefined``. See the ``pyodesys.integrators`` module for examples.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">_ensure_4args</span><span class="p">,</span> <span class="n">_default</span>
+<span class="kn">from</span> <span class="nn">.plotting</span> <span class="k">import</span> <span class="n">plot_result</span><span class="p">,</span> <span class="n">plot_phase_plane</span>
+
+
+<div class="viewcode-block" id="OdeSys"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys">[docs]</a><span class="k">class</span> <span class="nc">OdeSys</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Object representing an ODE system.</span>
+
+<span class="sd">    ``OdeSys`` provides unified interface to:</span>
+
+<span class="sd">    - scipy.integarte.ode</span>
+<span class="sd">    - pygslodeiv2</span>
+<span class="sd">    - pyodeint</span>
+<span class="sd">    - pycvodes</span>
+
+<span class="sd">    The numerical integration can be performed either in an :meth:`adaptive`</span>
+<span class="sd">    or :meth:`predefined` mode. Where locations to report the solution is</span>
+<span class="sd">    chosen by the stepper or the user respectively. For convenience in user</span>
+<span class="sd">    code one may use :meth:`integrate` which automatically chooses between</span>
+<span class="sd">    the two based on the length of ``xout`` provided by the user.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f : callback</span>
+<span class="sd">        first derivatives of dependent variables (y) with respect to</span>
+<span class="sd">        dependent variable (x). Signature is any of:</span>
+<span class="sd">            - rhs(x, y[:]) --&gt; f[:]</span>
+<span class="sd">            - rhs(x, y[:], p[:]) --&gt; f[:]</span>
+<span class="sd">            - rhs(x, y[:], p[:], backend=math) --&gt; f[:]</span>
+<span class="sd">    jac : callback</span>
+<span class="sd">        Jacobian matrix (dfdy). Required for implicit methods.</span>
+<span class="sd">    dfdx : callback</span>
+<span class="sd">        Signature dfdx(x, y[:], p[:]) -&gt; out[:] (used by e.g. GSL)</span>
+<span class="sd">    band : tuple of 2 integers or None (default: None)</span>
+<span class="sd">        If jacobian is banded: number of sub- and super-diagonals</span>
+<span class="sd">    names : iterable of strings (default: None)</span>
+<span class="sd">        names of variables, e.g. used for plotting</span>
+<span class="sd">    pre_processors : iterable of callables (optional)</span>
+<span class="sd">        signature: f(x1[:], y1[:], params1[:]) -&gt; x2[:], y2[:], params2[:].</span>
+<span class="sd">        When modifying: insert at beginning.</span>
+<span class="sd">    post_processors : iterable of callables (optional)</span>
+<span class="sd">        signature: f(x2[:], y2[:, :], params2[:]) -&gt; x1[:], y1[:, :],</span>
+<span class="sd">        params1[:]</span>
+<span class="sd">        When modifying: insert at end.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f_cb : callback</span>
+<span class="sd">        for evaluating the vector of derivatives</span>
+<span class="sd">    j_cb : callback</span>
+<span class="sd">        for evaluating the Jacobian matrix of f</span>
+<span class="sd">    roots_cb : callback</span>
+<span class="sd">    nroots : int</span>
+<span class="sd">    names : iterable of strings</span>
+<span class="sd">    internal_xout : 1D array of floats</span>
+<span class="sd">        internal values of dependent variable before post-processing</span>
+<span class="sd">    internal_yout : 2D (or higher) array of floats</span>
+<span class="sd">        internal values of dependent variable before post-processing</span>
+<span class="sd">    internal_params : 1D array of floats</span>
+<span class="sd">        internal parameter values before post-processing</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; odesys = OdeSys(lambda x, y, p: p[0]*x + p[1]*y[0]*y[0])</span>
+<span class="sd">    &gt;&gt;&gt; yout, info = odesys.predefined([1], [0, .2, .5], [2, 1])</span>
+<span class="sd">    &gt;&gt;&gt; print(info[&#39;success&#39;])</span>
+<span class="sd">    True</span>
+
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    banded jacobians are supported by &quot;scipy&quot; and &quot;cvode&quot; integrators</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dfdx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">roots</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nroots</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">band</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pre_processors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">post_processors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f_cb</span> <span class="o">=</span> <span class="n">_ensure_4args</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">j_cb</span> <span class="o">=</span> <span class="n">_ensure_4args</span><span class="p">(</span><span class="n">jac</span><span class="p">)</span> <span class="k">if</span> <span class="n">jac</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dfdx_cb</span> <span class="o">=</span> <span class="n">dfdx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">roots_cb</span> <span class="o">=</span> <span class="n">roots</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nroots</span> <span class="o">=</span> <span class="n">nroots</span>
+        <span class="k">if</span> <span class="n">band</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">band</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">band</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bands needs to be &gt; 0 if provided&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">band</span> <span class="o">=</span> <span class="n">band</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">description</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_processors</span> <span class="o">=</span> <span class="n">pre_processors</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_processors</span> <span class="o">=</span> <span class="n">post_processors</span> <span class="ow">or</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="OdeSys.pre_process"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys.pre_process">[docs]</a>    <span class="k">def</span> <span class="nf">pre_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xout</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot; Transforms input to internal values, used internally. &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xout</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">nx</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">xout</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="o">*</span><span class="n">xout</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xout</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">xout</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="o">*</span><span class="n">xout</span><span class="p">,</span> <span class="n">xout</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">pre_processor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_processors</span><span class="p">:</span>
+            <span class="n">xout</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">pre_processor</span><span class="p">(</span><span class="n">xout</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">xout</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">y0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OdeSys.post_process"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys.post_process">[docs]</a>    <span class="k">def</span> <span class="nf">post_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Transforms internal values to output, used internally. &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">post_processor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_processors</span><span class="p">:</span>
+            <span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">post_processor</span><span class="p">(</span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">params</span></div>
+
+<div class="viewcode-block" id="OdeSys.adaptive"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys.adaptive">[docs]</a>    <span class="k">def</span> <span class="nf">adaptive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">xend</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Integrate with integrator chosen output.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        integrator : str</span>
+<span class="sd">            See :meth:`integrate`.</span>
+<span class="sd">        y0 : array_like</span>
+<span class="sd">            See :meth:`integrate`.</span>
+<span class="sd">        x0 : float</span>
+<span class="sd">            Initial value of the independent variable.</span>
+<span class="sd">        xend : float</span>
+<span class="sd">            Final value of the independent variable.</span>
+<span class="sd">        params : array_like</span>
+<span class="sd">            See :meth:`integrate`.</span>
+<span class="sd">        \*\*kwargs :</span>
+<span class="sd">            See :meth:`integrate`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Same as :meth:`integrate`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrate</span><span class="p">((</span><span class="n">x0</span><span class="p">,</span> <span class="n">xend</span><span class="p">),</span> <span class="n">y0</span><span class="p">,</span>
+                              <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OdeSys.predefined"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys.predefined">[docs]</a>    <span class="k">def</span> <span class="nf">predefined</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">xout</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Integrate with user chosen output.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        integrator : str</span>
+<span class="sd">            See :meth:`integrate`.</span>
+<span class="sd">        y0 : array_like</span>
+<span class="sd">            See :meth:`integrate`.</span>
+<span class="sd">        xout : array_like</span>
+<span class="sd">        params : array_like</span>
+<span class="sd">            See :meth:`integrate`.</span>
+<span class="sd">        \*\*kwargs:</span>
+<span class="sd">            See :meth:`integrate`</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Length 2 tuple : (yout, info)</span>
+<span class="sd">            See :meth:`integrate`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="n">xout</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+                                          <span class="n">force_predefined</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">yout</span><span class="p">,</span> <span class="n">info</span></div>
+
+<div class="viewcode-block" id="OdeSys.integrate"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys.integrate">[docs]</a>    <span class="k">def</span> <span class="nf">integrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Integrate the system of ordinary differential equations.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : array_like or pair (start and final time) or float</span>
+<span class="sd">            if float:</span>
+<span class="sd">                make it a pair: (0, x)</span>
+<span class="sd">            if pair or length-2 array:</span>
+<span class="sd">                initial and final value of the independent variable</span>
+<span class="sd">            if array_like:</span>
+<span class="sd">                values of independent variable report at</span>
+<span class="sd">        y0 : array_like</span>
+<span class="sd">            Initial values at x[0] for the dependent variables.</span>
+<span class="sd">        params : array_like (default: tuple())</span>
+<span class="sd">            Value of parameters passed to user-supplied callbacks.</span>
+<span class="sd">        integrator : str or None</span>
+<span class="sd">            Name of integrator, one of:</span>
+<span class="sd">                - &#39;scipy&#39;: :meth:`_integrate_scipy`</span>
+<span class="sd">                - &#39;gsl&#39;: :meth:`_integrate_gsl`</span>
+<span class="sd">                - &#39;odeint&#39;: :meth:`_integrate_odeint`</span>
+<span class="sd">                - &#39;cvode&#39;:  :meth:`_integrate_cvode`</span>
+
+<span class="sd">            See respective method for more information.</span>
+<span class="sd">            If ``None``: ``os.environ.get(&#39;PYODESYS_INTEGRATOR&#39;, &#39;scipy&#39;)``</span>
+<span class="sd">        atol : float</span>
+<span class="sd">            Absolute tolerance</span>
+<span class="sd">        rtol : float</span>
+<span class="sd">            Relative tolerance</span>
+<span class="sd">        with_jacobian : bool or None (default)</span>
+<span class="sd">            Whether to use the jacobian. When ``None`` the choice is</span>
+<span class="sd">            done automatically (only used when required). This matters</span>
+<span class="sd">            when jacobian is derived at runtime (high computational cost).</span>
+<span class="sd">        force_predefined : bool (default: False)</span>
+<span class="sd">            override behaviour of ``len(x) == 2`` =&gt; :meth:`adaptive`</span>
+<span class="sd">        \*\*kwargs:</span>
+<span class="sd">            Additional keyword arguments for ``_integrate_$(integrator)``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Length 3 tuple: (x, yout, info)</span>
+<span class="sd">            x : array of values of the independent variable</span>
+<span class="sd">            yout : array of the dependent variable(s) for the different values of x</span>
+<span class="sd">            info : dict (&#39;nfev&#39; is guaranteed to be a key)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">intern_x</span><span class="p">,</span> <span class="n">intern_y0</span><span class="p">,</span> <span class="n">intern_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_process</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="n">intern_x</span> <span class="o">=</span> <span class="n">intern_x</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+        <span class="n">intern_y0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">intern_y0</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;ny&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">intern_y0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Incorrect shape of intern_y0&quot;</span><span class="p">)</span>
+        <span class="n">integrator</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;integrator&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">integrator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">integrator</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PYODESYS_INTEGRATOR&#39;</span><span class="p">,</span> <span class="s1">&#39;scipy&#39;</span><span class="p">)</span>
+
+        <span class="n">ndims</span> <span class="o">=</span> <span class="p">(</span><span class="n">intern_x</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">intern_y0</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">intern_p</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ndims</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">twodim</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">ndims</span> <span class="o">==</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">twodim</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Mixed number of dimensions&quot;</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">,</span> <span class="p">(</span><span class="n">intern_x</span><span class="p">,</span> <span class="n">intern_y0</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">integrator</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">nfo</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_integrate_&#39;</span> <span class="o">+</span> <span class="n">integrator</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;with_jacobian&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">integrator</span><span class="p">,</span> <span class="s1">&#39;with_jacobian&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">nfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integrate</span><span class="p">(</span><span class="n">integrator</span><span class="o">.</span><span class="n">integrate_adaptive</span><span class="p">,</span>
+                                  <span class="n">integrator</span><span class="o">.</span><span class="n">integrate_predefined</span><span class="p">,</span>
+                                  <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">twodim</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">nfo</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;predefined&#39;</span><span class="p">:</span>
+                <span class="n">_xout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;internal_xout&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">nfo</span><span class="p">])</span>
+                <span class="n">_yout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;internal_yout&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">nfo</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_xout</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;internal_xout&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">nfo</span><span class="p">]</span>
+                <span class="n">_yout</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;internal_yout&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">nfo</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_xout</span> <span class="o">=</span> <span class="n">nfo</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;internal_xout&#39;</span><span class="p">]</span>
+            <span class="n">_yout</span> <span class="o">=</span> <span class="n">nfo</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;internal_yout&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_internal</span> <span class="o">=</span> <span class="n">_xout</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">_yout</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">intern_p</span>
+            <span class="n">nfo</span> <span class="o">=</span> <span class="n">nfo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_process</span><span class="p">(</span><span class="n">_xout</span><span class="p">,</span> <span class="n">_yout</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">nfo</span><span class="p">,)</span></div>
+
+    <span class="k">def</span> <span class="nf">_integrate_scipy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">intern_xout</span><span class="p">,</span> <span class="n">intern_y0</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">,</span>
+                         <span class="n">atol</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span> <span class="n">first_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">with_jacobian</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">force_predefined</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Do not use directly (use ``integrate(&#39;scipy&#39;, ...)``).</span>
+
+<span class="sd">        Uses `scipy.integrate.ode &lt;http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html&gt;`_</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        \*args :</span>
+<span class="sd">            See :meth:`integrate`.</span>
+<span class="sd">        name : str (default: &#39;lsoda&#39;/&#39;dopri5&#39; when jacobian is available/not)</span>
+<span class="sd">            What integrator wrapped in scipy.integrate.ode to use.</span>
+<span class="sd">        \*\*kwargs :</span>
+<span class="sd">            Keyword arguments passed onto `set_integrator(...) &lt;</span>
+<span class="sd">        http://docs.scipy.org/doc/scipy/reference/generated/</span>
+<span class="sd">        scipy.integrate.ode.set_integrator.html#scipy.integrate.ode.set_integrator&gt;`_</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        See :meth:`integrate`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="k">import</span> <span class="n">ode</span>
+        <span class="n">ny</span> <span class="o">=</span> <span class="n">intern_y0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">intern_xout</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_xout</span><span class="p">,</span> <span class="n">_y0</span><span class="p">,</span> <span class="n">_p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">intern_xout</span><span class="p">,</span> <span class="n">intern_y0</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">j_cb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;dopri5&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lsoda&#39;</span>
+            <span class="k">if</span> <span class="n">with_jacobian</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;lsoda&#39;</span><span class="p">:</span>  <span class="c1"># lsoda might call jacobian</span>
+                    <span class="n">with_jacobian</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;dop853&#39;</span><span class="p">,</span> <span class="s1">&#39;dopri5&#39;</span><span class="p">):</span>
+                    <span class="n">with_jacobian</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># explicit steppers</span>
+                <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;vode&#39;</span><span class="p">:</span>
+                    <span class="n">with_jacobian</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;adams&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;bdf&#39;</span>
+
+            <span class="k">def</span> <span class="nf">rhs</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="p">()):</span>
+                <span class="n">rhs</span><span class="o">.</span><span class="n">ncall</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_cb</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+            <span class="n">rhs</span><span class="o">.</span><span class="n">ncall</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">j_cb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">jac</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="p">()):</span>
+                    <span class="n">jac</span><span class="o">.</span><span class="n">ncall</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">j_cb</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+                <span class="n">jac</span><span class="o">.</span><span class="n">ncall</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="n">r</span> <span class="o">=</span> <span class="n">ode</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="n">jac</span> <span class="k">if</span> <span class="n">with_jacobian</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;lband&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;uband&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;band&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lband and uband set locally (set `band` at&quot;</span>
+                                 <span class="s2">&quot; initialization instead)&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lband&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;uband&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">set_integrator</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">set_f_params</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">set_jac_params</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">set_initial_value</span><span class="p">(</span><span class="n">_y0</span><span class="p">,</span> <span class="n">_xout</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">nx</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force_predefined</span><span class="p">:</span>
+                <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;adaptive&#39;</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;vode&#39;</span><span class="p">,</span> <span class="s1">&#39;lsoda&#39;</span><span class="p">):</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;&#39;adaptive&#39; mode with SciPy&#39;s integrator (vode/lsoda) may overshoot (itask=2)&quot;</span><span class="p">)</span>
+                    <span class="c1"># vode itask 2 (may overshoot)</span>
+                    <span class="n">ysteps</span> <span class="o">=</span> <span class="p">[</span><span class="n">_y0</span><span class="p">]</span>
+                    <span class="n">xsteps</span> <span class="o">=</span> <span class="p">[</span><span class="n">_xout</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                    <span class="k">while</span> <span class="n">r</span><span class="o">.</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">_xout</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                        <span class="n">r</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="n">_xout</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">step</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">successful</span><span class="p">():</span>
+                            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+                        <span class="n">xsteps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+                        <span class="n">ysteps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">xsteps</span><span class="p">,</span> <span class="n">ysteps</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+
+                    <span class="k">def</span> <span class="nf">solout</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+                        <span class="n">xsteps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                        <span class="n">ysteps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">set_solout</span><span class="p">(</span><span class="n">solout</span><span class="p">)</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="n">_xout</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">successful</span><span class="p">():</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+                <span class="n">_yout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ysteps</span><span class="p">)</span>
+                <span class="n">_xout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xsteps</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># predefined</span>
+                <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;predefined&#39;</span>
+                <span class="n">_yout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">))</span>
+                <span class="n">_yout</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">_y0</span>
+                <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nx</span><span class="p">):</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="n">_xout</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">successful</span><span class="p">():</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+                    <span class="n">_yout</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">y</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;internal_xout&#39;</span><span class="p">:</span> <span class="n">_xout</span><span class="p">,</span>
+                <span class="s1">&#39;internal_yout&#39;</span><span class="p">:</span> <span class="n">_yout</span><span class="p">,</span>
+                <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">successful</span><span class="p">(),</span>
+                <span class="s1">&#39;nfev&#39;</span><span class="p">:</span> <span class="n">rhs</span><span class="o">.</span><span class="n">ncall</span><span class="p">,</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="n">mode</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">j_cb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">info</span><span class="p">[</span><span class="s1">&#39;njev&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jac</span><span class="o">.</span><span class="n">ncall</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="k">def</span> <span class="nf">_integrate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptive</span><span class="p">,</span> <span class="n">predefined</span><span class="p">,</span> <span class="n">intern_xout</span><span class="p">,</span> <span class="n">intern_y0</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">,</span>
+                   <span class="n">atol</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span> <span class="n">first_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">with_jacobian</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">force_predefined</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">intern_xout</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_xout</span><span class="p">,</span> <span class="n">_y0</span><span class="p">,</span> <span class="n">_p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">intern_xout</span><span class="p">,</span> <span class="n">intern_y0</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">first_step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">first_step</span> <span class="o">=</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">14</span> <span class="o">+</span> <span class="nb">abs</span><span class="p">(</span><span class="n">_xout</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">14</span>  <span class="c1"># arbitrary, heur.</span>
+            <span class="n">new_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dx0</span><span class="o">=</span><span class="n">first_step</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">,</span>
+                              <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">check_indexing</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">new_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">_f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">fout</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">fout</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_cb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">_p</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fout</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_cb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">with_jacobian</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need to pass with_jacobian&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">with_jacobian</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">_j</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">jout</span><span class="p">,</span> <span class="n">dfdx_out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">jout</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">j_cb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">_p</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">jout</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">j_cb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">dfdx_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">dfdx_out</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dfdx_cb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">_p</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">dfdx_out</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dfdx_cb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_j</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">roots_cb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">_roots</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">roots_cb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">_p</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">roots_cb</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s1">&#39;roots&#39;</span> <span class="ow">in</span> <span class="n">new_kwargs</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;cannot override roots&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new_kwargs</span><span class="p">[</span><span class="s1">&#39;roots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_roots</span>
+                    <span class="k">if</span> <span class="s1">&#39;nroots&#39;</span> <span class="ow">in</span> <span class="n">new_kwargs</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;cannot override nroots&quot;</span><span class="p">)</span>
+                    <span class="n">new_kwargs</span><span class="p">[</span><span class="s1">&#39;nroots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nroots</span>
+            <span class="k">if</span> <span class="n">nx</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force_predefined</span><span class="p">:</span>
+                <span class="n">_xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">adaptive</span><span class="p">(</span><span class="n">_f</span><span class="p">,</span> <span class="n">_j</span><span class="p">,</span> <span class="n">_y0</span><span class="p">,</span> <span class="o">*</span><span class="n">_xout</span><span class="p">,</span> <span class="o">**</span><span class="n">new_kwargs</span><span class="p">)</span>
+                <span class="n">info</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;adaptive&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">yout</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">predefined</span><span class="p">(</span><span class="n">_f</span><span class="p">,</span> <span class="n">_j</span><span class="p">,</span> <span class="n">_y0</span><span class="p">,</span> <span class="n">_xout</span><span class="p">,</span> <span class="o">**</span><span class="n">new_kwargs</span><span class="p">)</span>
+                <span class="n">info</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;predefined&#39;</span>
+
+            <span class="n">info</span><span class="p">[</span><span class="s1">&#39;internal_xout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_xout</span>
+            <span class="n">info</span><span class="p">[</span><span class="s1">&#39;internal_yout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">yout</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="k">def</span> <span class="nf">_integrate_gsl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Do not use directly (use ``integrate(&#39;gsl&#39;, ...)``).</span>
+
+<span class="sd">        Uses `GNU Scientific Library &lt;http://www.gnu.org/software/gsl/&gt;`_</span>
+<span class="sd">        (via `pygslodeiv2 &lt;https://pypi.python.org/pypi/pygslodeiv2&gt;`_)</span>
+<span class="sd">        to integrate the ODE system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        \*args :</span>
+<span class="sd">            see :meth:`integrate`</span>
+<span class="sd">        method : str (default: &#39;bsimp&#39;)</span>
+<span class="sd">            what stepper to use, see :py:attr:`gslodeiv2.steppers`</span>
+<span class="sd">        \*\*kwargs :</span>
+<span class="sd">            keyword arguments passed onto</span>
+<span class="sd">            :py:func:`gslodeiv2.integrate_adaptive`/:py:func:`gslodeiv2.integrate_predefined`</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        See :meth:`integrate`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">pygslodeiv2</span>  <span class="c1"># Python interface GSL&#39;s &quot;odeiv2&quot; integrators</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;with_jacobian&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;bsimp&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">pygslodeiv2</span><span class="o">.</span><span class="n">requires_jac</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integrate</span><span class="p">(</span><span class="n">pygslodeiv2</span><span class="o">.</span><span class="n">integrate_adaptive</span><span class="p">,</span>
+                               <span class="n">pygslodeiv2</span><span class="o">.</span><span class="n">integrate_predefined</span><span class="p">,</span>
+                               <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_integrate_odeint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Do not use directly (use ``integrate(&#39;odeint&#39;, ...)``).</span>
+
+<span class="sd">        Uses `Boost.Numeric.Odeint &lt;http://www.odeint.com&gt;`_</span>
+<span class="sd">        (via `pyodeint &lt;https://pypi.python.org/pypi/pyodeint&gt;`_) to integrate</span>
+<span class="sd">        the ODE system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">pyodeint</span>  <span class="c1"># Python interface to boost&#39;s odeint integrators</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;with_jacobian&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;rosenbrock4&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">pyodeint</span><span class="o">.</span><span class="n">requires_jac</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integrate</span><span class="p">(</span><span class="n">pyodeint</span><span class="o">.</span><span class="n">integrate_adaptive</span><span class="p">,</span>
+                               <span class="n">pyodeint</span><span class="o">.</span><span class="n">integrate_predefined</span><span class="p">,</span>
+                               <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_integrate_cvode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Do not use directly (use ``integrate(&#39;cvode&#39;, ...)``).</span>
+
+<span class="sd">        Uses CVode from CVodes in</span>
+<span class="sd">        `SUNDIALS &lt;https://computation.llnl.gov/casc/sundials/&gt;`_</span>
+<span class="sd">        (via `pycvodes &lt;https://pypi.python.org/pypi/pycvodes&gt;`_)</span>
+<span class="sd">        to integrate the ODE system. &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">pycvodes</span>  <span class="c1"># Python interface to SUNDIALS&#39;s cvodes integrators</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;with_jacobian&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;bdf&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">pycvodes</span><span class="o">.</span><span class="n">requires_jac</span>
+        <span class="k">if</span> <span class="s1">&#39;lband&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;uband&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;band&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lband and uband set locally (set at&quot;</span>
+                             <span class="s2">&quot; initialization instead)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;lband&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;uband&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integrate</span><span class="p">(</span><span class="n">pycvodes</span><span class="o">.</span><span class="n">integrate_adaptive</span><span class="p">,</span>
+                               <span class="n">pycvodes</span><span class="o">.</span><span class="n">integrate_predefined</span><span class="p">,</span>
+                               <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cb</span><span class="p">,</span> <span class="n">internal_xout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">internal_yout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">internal_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;x&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;y&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;params&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x and y from internal_xout and internal_yout&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;post_processors&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;post_processors&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_processors</span>
+
+        <span class="k">if</span> <span class="s1">&#39;names&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cb</span><span class="p">(</span><span class="n">_default</span><span class="p">(</span><span class="n">internal_xout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                  <span class="n">_default</span><span class="p">(</span><span class="n">internal_yout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                  <span class="n">_default</span><span class="p">(</span><span class="n">internal_params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OdeSys.plot_result"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys.plot_result">[docs]</a>    <span class="k">def</span> <span class="nf">plot_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Plots the integrated dependent variables from last integration.</span>
+
+<span class="sd">        See :func:`pyodesys.plotting.plot_result`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">(</span><span class="n">plot_result</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OdeSys.plot_phase_plane"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys.plot_phase_plane">[docs]</a>    <span class="k">def</span> <span class="nf">plot_phase_plane</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Plots a phase portrait from last integration.</span>
+
+<span class="sd">        See :func:`pyodesys.plotting.plot_phase_plane`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">(</span><span class="n">plot_phase_plane</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="n">indices</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_jac_eigenvals_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xval</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="k">import</span> <span class="n">svd</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">j_cb</span><span class="p">(</span><span class="n">xval</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">svd</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">compute_uv</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OdeSys.stiffness"><a class="viewcode-back" href="../../pyodesys.html#pyodesys.core.OdeSys.stiffness">[docs]</a>    <span class="k">def</span> <span class="nf">stiffness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xyp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eigenvals_cb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Running stiffness ratio from last integration.</span>
+
+<span class="sd">        Calculate sittness ratio, i.e. the ratio between the largest and</span>
+<span class="sd">        smallest absolute eigenvalue of the jacobian matrix. The user may</span>
+<span class="sd">        supply their own routine for calculating the eigenvalues, or they</span>
+<span class="sd">        will be calculated from the SVD (singular value decomposition).</span>
+<span class="sd">        Note that calculating the SVD for any but the smallest Jacobians may</span>
+<span class="sd">        prove to be prohibitively expensive.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        xyp : length 3 tuple (default: None)</span>
+<span class="sd">            internal_xout, internal_yout, internal_params, taken</span>
+<span class="sd">            from last integration if not specified.</span>
+<span class="sd">        eigenvals_cb : callback (optional)</span>
+<span class="sd">            Signature (x, y, p) (internal variables), when not provided an</span>
+<span class="sd">            internal routine will use ``self.j_cb`` and ``scipy.linalg.svd``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">eigenvals_cb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <span class="n">eigenvals_cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jac_eigenvals_svd</span>
+
+        <span class="k">if</span> <span class="n">xyp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">intern_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">intern_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_process</span><span class="p">(</span><span class="o">*</span><span class="n">xyp</span><span class="p">)</span>
+
+        <span class="n">singular_values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">xval</span><span class="p">,</span> <span class="n">yvals</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="n">singular_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">eigenvals_cb</span><span class="p">(</span><span class="n">xval</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">intern_p</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">singular_values</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">singular_values</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Bjoern I. Dahlgren &lt;bjodah@gmail.com&gt;.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
