@@ -11,7 +11,7 @@ from setuptools import setup
 
 pkg_name = 'pyodesys'
 
-RELEASE_VERSION = os.environ.get('%s_RELEASE_VERSION' % pkg_name, '')  # v*
+RELEASE_VERSION = os.environ.get('%s_RELEASE_VERSION' % pkg_name.upper(), '')  # v*
 
 # http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
 if os.environ.get('CONDA_BUILD', '0') == '1':
