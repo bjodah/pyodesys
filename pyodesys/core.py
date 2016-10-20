@@ -571,6 +571,29 @@ def _new_x(xout, x, guaranteed_autonomous):
         return xout[-1], x[-1]
 
 def integrate_chained(odes, step_lims, x, y0, params=(), **kwargs):
+    """ Auto-switching between formulations of ODE system.
+
+    In case one has a formulation of a system of ODEs which is preferential in
+    the beginning of the intergration this function allows the user to run the
+    integration with this system where it takes a user-specified maximum number
+    of steps before switching to another formulation (unless final value of the
+    independent variables has been reached).
+
+    Parameters
+    ----------
+    odes : iterable of :class:`OdeSy` instances
+    step_lims : iterable of integers
+    x : array_like
+    y0 : array_like
+    params : array_like
+    \*\*kwargs:
+        See :meth:`OdeSys.integrate`
+
+    Notes
+    -----
+    Plays particularly well with :class:`symbolic.TransformedSys`.
+
+    """
     x_arr = np.asarray(x)
     if x_arr.shape[-1] > 2:
         raise NotImplementedError("Only adaptive support return_on_error for now")

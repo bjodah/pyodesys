@@ -98,3 +98,27 @@ def _test_multiple_adaptive(NativeSys, **kwargs):
 def _test_multiple_predefined(NativeSys, **kwargs):
     native = NativeSys.from_callback(decay, 2, 1)
     _test_integrate_multiple_predefined(native, integrator='native', **kwargs)
+
+
+def _test_multiple_adaptive_chained(NativeSys, **kwargs):
+    logexp = (sp.log, sp.exp)
+    first_step = 1e-4
+    rtol = atol = 1e-7
+    ks = [[7e13, 3, 2], [2e5, 3e4, 12.7]]
+    y0s = [[1.0, 3.0], [2.0, 1.0]]
+    t0, tend = 1e-16, 7
+    touts = [(t0, tend)]*2
+
+    class TransformedNativeSys(TransformedSys, NativeSys):
+        pass
+
+    SS = symmetricsys(logexp, logexp, SuperClass=TransformedNativeSys)
+
+    tsys = SS.from_callback(decay_rhs, len(k)+1, len(k))
+
+    osys = NativeSys.from_callback(decay_rhs, len(k) + 1, len(k))
+
+    comb_res = integrate_chained([tsys, osys], [5, 20], touts, y0s, ks,
+                                 return_on_error=True, autorestart=2, **integrate_kwargs)
+
+    assert comb_res[2]['success']
