@@ -48,6 +48,7 @@ class _NativeCodeBase(Cpp_Code):
     _save_temp = False
 
     def __init__(self, odesys, *args, **kwargs):
+        self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
         self.so_file = '%s%s' % (self.wrapper_name, '.so')
         _wrapper_src = pkg_resources.resource_filename(
@@ -151,4 +152,5 @@ class _NativeSysBase(SymbolicSys):
                 info[idx]['nfev'] = info[idx]['n_rhs_evals']
             if 'njev' not in info[idx] and 'dense_n_dls_jac_evals' in info[idx]:
                 info[idx]['njev'] = info[idx]['dense_n_dls_jac_evals']
+
         return info

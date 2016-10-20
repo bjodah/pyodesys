@@ -1,3 +1,7 @@
+unreleased
+==========
+- New function ``core.integrate_chained`` for use with TransformedSys.
+
 v0.7.0
 ======
 - Generate (multi-threaded) native code (against pyodeint, pycvodes, pygslodeiv2)

@@ -42,7 +42,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
                        long int mxsteps=0,
                        str iter_type='undecided', int linear_solver=0, str method='BDF',
-                       bool with_jacobian=True):
+                       bool with_jacobian=True, int autorestart=0):
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
@@ -50,6 +50,10 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
         vector[pair[pair[vector[double], vector[double]], vector[int]]] result
+        int maxl=0
+        double eps_lin=0.0
+        unsigned nderiv=0,
+        bool return_on_root=False
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -60,7 +64,9 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
-        dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver)
+        dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver,
+        maxl, eps_lin, nderiv, return_on_root, autorestart
+    )
 
     xout, yout = [], []
     for idx in range(y0.shape[0]):
@@ -85,7 +91,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
                          long int mxsteps=0,
                          str iter_type='undecided', int linear_solver=0, str method='BDF',
-                         bool with_jacobian=True):
+                         bool with_jacobian=True, int autorestart=0):
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
@@ -105,7 +111,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data, <double *>yout.data,
-        mxsteps, dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver)
+        mxsteps, dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver, autorestart)
 
     for idx in range(y0.shape[0]):
         root_indices.push_back(result[idx].first)

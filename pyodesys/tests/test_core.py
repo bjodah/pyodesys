@@ -190,3 +190,10 @@ def test_integarte_multiple_adaptive():
                                       integrator='odeint', method='rosenbrock4', nsteps=1000)
     _test_integrate_multiple_adaptive(OdeSys(sine, sine_jac, sine_dfdt),
                                       integrator='gsl', method='bsimp')
+
+
+def test_zero_time_adaptive():
+    odes = OdeSys(sine, sine_jac)
+    xout, yout, info = odes.integrate(0, [0, 1], [2])
+    assert xout.shape == (1,)
+    assert yout.shape == (1, 2)

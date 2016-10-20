@@ -360,20 +360,32 @@ class TransformedSys(SymbolicSys):
                    indep_transf, p, backend=be, **kwargs)
 
     def _back_transform_out(self, xout, yout, params):
-        xbt = np.empty(xout.size)
-        ybt = np.empty((xout.size, self.ny))
-        for idx, (x, y) in enumerate(zip(xout.flat, yout)):
-            if self.b_indep is None:
-                xbt[idx] = x
-            else:
-                xbt[idx] = self.b_indep(x, y, params)
-            ybt[idx, :] = self.b_dep(x, y, params)
-        return xbt, ybt, params
+        xout, yout, params = map(np.asarray, (xout, yout, params))
+        if yout.ndim == 2:
+            xbt = np.empty(xout.size)
+            ybt = np.empty((xout.size, self.ny))
+            for idx, (x, y) in enumerate(zip(xout.flat, yout)):
+                if self.b_indep is None:
+                    xbt[idx] = x
+                else:
+                    xbt[idx] = self.b_indep(x, y, params)
+                ybt[idx, :] = self.b_dep(x, y, params)
+            return xbt, ybt, params
+        elif yout.ndim == 3:
+            return zip(*[self._back_transform_out(_x, _y, _p) for _x, _y, _p in zip(xout, yout, params)])
+        else:
+            raise NotImplementedError("Can only handle 2 or 3 dimensions.")
+
 
     def _forward_transform_xy(self, x, y, p):
-        return (x if self.f_indep is None else
-                [self.f_indep(_, y, p) for _ in x],
-                self.f_dep(x[0], y, p), p)
+        if y.ndim == 1:
+            return (x if self.f_indep is None else
+                    [self.f_indep(_, y, p) for _ in x],
+                    self.f_dep(x[0], y, p), p)
+        elif y.ndim == 2:
+            return zip(*[self._forward_transform_xy(_x, _y, _p) for _x, _y, _p in zip(x, y, p)])
+        else:
+            raise NotImplementedError("Don't know what to do with 3 dimensions.")
 
 
 def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs):

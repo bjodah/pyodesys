@@ -18,11 +18,12 @@ else:
     sym_backends = sym.Backend.backends.keys()
 
 from .. import OdeSys
+from ..core import integrate_chained
 from ..symbolic import SymbolicSys
 from ..symbolic import ScaledSys, symmetricsys, PartiallySolvedSystem
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
-
+from . import _cetsa
 
 def identity(x):
     return x
@@ -519,3 +520,49 @@ def test_SymbolicSys_from_callback__backends(backend):
     ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
     assert np.allclose(yout, ref)
     assert info['nfev'] > 0
+
+
+def _test_cetsa(integrator, y0, params, extra=False):
+    # real-world based test-case
+    from ._cetsa import _get_cetsa_odesys
+    molar_unitless = 1e9
+
+    t0=1e-16
+    integrate_kwargs = dict(integrator=integrator)
+    tend=180
+    odesys = _get_cetsa_odesys(molar_unitless, False)
+    tsys = _get_cetsa_odesys(molar_unitless, True)
+    if y0.ndim == 1:
+        tout = [t0, tend]
+    elif y0.ndim == 2:
+        tout = np.asarray([(t0, tend)]*y0.shape[0])
+
+    comb_res = integrate_chained([tsys, odesys], [500, 20], tout, y0/molar_unitless, params,
+                                 return_on_error=True, autorestart=2, **integrate_kwargs)
+    if isinstance(comb_res[2], dict):
+        assert comb_res[2]['success']
+        assert comb_res[2]['nfev'] > 10
+    else:
+        for d in comb_res[2]:
+            assert d['success']
+            assert d['nfev'] > 10
+
+    if extra:
+        with pytest.raises(RuntimeError):  # (failure)
+            odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, atol=1e-7, rtol=1e-7,
+                             nsteps=500, **integrate_kwargs)
+
+        res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1), **integrate_kwargs)
+        assert np.min(res[1][-1, :]) < -1e-6  # crazy! (this is a manifest of complete failure of the linear formulation)
+        tres = tsys.integrate([t0, tend], y0/molar_unitless, params, nsteps=int(1345*1.1), **integrate_kwargs)
+        assert tres[2]['success'] == True
+        assert tres[2]['nfev'] > 100
+
+
+def test_cetsa():
+    _test_cetsa('cvode', _cetsa.ys[0], _cetsa.ps[0], extra=True)
+    _test_cetsa('cvode', _cetsa.ys[1], _cetsa.ps[1])
+
+
+def test_cetsa_multi():
+    _test_cetsa('cvode', np.asarray(_cetsa.ys), np.asarray(_cetsa.ps))

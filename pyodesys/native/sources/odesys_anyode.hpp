@@ -1,8 +1,8 @@
 #pragma once
-#include "anyode/anyode.hpp"
+#include "anyode/anyode_iterative.hpp"
 
 namespace odesys_anyode {
-    struct OdeSys : public AnyODE::OdeSysBase {
+    struct OdeSys : public AnyODE::OdeSysIterativeBase {
         std::vector<double> m_p;
         OdeSys(const double * const params);
         int get_ny() const override;

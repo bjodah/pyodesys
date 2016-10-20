@@ -563,3 +563,67 @@ class OdeSys(object):
 
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
+
+def _new_x(xout, x, guaranteed_autonomous):
+    if guaranteed_autonomous:
+        return 0, x[-1] - xout[-1]
+    else:
+        return xout[-1], x[-1]
+
+def integrate_chained(odes, step_lims, x, y0, params=(), **kwargs):
+    x_arr = np.asarray(x)
+    if x_arr.shape[-1] > 2:
+        raise NotImplementedError("Only adaptive support return_on_error for now")
+    multimode = False if x_arr.ndim < 2 else x_arr.ndim
+    nfo_keys = ('nfev', 'njev', 'time_cpu', 'time_wall')
+
+    if multimode:
+        tot_x = [np.empty(0) for _ in range(multimode)]
+        tot_y = [np.empty((0, len(y0[0]))) for _ in range(multimode)]
+        tot_nfo = [{k: 0 for k in nfo_keys} for _ in range(multimode)]
+        glob_x = [0.0]*multimode
+    else:
+        tot_x, tot_y, tot_nfo = np.empty(0), np.empty((0, len(y0))), {k: 0 for k in nfo_keys}
+        glob_x = 0.0
+
+    for oi in range(len(odes)):
+        if oi < len(odes) - 1:
+            guaranteed_autonomous = getattr(odes[oi+1], 'autonomous', False)
+        xout, yout, nfo = odes[oi].integrate(x, y0, params, nsteps=step_lims[oi], **kwargs)
+
+        if multimode:
+            for idx in range(multimode):
+                tot_x[idx] = np.concatenate((tot_x[idx], xout[idx][1:] + glob_x[idx]))
+                tot_y[idx] = np.concatenate((tot_y[idx], yout[idx][1:, :]))
+                for k in nfo_keys:
+                    tot_nfo[idx][k] += nfo[idx][k]
+                tot_nfo[idx]['success'] = nfo[idx]['success']
+        else:
+            tot_x = np.concatenate((tot_x, xout[1:] + glob_x))
+            tot_y = np.concatenate((tot_y, yout[1:, :]))
+            for k in nfo_keys:
+                tot_nfo[k] += nfo[k]
+            tot_nfo['success'] = nfo['success']
+
+        if multimode:
+            if all([d['success'] for d in nfo]):
+                break
+        else:
+            if nfo['success']:
+                break
+        if oi < len(odes) - 1:
+            if multimode:
+                _x, y0 = [], []
+                for idx in range(multimode):
+                    _x.append(_new_x(xout[idx], x[idx], guaranteed_autonomous))
+                    y0.append(yout[idx][-1, :])
+                    if guaranteed_autonomous:
+                        glob_x[idx] += xout[idx][-1]
+                x = _x
+            else:
+                x = _new_x(xout, x, guaranteed_autonomous)
+                y0 = yout[-1, :]
+                if guaranteed_autonomous:
+                    glob_x += xout[-1]
+
+    return tot_x, tot_y, tot_nfo
