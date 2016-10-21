@@ -49,7 +49,7 @@ def _get_cetsa_odesys(molar_unitless, loglog, NativeSys=None, explicit_NL=False,
         return kB_over_h * T * be.exp(-(dH - T*dS)/(R*T))
 
     def get_rates(x, y, p, be=math, T0=298.15, T0C=273.15,
-                  R=8.3144598, # J K**-1 mol**-1,  J = Nm, but we keep activation energies in Joule)
+                  R=8.3144598,  # J K**-1 mol**-1,  J = Nm, but we keep activation energies in Joule)
                   kB_over_h=1.38064852e-23 / 6.62607004e-34):  # K**-1 s**-1
         pd = dict(zip(param_keys, p))
         He_u_T = pd['He_u'] + pd['dCp_u'] * (pd['T'] - T0)
@@ -88,7 +88,7 @@ def _get_cetsa_odesys(molar_unitless, loglog, NativeSys=None, explicit_NL=False,
             SuperClass = TransformedSys
         MySys = symmetricsys(
             logexp, logexp, SuperClass=SuperClass, exprs_process_cb=lambda exprs: [
-            sp.powsimp(expr.expand(), force=True) for expr in exprs])
+                sp.powsimp(expr.expand(), force=True) for expr in exprs])
     else:
         MySys = NativeSys or SymbolicSys
 

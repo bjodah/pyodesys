@@ -12,12 +12,17 @@ from libcpp.vector cimport vector
 from libcpp.string cimport string
 
 cimport numpy as cnp
-from odesys_anyode cimport OdeSys
-from odesys_util cimport adaptive_return
 from cvodes_cxx cimport lmm_from_name, iter_type_from_name
 from cvodes_anyode_parallel cimport multi_predefined, multi_adaptive
 
 import numpy as np
+
+from odesys_util cimport adaptive_return
+
+cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
+    cdef cppclass OdeSys:
+        OdeSys(const double * const) nogil except +
+        unordered_map[string, int] last_integration_info
 
 
 cdef list _as_dict(vector[unordered_map[string, int]] nfos,
@@ -42,7 +47,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
                        long int mxsteps=0,
                        str iter_type='undecided', int linear_solver=0, str method='BDF',
-                       bool with_jacobian=True, int autorestart=0):
+                       bool with_jacobian=True, int autorestart=0, bool return_on_error=False):
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
@@ -65,7 +70,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
         dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver,
-        maxl, eps_lin, nderiv, return_on_root, autorestart
+        maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error
     )
 
     xout, yout = [], []

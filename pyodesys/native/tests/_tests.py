@@ -5,6 +5,7 @@ from __future__ import print_function, absolute_import, division
 import numpy as np
 import sympy as sp
 
+from pyodesys.core import integrate_chained
 from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys
 
 from pyodesys.tests.test_core import (
@@ -100,25 +101,30 @@ def _test_multiple_predefined(NativeSys, **kwargs):
     _test_integrate_multiple_predefined(native, integrator='native', **kwargs)
 
 
-def _test_multiple_adaptive_chained(NativeSys, **kwargs):
+def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
     logexp = (sp.log, sp.exp)
-    first_step = 1e-4
+    # first_step = 1e-4
     rtol = atol = 1e-7
+    ny = 4
     ks = [[7e13, 3, 2], [2e5, 3e4, 12.7]]
-    y0s = [[1.0, 3.0], [2.0, 1.0]]
+    y0s = [[1.0, 3.0, 2.0, 5.0], [2.0, 1.0, 3.0, 4.0]]
     t0, tend = 1e-16, 7
     touts = [(t0, tend)]*2
 
-    class TransformedNativeSys(TransformedSys, NativeSys):
+    class TransformedMySys(TransformedSys, MySys):
         pass
 
-    SS = symmetricsys(logexp, logexp, SuperClass=TransformedNativeSys)
+    SS = symmetricsys(logexp, logexp, SuperClass=TransformedMySys)
 
-    tsys = SS.from_callback(decay_rhs, len(k)+1, len(k))
+    tsys = SS.from_callback(decay_rhs, ny, ny-1)
 
-    osys = NativeSys.from_callback(decay_rhs, len(k) + 1, len(k))
+    osys = MySys.from_callback(decay_rhs, ny, ny-1)
 
-    comb_res = integrate_chained([tsys, osys], [5, 20], touts, y0s, ks,
-                                 return_on_error=True, autorestart=2, **integrate_kwargs)
+    comb_res = integrate_chained([tsys, osys], kw, touts, y0s, ks, atol=atol, rtol=rtol, **kwargs)
 
-    assert comb_res[2]['success']
+    for nfo in comb_res[2]:
+        assert nfo['success'] is True
+
+    for y0, k, xout, yout in zip(y0s, ks, comb_res[0], comb_res[1]):
+        ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref, rtol=rtol*1, atol=atol*1.1)

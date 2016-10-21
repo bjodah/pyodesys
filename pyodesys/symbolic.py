@@ -153,11 +153,20 @@ class SymbolicSys(OdeSys):
 
     @property
     def autonomous(self):
+        if hasattr(self, '_autonomous'):
+            return self._autonomous
         if self.indep is None:
+            self._autonomous = True
             return True
         for expr in self.exprs:
-            if expr.has(self.indep):
+            try:
+                in_there = self.indep in expr.free_symbols
+            except:
+                in_there = expr.has(self.indep)
+            if in_there:
+                self._autonomous = False
                 return False
+        self._autonomous = True
         return True
 
     def get_jac(self):
@@ -376,8 +385,8 @@ class TransformedSys(SymbolicSys):
         else:
             raise NotImplementedError("Can only handle 2 or 3 dimensions.")
 
-
     def _forward_transform_xy(self, x, y, p):
+        x, y, p = map(np.asarray, (x, y, p))
         if y.ndim == 1:
             return (x if self.f_indep is None else
                     [self.f_indep(_, y, p) for _ in x],

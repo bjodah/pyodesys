@@ -42,10 +42,14 @@ class _NativeCodeBase(Cpp_Code):
     wrapper_name = None
     basedir = os.path.dirname(__file__)
     templates = ('sources/odesys_anyode_template.cpp',)
-    build_files = ()  # ('sources/odesys_anyode.hpp', ...)
+    build_files = ()
     source_files = ('odesys_anyode.cpp',)
     obj_files = ('odesys_anyode.o',)
     _save_temp = False
+
+    namespace = {
+        'includes': ['"odesys_anyode.hpp"'],
+    }
 
     def __init__(self, odesys, *args, **kwargs):
         self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
@@ -104,6 +108,7 @@ class _NativeCodeBase(Cpp_Code):
                          for idx, expr in enumerate(jac_exprs[:ny*ny])},
             p_jac_dfdt_exprs=list(map(_ccode, jac_exprs[ny*ny:]))
         )
+        ns.update(self.namespace)
         return ns
 
 

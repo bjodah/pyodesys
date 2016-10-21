@@ -34,4 +34,7 @@ def test_multiple_predefined():
 
 
 def test_multiple_adaptive_chained():
-    _test_multiple_adaptive_chained(NativeSys, nsteps=(30, 70))
+    _test_multiple_adaptive_chained(
+        NativeSys,
+        {'nsteps': (30, 70)},
+        return_on_error=True, autorestart=2)

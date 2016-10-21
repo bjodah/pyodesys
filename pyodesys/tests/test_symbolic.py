@@ -25,6 +25,7 @@ from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
 from . import _cetsa
 
+
 def identity(x):
     return x
 
@@ -522,14 +523,42 @@ def test_SymbolicSys_from_callback__backends(backend):
     assert info['nfev'] > 0
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
+@pytest.mark.parametrize('p', [0, 1, 2, 3])
+def test_integrate_chained(p):
+    n, a = 7, 5
+    atol, rtol = 1e-10, 1e-10
+    y0, k, linsys = get_special_chain(n, p, a)
+    y0 += 1e-10
+    LogLogSys = symmetricsys(logexp, logexp)
+    logsys = LogLogSys.from_other(linsys)
+    tout = [10**-12, 1]
+    kw = dict(
+        integrator='cvode', method='adams', atol=atol, rtol=rtol,
+    )
+    forgive = (5+p)*1.2
+
+    xout, yout, info = integrate_chained([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
+                                         return_on_error=True, **kw)
+    assert info['success'] is False
+    ntot = 400
+    nlinear = 60*(p+3)
+
+    xout, yout, info = integrate_chained([logsys, linsys], {
+        'nsteps': [ntot - nlinear, nlinear],
+        'first_step': [30.0, 1e-5],
+        'return_on_error': [True, False]
+    }, tout, y0, **kw)
+    assert info['success'] is True
+    check(yout[-1, :], n, p, a, atol, rtol, forgive)
+
+
 def _test_cetsa(integrator, y0, params, extra=False):
     # real-world based test-case
     from ._cetsa import _get_cetsa_odesys
     molar_unitless = 1e9
-
-    t0=1e-16
+    t0, tend = 1e-16, 180
     integrate_kwargs = dict(integrator=integrator)
-    tend=180
     odesys = _get_cetsa_odesys(molar_unitless, False)
     tsys = _get_cetsa_odesys(molar_unitless, True)
     if y0.ndim == 1:
@@ -537,7 +566,7 @@ def _test_cetsa(integrator, y0, params, extra=False):
     elif y0.ndim == 2:
         tout = np.asarray([(t0, tend)]*y0.shape[0])
 
-    comb_res = integrate_chained([tsys, odesys], [500, 20], tout, y0/molar_unitless, params,
+    comb_res = integrate_chained([tsys, odesys], {'nsteps': [500, 20]}, tout, y0/molar_unitless, params,
                                  return_on_error=True, autorestart=2, **integrate_kwargs)
     if isinstance(comb_res[2], dict):
         assert comb_res[2]['success']
@@ -552,17 +581,20 @@ def _test_cetsa(integrator, y0, params, extra=False):
             odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, atol=1e-7, rtol=1e-7,
                              nsteps=500, **integrate_kwargs)
 
-        res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1), **integrate_kwargs)
-        assert np.min(res[1][-1, :]) < -1e-6  # crazy! (this is a manifest of complete failure of the linear formulation)
+        res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1),
+                               **integrate_kwargs)
+        assert np.min(res[1][-1, :]) < -1e-6  # crazy! (failure of the linear formulation)
         tres = tsys.integrate([t0, tend], y0/molar_unitless, params, nsteps=int(1345*1.1), **integrate_kwargs)
-        assert tres[2]['success'] == True
+        assert tres[2]['success'] is True
         assert tres[2]['nfev'] > 100
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_cetsa():
     _test_cetsa('cvode', _cetsa.ys[0], _cetsa.ps[0], extra=True)
     _test_cetsa('cvode', _cetsa.ys[1], _cetsa.ps[1])
 
 
+@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_cetsa_multi():
     _test_cetsa('cvode', np.asarray(_cetsa.ys), np.asarray(_cetsa.ps))

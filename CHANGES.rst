@@ -1,6 +1,7 @@
 unreleased
 ==========
 - New function ``core.integrate_chained`` for use with TransformedSys.
+- Calls to ``f(x, y[:], p[:])`` now carries y0 in p[np:np+ny] (also applies to jac, etc.)
 
 v0.7.0
 ======

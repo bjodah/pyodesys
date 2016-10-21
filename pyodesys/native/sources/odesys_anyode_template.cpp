@@ -7,7 +7,10 @@
 
 #include <math.h>
 #include <vector>
-#include "odesys_anyode.hpp"
+
+%for inc in includes:
+#include ${inc}
+%endfor
 
 using odesys_anyode::OdeSys;
 

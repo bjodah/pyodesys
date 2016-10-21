@@ -11,6 +11,9 @@ from .base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
 class NativeCvodeCode(_NativeCodeBase):
     wrapper_name = '_cvode_wrapper'
+    namespace = {
+        'includes': ['"odesys_anyode_iterative.hpp"'],
+    }
 
     def __init__(self, *args, **kwargs):
         self.compile_kwargs = copy.deepcopy(_compile_kwargs)
