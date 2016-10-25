@@ -106,7 +106,7 @@ class OdeSys(object):
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
         self.roots_cb = roots
-        self.nroots = nroots
+        self.nroots = nroots or 0
         if band is not None:
             if not band[0] >= 0 or not band[1] >= 0:
                 raise ValueError("bands needs to be > 0 if provided")
@@ -410,32 +410,32 @@ class OdeSys(object):
 
             def _f(x, y, fout):
                 if len(_p) > 0:
-                    fout[:] = self.f_cb(x, y, _p)
+                    fout[:] = np.asarray(self.f_cb(x, y, _p))
                 else:
-                    fout[:] = self.f_cb(x, y)
+                    fout[:] = np.asarray(self.f_cb(x, y))
 
             if with_jacobian is None:
                 raise ValueError("Need to pass with_jacobian")
             elif with_jacobian is True:
                 def _j(x, y, jout, dfdx_out=None, fy=None):
                     if len(_p) > 0:
-                        jout[:, :] = self.j_cb(x, y, _p)
+                        jout[:, :] = np.asarray(self.j_cb(x, y, _p))
                     else:
-                        jout[:, :] = self.j_cb(x, y)
+                        jout[:, :] = np.asarray(self.j_cb(x, y))
                     if dfdx_out is not None:
                         if len(_p) > 0:
-                            dfdx_out[:] = self.dfdx_cb(x, y, _p)
+                            dfdx_out[:] = np.asarray(self.dfdx_cb(x, y, _p))
                         else:
-                            dfdx_out[:] = self.dfdx_cb(x, y)
+                            dfdx_out[:] = np.asarray(self.dfdx_cb(x, y))
             else:
                 _j = None
 
             if self.roots_cb is not None:
                 def _roots(x, y, out):
                     if len(_p) > 0:
-                        out[:] = self.roots_cb(x, y, _p)
+                        out[:] = np.asarray(self.roots_cb(x, y, _p))
                     else:
-                        out[:] = self.roots_cb(x, y)
+                        out[:] = np.asarray(self.roots_cb(x, y))
                 if 'roots' in new_kwargs:
                     raise ValueError("cannot override roots")
                 else:

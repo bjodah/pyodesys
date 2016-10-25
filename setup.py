@@ -63,7 +63,7 @@ long_description = io.open(_path_under_setup('README.rst'),
 assert len(long_description) > 100
 
 extras_req = {
-    'integrators': ['pyodeint>=0.7.0', 'pycvodes>=0.6.0', 'pygslodeiv2>=0.6.0'],
+    'integrators': ['pyodeint>=0.7.0', 'pycvodes>0.6.0', 'pygslodeiv2>=0.6.0'],
     'symbolic': ['sym', 'sympy'],
     'native': ['pycompilation>=0.4.3', 'pycodeexport>=0.1.1', 'appdirs'],
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],

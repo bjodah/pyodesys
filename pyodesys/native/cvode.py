@@ -5,6 +5,7 @@ import copy
 import os
 
 import pycvodes
+from pycvodes import _config
 
 from .base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
@@ -18,8 +19,8 @@ class NativeCvodeCode(_NativeCodeBase):
     def __init__(self, *args, **kwargs):
         self.compile_kwargs = copy.deepcopy(_compile_kwargs)
         self.compile_kwargs['include_dirs'].append(pycvodes.get_include())
-        self.compile_kwargs['libraries'].extend(['sundials_cvodes', os.environ.get('LLAPACK', 'lapack'),
-                                                 'sundials_nvecserial', 'm'])
+        _lapack = os.environ.get('PYODESYS_LAPACK', _config.env['LAPACK'])
+        self.compile_kwargs['libraries'].extend(['sundials_cvodes', _lapack, 'sundials_nvecserial', 'm'])
         super(NativeCvodeCode, self).__init__(*args, **kwargs)
 
 
