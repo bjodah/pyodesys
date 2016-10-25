@@ -317,14 +317,10 @@ class TransformedSys(SymbolicSys):
             post_processors=[self._back_transform_out] + post_processors,
             **kwargs)
         # the pre- and post-processors need callbacks:
-        self.f_dep = self._callback_factory(self.dep_fw)
-        self.b_dep = self._callback_factory(self.dep_bw)
-        if (self.indep_fw, self.indep_bw) != (None, None):
-            self.f_indep = self._callback_factory([self.indep_fw])
-            self.b_indep = self._callback_factory([self.indep_bw])
-        else:
-            self.f_indep = None
-            self.b_indep = None
+        self.f_dep = None if self.dep_fw is None else self._callback_factory(self.dep_fw)
+        self.b_dep = None if self.dep_bw is None else self._callback_factory(self.dep_bw)
+        self.f_indep = None if self.indep_fw is None else self._callback_factory([self.indep_fw])
+        self.b_indep = None if self.indep_bw is None else self._callback_factory([self.indep_bw])
 
     @classmethod
     def from_callback(cls, cb, ny, nparams=0, dep_transf_cbs=None,
@@ -374,11 +370,8 @@ class TransformedSys(SymbolicSys):
             xbt = np.empty(xout.size)
             ybt = np.empty((xout.size, self.ny))
             for idx, (x, y) in enumerate(zip(xout.flat, yout)):
-                if self.b_indep is None:
-                    xbt[idx] = x
-                else:
-                    xbt[idx] = self.b_indep(x, y, params)
-                ybt[idx, :] = self.b_dep(x, y, params)
+                xbt[idx] = x if self.b_indep is None else self.b_indep(x, y, params)
+                ybt[idx, :] = y if self.b_dep is None else self.b_dep(x, y, params)
             return xbt, ybt, params
         elif yout.ndim == 3:
             return zip(*[self._back_transform_out(_x, _y, _p) for _x, _y, _p in zip(xout, yout, params)])
@@ -390,7 +383,7 @@ class TransformedSys(SymbolicSys):
         if y.ndim == 1:
             return (x if self.f_indep is None else
                     [self.f_indep(_, y, p) for _ in x],
-                    self.f_dep(x[0], y, p), p)
+                    y if self.f_dep is None else self.f_dep(x[0], y, p), p)
         elif y.ndim == 2:
             return zip(*[self._forward_transform_xy(_x, _y, _p) for _x, _y, _p in zip(x, y, p)])
         else:

@@ -22,6 +22,7 @@ def _test_get_ode_exprs(symbolic=False, reduced=0, extra_forgive=1, logc=False,
     ny, nk = 3, 3
     k = (.04, 1e4, 3e7)
     y0 = (1, zero_conc, zero_conc)
+    t0, tend = zero_time, 1e11
     tot0 = np.sum(y0)
     nsteps_cvode_1e11 = int(6000)
     kwargs = dict(integrator='cvode', atol=atol, rtol=rtol, nsteps=nsteps_cvode_1e11)
@@ -36,11 +37,9 @@ def _test_get_ode_exprs(symbolic=False, reduced=0, extra_forgive=1, logc=False,
     if symbolic:
         _s = SymbolicSys.from_callback(get_ode_exprs(logc=False, logt=False)[0], ny, nk)
         logexp = (sympy.log, sympy.exp)
-        if logc:
-            SS = symmetricsys(logexp)
+        if logc or logt:
+            SS = symmetricsys(logexp if logc else None, logexp if logt else None)
             _s = SS.from_other(_s)
-        if logt:
-            raise NotImplementedError("will do this soon...")
         if reduced:
             other1, other2 = [_ for _ in range(3) if _ != (reduced-1)]
             s = PartiallySolvedSystem(_s, lambda x0, y0, p0: {
@@ -59,25 +58,40 @@ def _test_get_ode_exprs(symbolic=False, reduced=0, extra_forgive=1, logc=False,
 
         if logc:
             y0 = np.log(y0)
+        if logt:
+            t0 = np.log(t0)
+            tend = np.log(tend)
 
-    x, y, i = s.integrate((zero_time, 1e11), y0, k, **kwargs)
+    x, y, i = s.integrate((t0, tend), y0, k, **kwargs)
     assert i['success'] is True
-    if reduced and not symbolic:
-        y = np.insert(y, reduced-1, tot0 - np.sum(y, axis=1), axis=1)
     if logc and not symbolic:
         y = np.exp(y)
+    if reduced and not symbolic:
+        y = np.insert(y, reduced-1, tot0 - np.sum(y, axis=1), axis=1)
     assert np.allclose(_yref_1e11, y[-1, :],
                        atol=kwargs['atol']*atol_forgive[reduced]*extra_forgive,
                        rtol=kwargs['rtol'])
 
 
 def test_get_ode_exprs_symbolic():
-    _test_get_ode_exprs(symbolic=True, logc=True, zero_conc=1e-20, atol=1e-8, rtol=1e-10, extra_forgive=2)
+    _test_get_ode_exprs(symbolic=True, logc=True, logt=False, zero_conc=1e-20,
+                        atol=1e-8, rtol=1e-10, extra_forgive=2)
+    _test_get_ode_exprs(symbolic=True, logc=True, logt=True, zero_conc=1e-20, zero_time=1e-12,
+                        atol=1e-8, rtol=1e-12, extra_forgive=2)
+    _test_get_ode_exprs(symbolic=True, logc=False, logt=True, zero_conc=0, zero_time=1e-12,
+                        atol=1e-8, rtol=1e-12, extra_forgive=0.4)
     for reduced in range(4):
         _test_get_ode_exprs(symbolic=True, reduced=reduced)
+        # _test_get_ode_exprs(symbolic=True, reduced=reduced, logc=True, logt=False, zero_conc=1e-18,
+        #                     atol=1e-8, rtol=1e-10, extra_forgive=2)
 
 
 def test_get_ode_exprs_OdeSys():
     for reduced in range(4):
         _test_get_ode_exprs(symbolic=False, reduced=reduced, extra_forgive=3)
-    _test_get_ode_exprs(symbolic=False, logc=True, zero_conc=1e-20, atol=1e-8, rtol=1e-10, extra_forgive=2)
+    _test_get_ode_exprs(symbolic=False, logc=True, logt=False, zero_conc=1e-20,
+                        atol=1e-8, rtol=1e-10, extra_forgive=2)
+    _test_get_ode_exprs(symbolic=False, logc=True, logt=True, zero_conc=1e-20, zero_time=1e-12,
+                        atol=1e-8, rtol=1e-12, extra_forgive=2)
+    _test_get_ode_exprs(symbolic=False, logc=False, logt=True, zero_conc=0, zero_time=1e-12,
+                        atol=1e-8, rtol=1e-12, extra_forgive=0.4)

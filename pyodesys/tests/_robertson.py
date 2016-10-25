@@ -172,7 +172,7 @@ def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):
 
         def _o(expr):
             if logt:
-                return exp(x)*lnb*epxr
+                return exp(x)*lnb*expr
             else:
                 return expr
 
