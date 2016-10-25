@@ -20,6 +20,10 @@ from .util import _ensure_4args, _default
 from .plotting import plot_result, plot_phase_plane
 
 
+class RecoverableError(Exception):
+    pass
+
+
 class OdeSys(object):
     """ Object representing an ODE system.
 
@@ -409,10 +413,13 @@ class OdeSys(object):
             new_kwargs.update(kwargs)
 
             def _f(x, y, fout):
-                if len(_p) > 0:
-                    fout[:] = np.asarray(self.f_cb(x, y, _p))
-                else:
-                    fout[:] = np.asarray(self.f_cb(x, y))
+                try:
+                    if len(_p) > 0:
+                        fout[:] = np.asarray(self.f_cb(x, y, _p))
+                    else:
+                        fout[:] = np.asarray(self.f_cb(x, y))
+                except RecoverableError:
+                    return 1  # recoverable error
 
             if with_jacobian is None:
                 raise ValueError("Need to pass with_jacobian")

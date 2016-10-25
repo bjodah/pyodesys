@@ -38,6 +38,7 @@ import math
 import numpy as np
 import sympy as sp
 
+from ..core import RecoverableError
 from ..symbolic import ScaledSys
 
 
@@ -60,6 +61,9 @@ def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):
         raise NotImplementedError("What invariant did you have in mind?")
 
     def dydt(x, y, p, backend=np):
+        if backend==np and not logc:
+            if np.any(y < 0):
+                raise RecoverableError
         exp = backend.exp
         k1, k2, k3 = p[:3]
         if reduced:
@@ -121,10 +125,13 @@ def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):
                 expy = A, B, C = list(map(exp, y))
             elif reduced == 1:
                 expy = B, C = list(map(exp, y))
+                A = I0 - B - C
             elif reduced == 2:
                 expy = A, C = list(map(exp, y))
+                B = I0 - A - C
             elif reduced == 3:
                 expy = A, B = list(map(exp, y))
+                C = I0 - A - B
         else:
             if reduced == 0:
                 A, B, C = y
