@@ -124,6 +124,8 @@ def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
 
     for nfo in comb_res[2]:
         assert nfo['success'] is True
+        assert 0 < nfo['time_cpu'] < 100
+        assert 0 < nfo['time_wall'] < 100
 
     for y0, k, xout, yout in zip(y0s, ks, comb_res[0], comb_res[1]):
         ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T

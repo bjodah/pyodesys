@@ -218,10 +218,10 @@ class SymbolicSys(OdeSys):
         """ Generates a callback for evaluating ``self.exprs``. """
         cb = self._callback_factory(self.exprs)
         if getattr(self, '_nonnegative', False):
-            def _nonnegative_wrapper(t, y, *args):
+            def _nonnegative_wrapper(t, y, p=(), be=None):
                 if np.any(y < 0):
                     raise RecoverableError
-                return cb(t, y, *args)
+                return cb(t, y, p, be)
             return _nonnegative_wrapper
         else:
             return cb

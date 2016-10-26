@@ -616,7 +616,8 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
     the beginning of the intergration this function allows the user to run the
     integration with this system where it takes a user-specified maximum number
     of steps before switching to another formulation (unless final value of the
-    independent variables has been reached).
+    independent variables has been reached). Number of systems used i returned
+    as ``nsys`` in info dict.
 
     Parameters
     ----------
@@ -636,7 +637,7 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
     x_arr = np.asarray(x)
     if x_arr.shape[-1] > 2:
         raise NotImplementedError("Only adaptive support return_on_error for now")
-    multimode = False if x_arr.ndim < 2 else x_arr.ndim
+    multimode = False if x_arr.ndim < 2 else x_arr.shape[0]
     nfo_keys = ('nfev', 'njev', 'time_cpu', 'time_wall')
 
     if multimode:
@@ -693,7 +694,7 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
                 if next_autonomous:
                     glob_x += xout[-1]
     if multimode:  # don't return defaultdict
-        tot_nfo = [dict(**nfo) for nfo in tot_nfo]
+        tot_nfo = [dict(nsys=oi+1, **nfo) for nfo in tot_nfo]
     else:
-        tot_nfo = dict(**tot_nfo)
+        tot_nfo = dict(nsys=oi+1, **tot_nfo)
     return tot_x, tot_y, tot_nfo

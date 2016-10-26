@@ -23,19 +23,18 @@ cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
     cdef cppclass OdeSys:
         OdeSys(const double * const) nogil except +
         unordered_map[string, int] last_integration_info
+        unordered_map[string, double] last_integration_info_dbl
 
-
-cdef list _as_dict(vector[unordered_map[string, int]] nfos,
+cdef dict _as_dict(unordered_map[string, int] nfo,
+                   unordered_map[string, double] nfo_dbl,
                    root_indices, root_out=None, mode=None):
-    py_nfos = []
-    for idx in range(nfos.size()):
-        dct = {str(k.decode('utf-8')): v for k, v in dict(nfos[idx]).items()}
-        dct['root_indices'] = root_indices[idx]
-        if root_out is not None:
-            dct['root_out'] = root_out[idx]
-        dct['mode'] = mode
-        py_nfos.append(dct)
-    return py_nfos
+    dct = {str(k.decode('utf-8')): v for k, v in dict(nfo).items()}
+    dct.update({str(k.decode('utf-8')): v for k, v in dict(nfo_dbl).items()})
+    dct['root_indices'] = root_indices
+    if root_out is not None:
+        dct['root_out'] = root_out
+    dct['mode'] = mode
+    return dct
 
 
 def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
@@ -51,7 +50,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
-        vector[unordered_map[string, int]] nfos
+        list nfos = []
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
         vector[pair[pair[vector[double], vector[double]], vector[int]]] result
@@ -80,12 +79,14 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         _yout = np.asarray(result[idx].first.second)
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
         root_indices.push_back(result[idx].second)
-        nfos.push_back(systems[idx].last_integration_info)
+        nfos.append(_as_dict(systems[idx].last_integration_info,
+                             systems[idx].last_integration_info_dbl,
+                             root_indices[idx], root_out=None, mode='adaptive'))
         del systems[idx]
 
     yout_arr = [np.asarray(_) for _ in yout]
 
-    return (xout, yout, _as_dict(nfos, root_indices, root_out=None, mode='adaptive'))
+    return xout, yout, nfos
 
 
 def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
@@ -101,7 +102,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
         vector[vector[double]] root_out
-        vector[unordered_map[string, int]] nfos
+        list nfos = []
         cnp.ndarray[cnp.float64_t, ndim=3, mode='c'] yout
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
@@ -121,11 +122,10 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     for idx in range(y0.shape[0]):
         root_indices.push_back(result[idx].first)
         root_out.push_back(result[idx].second)
-        nfos.push_back(systems[idx].last_integration_info)
+        nfos.append(_as_dict(systems[idx].last_integration_info,
+                             systems[idx].last_integration_info_dbl,
+                             root_indices, root_out, mode='predefined'))
         del systems[idx]
 
     yout_arr = np.asarray(yout)
-    return (
-        yout,
-        _as_dict(nfos, root_indices, root_out, mode='predefined')
-    )
+    return yout, nfos

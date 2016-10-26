@@ -131,29 +131,29 @@ class _NativeSysBase(SymbolicSys):
 
         return super(_NativeSysBase, self).integrate(*args, **kwargs)
 
-    def _integrate_native(self, intern_xout, intern_y0, intern_p, force_predefined=False,
+    def _integrate_native(self, intern_x, intern_y0, intern_p, force_predefined=False,
                           atol=1e-8, rtol=1e-8, nsteps=500, first_step=0.0, **kwargs):
         atol = np.atleast_1d(atol)
         y0 = np.ascontiguousarray(intern_y0, dtype=np.float64)
         params = np.ascontiguousarray(intern_p, dtype=np.float64)
         if atol.size != 1 and atol.size != self.ny:
             raise ValueError("atol needs to be of length 1 or %d" % self.ny)
-        if intern_xout.shape[-1] == 2 and not force_predefined:
+        if intern_x.shape[-1] == 2 and not force_predefined:
             intern_xout, yout, info = self._native.mod.integrate_adaptive(
                 y0=y0,
-                x0=np.ascontiguousarray(intern_xout[:, 0], dtype=np.float64),
-                xend=np.ascontiguousarray(intern_xout[:, 1], dtype=np.float64),
+                x0=np.ascontiguousarray(intern_x[:, 0], dtype=np.float64),
+                xend=np.ascontiguousarray(intern_x[:, 1], dtype=np.float64),
                 params=params, atol=atol, rtol=rtol,
                 mxsteps=nsteps, dx0=first_step, **kwargs)
         else:
             yout, info = self._native.mod.integrate_predefined(
-                y0=y0, xout=np.ascontiguousarray(intern_xout, dtype=np.float64),
+                y0=y0, xout=np.ascontiguousarray(intern_x, dtype=np.float64),
                 params=params, atol=atol, rtol=rtol,
                 mxsteps=nsteps, dx0=first_step, **kwargs)
         for idx in range(len(info)):
             info[idx]['internal_xout'] = intern_xout[idx]
             info[idx]['internal_yout'] = yout[idx]
-            info[idx]['success'] = True
+            info[idx]['success'] = intern_x[idx, -1] == intern_xout[idx][-1]
             if 'nfev' not in info[idx] and 'n_rhs_evals' in info[idx]:
                 info[idx]['nfev'] = info[idx]['n_rhs_evals']
             if 'njev' not in info[idx] and 'dense_n_dls_jac_evals' in info[idx]:

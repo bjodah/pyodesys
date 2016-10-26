@@ -9,4 +9,5 @@ cdef extern from "odesys_anyode.hpp" namespace "odesys_anyode":
         OdeSys(const double * const) nogil except +
         int get_ny() nogil
         unordered_map[string, int] last_integration_info
+        unordered_map[string, double] last_integration_info_dbl
         unsigned nfev, njev
