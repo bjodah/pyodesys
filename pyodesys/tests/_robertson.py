@@ -56,12 +56,11 @@ def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):
     else:
         lnb = 1
 
-
     if reduced not in (0, 1, 2, 3):
         raise NotImplementedError("What invariant did you have in mind?")
 
     def dydt(x, y, p, backend=np):
-        if backend==np and not logc:
+        if backend == np and not logc:
             if np.any(y < 0):
                 raise RecoverableError
         exp = backend.exp
@@ -122,15 +121,15 @@ def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):
             I0 = A0 + B0 + C0
         if logc:
             if reduced == 0:
-                expy = A, B, C = list(map(exp, y))
+                A, B, C = list(map(exp, y))
             elif reduced == 1:
-                expy = B, C = list(map(exp, y))
+                B, C = list(map(exp, y))
                 A = I0 - B - C
             elif reduced == 2:
-                expy = A, C = list(map(exp, y))
+                A, C = list(map(exp, y))
                 B = I0 - A - C
             elif reduced == 3:
-                expy = A, B = list(map(exp, y))
+                A, B = list(map(exp, y))
                 C = I0 - A - B
         else:
             if reduced == 0:
@@ -183,13 +182,11 @@ def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):
             else:
                 return expr
 
-
         j1 = [_o(_jtrm(0, i) + _jfct(0, i)*(dr[1][i] - dr[0][i])) for i in range(3) if i != reduced - 1]
         j2 = [_o(_jtrm(1, i) + _jfct(1, i)*(dr[0][i] - dr[1][i] - dr[2][i])) for i in range(3) if i != reduced - 1]
         j3 = [_o(_jtrm(2, i) + _jfct(2, i)*dr[2][i]) for i in range(3) if i != reduced - 1]
 
-        return [j for i, j in enumerate([j1, j2, j3]) if i != reduced -1]
-
+        return [j for i, j in enumerate([j1, j2, j3]) if i != reduced - 1]
 
     return dydt, jac
 
@@ -211,8 +208,6 @@ def run_integration(inits=(1, 0, 0), rates=(0.04, 1e4, 3e7), t0=1e-10,
         exprs_process_cb=(lambda exprs: [
             sp.powsimp(expr.expand(), force=True) for expr in exprs])
         if powsimp else None)
-
-    print(odesys.exprs)
 
     indices = {0: (0, 1, 2), 1: (1, 2), 2: (0, 2), 3: (0, 1)}[reduced]
     inits = np.array([inits[idx] for idx in indices], dtype=np.float64)

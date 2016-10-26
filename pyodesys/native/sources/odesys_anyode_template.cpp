@@ -8,7 +8,7 @@
 #include <math.h>
 #include <vector>
 
-%for inc in includes:
+%for inc in p_includes:
 #include ${inc}
 %endfor
 
@@ -23,7 +23,7 @@ int OdeSys::get_ny() const {
 AnyODE::Status OdeSys::rhs(double t,
                            const double * const __restrict__ y,
                            double * const __restrict__ f) {
-    ${'AnyODE::ignore(t);' if p_odesys.autonomous else ''}
+    ${'AnyODE::ignore(t);' if p_odesys.autonomous_exprs else ''}
   % for cse_token, cse_expr in p_rhs_cses:
     const double ${cse_token} = ${cse_expr};
   % endfor
@@ -32,6 +32,9 @@ AnyODE::Status OdeSys::rhs(double t,
     f[${i}] = ${expr};
   % endfor
     this->nfev++;
+  % if getattr(p_odesys, '_nonnegative', False) and p_code.support_recoverable_error:
+    for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
+  % endif
     return AnyODE::Status::success;
 }
 
@@ -45,7 +48,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
                                       double * const __restrict__ dfdt) {
     // The AnyODE::ignore(...) calls below are used to generate code free from compiler warnings.
     AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
-    ${'AnyODE::ignore(t);' if p_odesys.autonomous else ''}
+    ${'AnyODE::ignore(t);' if p_odesys.autonomous_exprs else ''}
     ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
 

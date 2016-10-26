@@ -104,7 +104,7 @@ def _test_multiple_predefined(NativeSys, **kwargs):
 def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
     logexp = (sp.log, sp.exp)
     # first_step = 1e-4
-    rtol = atol = 1e-7
+    rtol = atol = 1e-12
     ny = 4
     ks = [[7e13, 3, 2], [2e5, 3e4, 12.7]]
     y0s = [[1.0, 3.0, 2.0, 5.0], [2.0, 1.0, 3.0, 4.0]]
@@ -127,4 +127,4 @@ def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
 
     for y0, k, xout, yout in zip(y0s, ks, comb_res[0], comb_res[1]):
         ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
-        assert np.allclose(yout, ref, rtol=rtol*1, atol=atol*1.1)
+        assert np.allclose(yout, ref, rtol=rtol*30, atol=atol*30)

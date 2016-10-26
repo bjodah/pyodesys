@@ -36,6 +36,7 @@ logexp = (sp.log, sp.exp)
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_SymbolicSys():
     odesys = SymbolicSys.from_callback(lambda x, y, p, be: [y[1], -y[0]], 2)
+    assert odesys.autonomous_interface is True
     with pytest.raises(ValueError):
         odesys.integrate(1, [0])
 

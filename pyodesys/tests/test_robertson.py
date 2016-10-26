@@ -4,8 +4,10 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
 import sympy
+import pytest
 
 from .. import OdeSys
+from ..core import integrate_chained
 from ..symbolic import SymbolicSys, PartiallySolvedSystem, symmetricsys
 from ._robertson import run_integration, get_ode_exprs
 
@@ -18,7 +20,9 @@ def test_run_integration():
 
 
 def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
-              logt=False, zero_conc=0, zero_time=0, atol=1e-14, rtol=1e-10, **kwargs):
+              logt=False, zero_conc=0, zero_time=0, nonnegative=None,
+              atol=1e-14, rtol=1e-10, **kwargs):
+
     ny, nk = 3, 3
     k = (.04, 1e4, 3e7)
     y0 = (1, zero_conc, zero_conc)
@@ -36,7 +40,8 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
     }
 
     if symbolic:
-        _s = SymbolicSys.from_callback(get_ode_exprs(logc=False, logt=False)[0], ny, nk)
+        _s = SymbolicSys.from_callback(get_ode_exprs(logc=False, logt=False)[0], ny, nk,
+                                       nonnegative=nonnegative)
         logexp = (sympy.log, sympy.exp)
 
         if reduced:
@@ -58,7 +63,7 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
             k += y0
             y0 = [y0[idx] for idx in range(3) if idx != reduced - 1]
 
-        s = OdeSys(f, j, autonomous=True)
+        s = OdeSys(f, j, autonomous_interface=not logt)
 
         if logc:
             y0 = np.log(y0)
@@ -91,12 +96,13 @@ def test_get_ode_exprs_symbolic():
                       atol=1e-8, rtol=1e-10, extra_forgive=2)
         if reduced == 3:
             _test_goe(symbolic=True, reduced=reduced, logc=True, logt=True, zero_conc=1e-18,
-                      zero_time=1e-12, atol=1e-12, rtol=1e-12, extra_forgive=1e-8)  # note extra_forgive
+                      zero_time=1e-12, atol=1e-12, rtol=1e-10, extra_forgive=1e-4)  # note extra_forgive
 
-        _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
-                  atol=1e-8, rtol=1e-10, extra_forgive=1)  # tests RecoverableError
+        if reduced != 3:
+            _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
+                      atol=1e-8, rtol=1e-10, extra_forgive=1, nonnegative=True)  # tests RecoverableError
 
-        _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14)
+            _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14)
 
 
 def test_get_ode_exprs_OdeSys():
@@ -119,3 +125,65 @@ def test_get_ode_exprs_OdeSys():
                   atol=1e-8, rtol=1e-10, extra_forgive=1)  # tests RecoverableError
 
         _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14)
+
+
+@pytest.mark.parametrize('reduced_nsteps', [
+    (0, [(1, 1705*1.01), (4988*1.01, 1), (100, 1513*1.01), (4988*0.69, 1705*0.69)]),  # pays off in steps!
+    (1, [(1, 1563), (100, 1600)]),  # worse than using nothing
+    (2, [(1, 1674), (100, 1597*1.01)]),  # no pay back
+    (3, [(1, 1591*1.01), (4572*1.01, 1), (100, 1545), (4572*0.66, 1591*0.66)])  # no pay back
+])
+def test_integrate_chained_robertson(reduced_nsteps):
+    rtols = {0: 0.02, 1: 0.1, 2: 0.02, 3: 0.015}
+    odes = logsys, linsys = [OdeSys(*get_ode_exprs(l, l, reduced=reduced_nsteps[0])) for l in [True, False]]
+
+    def pre(x, y, p):
+        return np.log(x), np.log(y), p
+
+    def post(x, y, p):
+        return np.exp(x), np.exp(y), p
+
+    logsys.pre_processors = [pre]
+    logsys.post_processors = [post]
+    zero_time, zero_conc = 1e-10, 1e-18
+    init_conc = (1, zero_conc, zero_conc)
+    k = (.04, 1e4, 3e7)
+    for nsteps in reduced_nsteps[1]:
+        y0 = [_ for i, _ in enumerate(init_conc) if i != reduced_nsteps[0] - 1]
+        x, y, nfo = integrate_chained(odes, {'nsteps': nsteps, 'return_on_error': [True, False]}, (zero_time, 1e11),
+                                      y0, k+init_conc, integrator='cvode', atol=1e-10, rtol=1e-14)
+        if reduced_nsteps[0] > 0:
+            y = np.insert(y, reduced_nsteps[0]-1, init_conc[0] - np.sum(y, axis=1), axis=1)
+        assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=rtols[reduced_nsteps[0]])
+        assert nfo['success'] is True
+        assert nfo['nfev'] > 100
+        assert nfo['njev'] > 10
+
+    with pytest.raises(KeyError):
+        nfo['asdjklda']
+
+
+def test_integrate_chained_multi_robertson():
+    odes = logsys, linsys = [OdeSys(*get_ode_exprs(l, l)) for l in [True, False]]
+
+    def pre(x, y, p):
+        return np.log(x), np.log(y), p
+
+    def post(x, y, p):
+        return np.exp(x), np.exp(y), p
+
+    logsys.pre_processors = [pre]
+    logsys.post_processors = [post]
+    zero_time, zero_conc = 1e-10, 1e-18
+    init_conc = (1, zero_conc, zero_conc)
+    k = (.04, 1e4, 3e7)
+
+    _x, _y, _nfo = integrate_chained(
+        odes, {'nsteps': [100, 1513*1.01], 'return_on_error': [True, False]}, [(zero_time, 1e11)]*3,
+        [init_conc]*3, [k+init_conc]*3, integrator='cvode', atol=1e-10, rtol=1e-14)
+
+    for x, y, nfo in zip(_x, _y, _nfo):
+        assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=0.02)
+        assert nfo['success'] is True
+        assert nfo['nfev'] > 100
+        assert nfo['njev'] > 10

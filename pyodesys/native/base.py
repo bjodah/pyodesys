@@ -48,7 +48,8 @@ class _NativeCodeBase(Cpp_Code):
     _save_temp = False
 
     namespace = {
-        'includes': ['"odesys_anyode.hpp"'],
+        'p_includes': ['"odesys_anyode.hpp"'],
+        'support_recoverable_error': False
     }
 
     def __init__(self, odesys, *args, **kwargs):

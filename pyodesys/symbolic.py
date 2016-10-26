@@ -19,7 +19,7 @@ except ImportError:
         def __call__(self, *args, **kwargs):
             raise ImportError("Could not import package 'sym'.")
 
-from .core import OdeSys
+from .core import OdeSys, RecoverableError
 from .util import (
     transform_exprs_dep, transform_exprs_indep, _ensure_4args, _Wrapper
 )
@@ -52,6 +52,12 @@ class SymbolicSys(OdeSys):
     backend : str or sym.Backend
         See documentation of `sym.Backend \
 <https://pythonhosted.org/sym/sym.html#sym.backend.Backend>`_.
+    constraints : iterable of relationals
+        Conditionals needed to be fulfilled upon solver call to rhs function.
+        If the stepper is evaluating values not fulfilling the constraints,
+        :exception:`RecoverableError` is raised.
+    nonnegative : bool
+        Convenience option setting the constraint: [y > 0 for y in self.dep]
     \*\*kwargs:
         See :py:class:`OdeSys`
 
@@ -75,8 +81,8 @@ class SymbolicSys(OdeSys):
 
     """
 
-    def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True,
-                 roots=None, backend=None, **kwargs):
+    def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True, roots=None,
+                 backend=None, constraints=None, nonnegative=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self.params = params
@@ -84,7 +90,12 @@ class SymbolicSys(OdeSys):
         self._dfdx = dfdx
         self.roots = roots
         self.be = Backend(backend)
-
+        if nonnegative is not None:
+            if constraints is not None:
+                raise ValueError("Cannot give both nonnegative and constraints")
+            self._nonnegative = nonnegative
+        if constraints is not None:
+            raise NotImplementedError("See gh-37")
         if kwargs.get('names', None) is True:
             kwargs['names'] = [y.name for y in self.dep]
         # we need self.band before super().__init__
@@ -152,11 +163,16 @@ class SymbolicSys(OdeSys):
         return len(self.exprs)
 
     @property
-    def autonomous(self):
-        if hasattr(self, '_autonomous'):
-            return self._autonomous
+    def autonomous_exprs(self):
+        """ Whether the expressions for the dependent variables are autonomous.
+
+        Note that the system may still behave as an autonomous system on the interface
+        of :meth:`integrate` due to use of pre-/post-processors.
+        """
+        if hasattr(self, '_autonomous_exprs'):
+            return self._autonomous_exprs
         if self.indep is None:
-            self._autonomous = True
+            self._autonomous_exprs = True
             return True
         for expr in self.exprs:
             try:
@@ -164,9 +180,9 @@ class SymbolicSys(OdeSys):
             except:
                 in_there = expr.has(self.indep)
             if in_there:
-                self._autonomous = False
+                self._autonomous_exprs = False
                 return False
-        self._autonomous = True
+        self._autonomous_exprs = True
         return True
 
     def get_jac(self):
@@ -200,7 +216,15 @@ class SymbolicSys(OdeSys):
 
     def get_f_ty_callback(self):
         """ Generates a callback for evaluating ``self.exprs``. """
-        return self._callback_factory(self.exprs)
+        cb = self._callback_factory(self.exprs)
+        if getattr(self, '_nonnegative', False):
+            def _nonnegative_wrapper(t, y, *args):
+                if np.any(y < 0):
+                    raise RecoverableError
+                return cb(t, y, *args)
+            return _nonnegative_wrapper
+        else:
+            return cb
 
     def get_j_ty_callback(self):
         """ Generates a callback for evaluating the jacobian. """
@@ -295,7 +319,6 @@ class TransformedSys(SymbolicSys):
             self.dep_fw, self.dep_bw = zip(*dep_transf)
             exprs = transform_exprs_dep(self.dep_fw, self.dep_bw,
                                         list(zip(dep, exprs)))
-
         else:
             self.dep_fw, self.dep_bw = None, None
 

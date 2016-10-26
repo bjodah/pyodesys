@@ -66,9 +66,9 @@ class OdeSys(object):
     append_iv :  bool
         If ``True`` params[:] passed to :attr:`f_cb`, :attr:`jac_cb` will contain
         initial values of y.
-    autonomous : bool (optional)
+    autonomous_interface : bool (optional)
         If given, sets the :attr:`autonomous` to indicate whether
-        the system is autonomous or not.
+        the system appears autonomous or not upon call to :meth:`integrate`.
 
     Attributes
     ----------
@@ -85,8 +85,10 @@ class OdeSys(object):
         internal values of dependent variable before post-processing
     internal_params : 1D array of floats
         internal parameter values before post-processing
-    autonomous : bool or None
-        Indicates whether the system is autonomous or not (None means unknown).
+    autonomous_interface : bool or None
+        Indicates whether the system appears autonomous upon call to
+        :meth:`integrate`. ``None`` indicates that it is unknown.
+
 
 
     Examples
@@ -120,15 +122,19 @@ class OdeSys(object):
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.append_iv = append_iv
-        autonomous = kwargs.pop('autonomous', None)
-        if hasattr(self, 'autonomous'):
-            if autonomous is not None and autonomous != self.autonomous:
-                raise ValueError("Got conflicting autonomous infomation.")
+        autonomous_interface = kwargs.pop('autonomous_interface', None)
+        if hasattr(self, 'autonomous_interface'):
+            if autonomous_interface is not None and autonomous_interface != self.autonomous_interface:
+                raise ValueError("Got conflicting autonomous_interface infomation.")
         else:
-            self.autonomous = autonomous
+            if (autonomous_interface is None and getattr(self, 'autonomous_exprs', False) and
+               len(self.post_processors) == 0 and len(self.pre_processors) == 0):
+                self.autonomous_interface = True
+            else:
+                self.autonomous_interface = autonomous_interface
 
-        if self.autonomous not in (True, False, None):
-            raise ValueError("autonomous needs to be a boolean value or None.")
+        if self.autonomous_interface not in (True, False, None):
+            raise ValueError("autonomous_interface needs to be a boolean value or None.")
 
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s" % str(kwargs))
@@ -644,7 +650,7 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
 
     for oi in range(len(odes)):
         if oi < len(odes) - 1:
-            next_autonomous = getattr(odes[oi+1], 'autonomous', False) is True
+            next_autonomous = getattr(odes[oi+1], 'autonomous_interface', False) is True
         _int_kw = kwargs.copy()
         for k, v in kw.items():
             _int_kw[k] = v[oi]
@@ -686,5 +692,8 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
                 y0 = yout[-1, :]
                 if next_autonomous:
                     glob_x += xout[-1]
-
+    if multimode:  # don't return defaultdict
+        tot_nfo = [dict(**nfo) for nfo in tot_nfo]
+    else:
+        tot_nfo = dict(**tot_nfo)
     return tot_x, tot_y, tot_nfo

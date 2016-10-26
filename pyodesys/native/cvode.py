@@ -12,8 +12,10 @@ from .base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
 class NativeCvodeCode(_NativeCodeBase):
     wrapper_name = '_cvode_wrapper'
+
     namespace = {
-        'includes': ['"odesys_anyode_iterative.hpp"'],
+        'p_includes': ['"odesys_anyode_iterative.hpp"'],
+        'support_recoverable_error': True
     }
 
     def __init__(self, *args, **kwargs):
