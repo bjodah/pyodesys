@@ -431,41 +431,76 @@ def test_long_chain_banded_cvode(n):
         pass  # will fail sometimes due to load
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_PartiallySolvedSystem():
-    odesys = SymbolicSys.from_callback(
+def _get_decay3():
+    return SymbolicSys.from_callback(
         lambda x, y, p: [
             -p[0]*y[0],
             p[0]*y[0] - p[1]*y[1],
             p[1]*y[1] - p[2]*y[2]
         ], 3, 3)
-    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
-        odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+
+
+@pytest.mark.skipif(sym is None, reason='package sym missing')
+def test_PartiallySolvedSystem():
+    odesys = _get_decay3()
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be: {
+        odesys.dep[0]: y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
     })
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 1.5]
-    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='cvode')
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
     assert np.allclose(yout, ref)
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_PartiallySolvedSystem__using_y():
-    odesys = SymbolicSys.from_callback(
-        lambda x, y, p: [
-            -p[0]*y[0],
-            p[0]*y[0] - p[1]*y[1],
-            p[1]*y[1]
-        ], 3, 3)
+    odesys = _get_decay3()
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
         odesys.dep[2]: y0[0] + y0[1] + y0[2] - odesys.dep[0] - odesys.dep[1]
     })
     y0 = [3, 2, 1]
-    k = [3.5, 2.5, 1.5]
-    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
+    k = [3.5, 2.5, 0]
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='cvode')
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
-    assert np.allclose(yout[:, :-1], ref[:, :-1])
+    assert info['success']
+    assert np.allclose(yout, ref)
     assert np.allclose(np.sum(yout, axis=1), sum(y0))
+
+
+def _get_transf_part_system():
+    odesys = _get_decay3()
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
+        odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+    })
+    LogLogSys = symmetricsys(logexp, logexp)
+    return LogLogSys.from_other(partsys)
+
+
+@pytest.mark.skipif(sym is None, reason='package sym missing')
+def test_PartiallySolvedSystem__symmetricsys():
+    trnsfsys = _get_transf_part_system()
+    y0 = [3., 2., 1.]
+    k = [3.5, 2.5, 0]
+    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator='cvode')
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
+    assert np.allclose(yout, ref)
+    assert np.allclose(np.sum(yout, axis=1), sum(y0))
+
+
+@pytest.mark.skipif(sym is None, reason='package sym missing')
+def test_PartiallySolvedSystem__symmetricsys__multi():
+    trnsfsys = _get_transf_part_system()
+    y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
+    ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
+    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='cvode')
+    for i, (y0, k) in enumerate(zip(y0s, ks)):
+        ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
+        assert info[i]['success'] and info[i]['nfev'] > 10
+        assert info[i]['nfev'] > 1 and info[i]['time_cpu'] < 100
+        assert np.allclose(yout[i], ref) and np.allclose(np.sum(yout[i], axis=1), sum(y0))
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')

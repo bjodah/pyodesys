@@ -6,13 +6,13 @@ import numpy as np
 import sympy as sp
 
 from pyodesys.core import integrate_chained
-from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys
+from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys, PartiallySolvedSystem
 
 from pyodesys.tests.test_core import (
     vdp_f, _test_integrate_multiple_adaptive, _test_integrate_multiple_predefined, sine, decay
 )
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
-from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory
+from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3, logexp
 
 
 def _test_NativeSys(NativeSys, **kwargs):
@@ -91,6 +91,40 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
 
+def _get_transformed_partially_solved_system(NativeSys):
+    odesys = _get_decay3()
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
+        odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+    })
+
+    class TransformedNativeSys(TransformedSys, NativeSys):
+        pass
+
+    LogLogSys = symmetricsys(logexp, logexp, SuperClass=TransformedNativeSys)
+    return LogLogSys.from_other(partsys)
+
+
+def _test_PartiallySolved_symmetric_native(NativeSys):
+    trnsfsys = _get_transformed_partially_solved_system(NativeSys)
+    y0, k = [3., 2., 1.], [3.5, 2.5, 0]
+    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator='native')
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success'] and info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
+    assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
+
+
+def _test_PartiallySolved_symmetric_native_multi(NativeSys):
+    trnsfsys = _get_transformed_partially_solved_system(NativeSys)
+    y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
+    ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
+    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='native')
+    for i, (y0, k) in enumerate(zip(y0s, ks)):
+        ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
+        assert info[i]['success'] and info[i]['nfev'] > 10
+        assert info[i]['nfev'] > 1 and info[i]['time_cpu'] < 100
+        assert np.allclose(yout[i], ref) and np.allclose(np.sum(yout[i], axis=1), sum(y0))
+
+
 def _test_multiple_adaptive(NativeSys, **kwargs):
     native = NativeSys.from_callback(sine, 2, 1)
     _test_integrate_multiple_adaptive(native, integrator='native', **kwargs)
@@ -104,7 +138,7 @@ def _test_multiple_predefined(NativeSys, **kwargs):
 def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
     logexp = (sp.log, sp.exp)
     # first_step = 1e-4
-    rtol = atol = 1e-12
+    rtol, atol = 1e-14, 1e-12
     ny = 4
     ks = [[7e13, 3, 2], [2e5, 3e4, 12.7]]
     y0s = [[1.0, 3.0, 2.0, 5.0], [2.0, 1.0, 3.0, 4.0]]
@@ -122,11 +156,11 @@ def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
 
     comb_res = integrate_chained([tsys, osys], kw, touts, y0s, ks, atol=atol, rtol=rtol, **kwargs)
 
-    for nfo in comb_res[2]:
-        assert nfo['success'] is True
-        assert 0 < nfo['time_cpu'] < 100
-        assert 0 < nfo['time_wall'] < 100
-
     for y0, k, xout, yout in zip(y0s, ks, comb_res[0], comb_res[1]):
         ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
-        assert np.allclose(yout, ref, rtol=rtol*30, atol=atol*30)
+        assert np.allclose(yout, ref, rtol=rtol*800, atol=atol*800)
+
+    for nfo in comb_res[2]:
+        assert 0 < nfo['time_cpu'] < 100
+        assert 0 < nfo['time_wall'] < 100
+        assert nfo['success'] == True  # noqa

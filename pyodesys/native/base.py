@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 _compile_kwargs = {
-    'options': ['warn', 'pic', 'fast', 'openmp'],
+    'options': ['warn', 'pic', 'fast'],  # DO-NOT-MERGE! , 'openmp'],
     'std': 'c++11',
     'include_dirs': [np.get_include(),
                      pkg_resources.resource_filename(__name__, 'sources')],
@@ -150,6 +150,7 @@ class _NativeSysBase(SymbolicSys):
                 y0=y0, xout=np.ascontiguousarray(intern_x, dtype=np.float64),
                 params=params, atol=atol, rtol=rtol,
                 mxsteps=nsteps, dx0=first_step, **kwargs)
+            intern_xout = intern_x
         for idx in range(len(info)):
             info[idx]['internal_xout'] = intern_xout[idx]
             info[idx]['internal_yout'] = yout[idx]

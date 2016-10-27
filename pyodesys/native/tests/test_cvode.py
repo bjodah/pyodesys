@@ -6,7 +6,9 @@ import pytest
 from ._tests import (
     _test_NativeSys, _test_NativeSys_two, _test_ScaledSys_NativeSys,
     _test_symmetricsys_nativesys, _test_multiple_adaptive,
-    _test_multiple_predefined, _test_multiple_adaptive_chained
+    _test_multiple_predefined, _test_multiple_adaptive_chained,
+    _test_PartiallySolved_symmetric_native,
+    _test_PartiallySolved_symmetric_native_multi
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
@@ -38,9 +40,15 @@ def test_multiple_predefined():
 
 def test_multiple_adaptive_chained():
     _test_multiple_adaptive_chained(
-        NativeSys,
-        {'nsteps': (30, 70)},
-        return_on_error=True, autorestart=2)
+        NativeSys, {'nsteps': (850, 1100), 'autorestart': (0, 3), 'return_on_error': (True, False)})
+
+
+def test_PartiallySolved_symmetric_native():
+    _test_PartiallySolved_symmetric_native(NativeSys)
+
+
+def test_PartiallySolved_symmetric_native_multi():
+    _test_PartiallySolved_symmetric_native_multi(NativeSys)
 
 
 @pytest.mark.parametrize('reduced', [0, 3])

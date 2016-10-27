@@ -694,7 +694,7 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
                 if next_autonomous:
                     glob_x += xout[-1]
     if multimode:  # don't return defaultdict
-        tot_nfo = [dict(nsys=oi+1, **nfo) for nfo in tot_nfo]
+        tot_nfo = [dict(nsys=oi+1, **_nfo) for _nfo in tot_nfo]
     else:
         tot_nfo = dict(nsys=oi+1, **tot_nfo)
     return tot_x, tot_y, tot_nfo

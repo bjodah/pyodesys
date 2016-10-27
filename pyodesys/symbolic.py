@@ -55,7 +55,7 @@ class SymbolicSys(OdeSys):
     constraints : iterable of relationals
         Conditionals needed to be fulfilled upon solver call to rhs function.
         If the stepper is evaluating values not fulfilling the constraints,
-        :exception:`RecoverableError` is raised.
+        :class:`RecoverableError` is raised.
     nonnegative : bool
         Convenience option setting the constraint: [y > 0 for y in self.dep]
     \*\*kwargs:
@@ -148,7 +148,7 @@ class SymbolicSys(OdeSys):
         if len(ori.pre_processors) > 0:
             if 'pre_processors' not in new_kw:
                 new_kw['pre_processors'] = []
-            new_kw['pre_processors'] = ori.pre_processors + new_kw['pre_processors']
+            new_kw['pre_processors'] = new_kw['pre_processors'] + ori.pre_processors
 
         if len(ori.post_processors) > 0:
             if 'post_processors' not in new_kw:
@@ -288,7 +288,7 @@ class SymbolicSys(OdeSys):
 
 
 class TransformedSys(SymbolicSys):
-    """ SymbolicSys with abstracted variable transformations.
+    """ SymbolicSys with variable transformations.
 
     Parameters
     ----------
@@ -304,11 +304,12 @@ class TransformedSys(SymbolicSys):
     params :
         see :class:`SymbolicSys`
     exprs_process_cb : callbable
-        signatrue f(exprs) -> exprs
-        post processing of the expressions for the derivatives of the
-        dependent variables after transformation have been applied.
+        Post processing of the expressions (signature: ``f(exprs) -> exprs``)
+        for the derivatives of the dependent variables after transformation
+        have been applied.
     \*\*kwargs :
-        keyword arguments passed onto :class:`SymbolicSys`
+        Keyword arguments passed onto :class:`SymbolicSys`.
+
     """
 
     def __init__(self, dep_exprs, indep=None, dep_transf=None,
@@ -362,11 +363,12 @@ class TransformedSys(SymbolicSys):
         nparams : int
             length of p
         dep_transf_cbs : iterable of pairs callables
-            callables should have the signature f(yi) -> expression in yi
+            callables should have the signature ``f(yi) -> expression`` in yi
         indep_transf_cbs : pair of callbacks
-            callables should have the signature f(x) -> expression in x
+            callables should have the signature ``f(x) -> expression`` in x
         \*\*kwargs :
-            keyword arguments passed onto :class:`TransformedSys`
+            Keyword arguments passed onto :class:`TransformedSys`.
+
         """
         be = Backend(kwargs.pop('backend', None))
         x, = be.real_symarray('x', 1)
@@ -388,18 +390,20 @@ class TransformedSys(SymbolicSys):
                    indep_transf, p, backend=be, **kwargs)
 
     def _back_transform_out(self, xout, yout, params):
-        xout, yout, params = map(np.asarray, (xout, yout, params))
-        if yout.ndim == 2:
-            xbt = np.empty(xout.size)
-            ybt = np.empty((xout.size, self.ny))
-            for idx, (x, y) in enumerate(zip(xout.flat, yout)):
-                xbt[idx] = x if self.b_indep is None else self.b_indep(x, y, params)
-                ybt[idx, :] = y if self.b_dep is None else self.b_dep(x, y, params)
-            return xbt, ybt, params
-        elif yout.ndim == 3:
-            return zip(*[self._back_transform_out(_x, _y, _p) for _x, _y, _p in zip(xout, yout, params)])
+        try:
+            yout[0][0, 0]
+        except:
+            pass
         else:
-            raise NotImplementedError("Can only handle 2 or 3 dimensions.")
+            return zip(*[self._back_transform_out(_x, _y, _p) for
+                         _x, _y, _p in zip(xout, yout, params)])
+        xout, yout, params = map(np.asarray, (xout, yout, params))
+        xbt = np.empty(xout.size)
+        ybt = np.empty((xout.size, self.ny))
+        for idx, (x, y) in enumerate(zip(xout.flat, yout)):
+            xbt[idx] = x if self.b_indep is None else self.b_indep(x, y, params)
+            ybt[idx, :] = y if self.b_dep is None else self.b_dep(x, y, params)
+        return xbt, ybt, params
 
     def _forward_transform_xy(self, x, y, p):
         x, y, p = map(np.asarray, (x, y, p))
@@ -414,8 +418,9 @@ class TransformedSys(SymbolicSys):
 
 
 def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs):
-    """
-    A factory function for creating symmetrically transformed systems.
+    """ A factory function for creating symmetrically transformed systems.
+
+    Creates a new subclass which applies the same transformation for each dependent variable.
 
     Parameters
     ----------
@@ -437,9 +442,13 @@ def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs
     --------
     >>> import sympy
     >>> logexp = (sympy.log, sympy.exp)
-    >>> LogLogSys = symmetricsys(
-    ...     logexp, logexp, exprs_process_cb=lambda exprs: [
-    ...         sympy.powsimp(expr.expand(), force=True) for expr in exprs])
+    >>> def psimp(exprs):
+    ...     return [sympy.powsimp(expr.expand(), force=True) for expr in exprs]
+    ...
+    >>> LogLogSys = symmetricsys(logexp, logexp, exprs_process_cb=psimp)
+    >>> mysys = LogLogSys.from_callback(lambda x, y, p: [-y[0], y[0] - y[1]], 2, 0)
+    >>> mysys.exprs
+    (-exp(x_0), -exp(x_0) + exp(x_0 + y_0 - y_1))
 
     """
     if dep_tr is not None:
@@ -449,12 +458,12 @@ def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs
         if not callable(indep_tr[0]) or not callable(indep_tr[1]):
             raise ValueError("Exceptected indep_tr to be a pair of callables")
 
-    class _Sys(SuperClass):
+    class _SymmetricSys(SuperClass):
         def __init__(self, dep_exprs, indep=None, **inner_kwargs):
             new_kwargs = kwargs.copy()
             new_kwargs.update(inner_kwargs)
             dep, exprs = zip(*dep_exprs)
-            super(_Sys, self).__init__(
+            super(_SymmetricSys, self).__init__(
                 zip(dep, exprs), indep,
                 dep_transf=list(zip(
                     list(map(dep_tr[0], dep)),
@@ -473,7 +482,8 @@ def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs
                 dep_transf_cbs=repeat(dep_tr) if dep_tr is not None else None,
                 indep_transf_cbs=indep_tr,
                 **new_kwargs)
-    return _Sys
+
+    return _SymmetricSys
 
 
 class ScaledSys(TransformedSys):
@@ -481,18 +491,18 @@ class ScaledSys(TransformedSys):
 
     Parameters
     ----------
-    dep_exprs: iterable of (symbol, expression)-pairs
+    dep_exprs : iterable of (symbol, expression)-pairs
         see :class:`SymbolicSys`
-    indep: Symbol
+    indep : Symbol
         see :class:`SymbolicSys`
-    dep_scaling: number (>0) or iterable of numbers
+    dep_scaling : number (>0) or iterable of numbers
         scaling of the dependent variables (default: 1)
-    indep_scaling: number (>0)
+    indep_scaling : number (>0)
         scaling of the independent variable (default: 1)
-    params:
+    params :
         see :class:`SymbolicSys`
-    \*\*kwargs:
-        keyword arguments passed onto TransformedSys
+    \*\*kwargs :
+        Keyword arguments passed onto :class:`TransformedSys`.
 
     Examples
     --------
@@ -537,18 +547,18 @@ class ScaledSys(TransformedSys):
 
         Parameters
         ----------
-        cb: callable
+        cb : callable
             Signature rhs(x, y[:], p[:]) -> f[:]
-        ny: int
+        ny : int
             length of y
-        nparams: int
+        nparams : int
             length of p
-        dep_scaling: number (>0) or iterable of numbers
+        dep_scaling : number (>0) or iterable of numbers
             scaling of the dependent variables (default: 1)
         indep_scaling: number (>0)
             scaling of the independent variable (default: 1)
-        \*\*kwargs:
-            keyword arguments passed onto :class:`ScaledSys`
+        \*\*kwargs :
+            Keyword arguments passed onto :class:`ScaledSys`.
 
         Examples
         --------
@@ -589,22 +599,26 @@ class PartiallySolvedSystem(SymbolicSys):
 
     Parameters
     ----------
-    original_system: SymbolicSys
-    analytic_factory: callable
-        signature: solved(x0, y0, p0) -> dict, where dict maps
-        independent variables as analytic expressions in remaining variables
+    original_system : SymbolicSys
+    analytic_factory : callable
+        User provided callback for expressing analytic solutions to a set of
+        dependent variables in ``original_system``. The callback should have
+        the signature: ``my_factory(x0, y0, p0, backend) -> dict``, where the returned
+        dictionary maps dependent variabels (from ``original_system.dep``)
+        to new expressions in remaining variables and initial conditions.
+    \*\*kwargs : dict
+        Keyword arguments passed onto :class:`SymbolicSys`.
 
     Examples
     --------
-    >>> import sympy as sp
     >>> odesys = SymbolicSys.from_callback(
     ...     lambda x, y, p: [
     ...         -p[0]*y[0],
     ...         p[0]*y[0] - p[1]*y[1]
     ...     ], 2, 2)
     >>> dep0 = odesys.dep[0]
-    >>> partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
-    ...         dep0: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+    >>> partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be: {
+    ...         dep0: y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
     ...     })
     >>> print(partsys.exprs)  # doctest: +SKIP
     (_Dummy_29*p_0*exp(-p_0*(-_Dummy_28 + x)) - p_1*y_1,)
@@ -617,7 +631,7 @@ class PartiallySolvedSystem(SymbolicSys):
 
     def __init__(self, original_system, analytic_factory, **kwargs):
         self._ori_sys = original_system
-        self.analytic_factory = analytic_factory
+        self.analytic_factory = _ensure_4args(analytic_factory)
         if original_system.roots is not None:
             raise NotImplementedError('roots currently unsupported')
         _Dummy = original_system.be.Dummy
@@ -626,8 +640,10 @@ class PartiallySolvedSystem(SymbolicSys):
 
         if 'pre_processors' in kwargs or 'post_processors' in kwargs:
             raise NotImplementedError("Cannot override pre-/postprocessors")
+        if 'backend' in kwargs and Backend(kwargs['backend']) != original_system.be:
+            raise ValueError("Cannot mix backends.")
         self.analytic_exprs = self.analytic_factory(
-            self.init_indep, self.init_dep, original_system.params)
+            self.init_indep, self.init_dep, original_system.params, original_system.be)
         new_dep = [dep for dep in original_system.dep if dep not in self.analytic_exprs]
         new_params = _append(original_system.params, (self.init_indep,), self.init_dep)
         self.analytic_cb = self._get_analytic_cb(
@@ -642,10 +658,21 @@ class PartiallySolvedSystem(SymbolicSys):
         if 'band' not in new_kw and original_system.band is not None:
             new_kw['band'] = original_system.band
 
-        def pre_processor(x, y, p):
+        def partially_solved_pre_processor(x, y, p):
+            x, y, p = map(np.asarray, (x, y, p))
+            if y.ndim == 2:
+                return zip(*[partially_solved_pre_processor(_x, _y, _p)
+                             for _x, _y, _p in zip(x, y, p)])
             return (x, _skip(analytic_ids, y), _append(p, [x[0]], y))
 
-        def post_processor(x, y, p):
+        def partially_solved_post_processor(x, y, p):
+            try:
+                y[0][0, 0]
+            except:
+                pass
+            else:
+                return zip(*[partially_solved_post_processor(_x, _y, _p)
+                             for _x, _y, _p in zip(x, y, p)])
             new_y = np.empty(y.shape[:-1] + (y.shape[-1]+nanalytic,))
             analyt_y = self.analytic_cb(x, y, p)
             analyt_idx = 0
@@ -659,16 +686,14 @@ class PartiallySolvedSystem(SymbolicSys):
                     intern_idx += 1
             return x, new_y, p[:-(1+original_system.ny)]
 
-        def _wrap_procs(procs):
-            return
-
-        new_kw['pre_processors'] = original_system.pre_processors + [pre_processor]
-        new_kw['post_processors'] = [post_processor] + original_system.post_processors
+        new_kw['pre_processors'] = original_system.pre_processors + [partially_solved_pre_processor]
+        new_kw['post_processors'] = [partially_solved_post_processor] + original_system.post_processors
 
         super(PartiallySolvedSystem, self).__init__(
             zip(new_dep, new_exprs), original_system.indep, new_params,
             backend=original_system.be, **new_kw)
 
-    def _get_analytic_cb(self, ori_sys, analytic_exprs, new_dep, new_params):
+    @staticmethod
+    def _get_analytic_cb(ori_sys, analytic_exprs, new_dep, new_params):
         args = _concat(ori_sys.indep, new_dep, new_params)
         return _Wrapper(ori_sys.be.Lambdify(args, analytic_exprs), len(new_dep))
