@@ -32,7 +32,7 @@ AnyODE::Status OdeSys::rhs(double t,
     f[${i}] = ${expr};
   % endfor
     this->nfev++;
-  % if getattr(p_odesys, '_nonnegative', False) and p_code.support_recoverable_error:
+  % if getattr(p_odesys, '_nonnegative', False) and p_support_recoverable_error:
     for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
   % endif
     return AnyODE::Status::success;

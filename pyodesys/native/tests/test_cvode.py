@@ -8,7 +8,8 @@ from ._tests import (
     _test_symmetricsys_nativesys, _test_multiple_adaptive,
     _test_multiple_predefined, _test_multiple_adaptive_chained,
     _test_PartiallySolved_symmetric_native,
-    _test_PartiallySolved_symmetric_native_multi
+    _test_PartiallySolved_symmetric_native_multi,
+    _test_Decay_nonnegative
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
@@ -57,3 +58,7 @@ def test_chained_multi_native(reduced):
         NativeSys, logc=True, logt=True, reduced=reduced, zero_time=1e-10,
         zero_conc=1e-18, nonnegative=None
     )
+
+
+def test_Decay_nonnegative():
+    _test_Decay_nonnegative(NativeSys)

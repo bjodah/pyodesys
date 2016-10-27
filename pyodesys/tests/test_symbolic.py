@@ -431,18 +431,18 @@ def test_long_chain_banded_cvode(n):
         pass  # will fail sometimes due to load
 
 
-def _get_decay3():
+def _get_decay3(**kwargs):
     return SymbolicSys.from_callback(
         lambda x, y, p: [
             -p[0]*y[0],
             p[0]*y[0] - p[1]*y[1],
             p[1]*y[1] - p[2]*y[2]
-        ], 3, 3)
+        ], 3, 3, **kwargs)
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_PartiallySolvedSystem():
-    odesys = _get_decay3()
+    odesys = _get_decay3(nonnegative=True)
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be: {
         odesys.dep[0]: y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
     })

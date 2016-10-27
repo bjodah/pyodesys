@@ -91,6 +91,16 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
 
+def _test_Decay_nonnegative(NativeSys):
+    odesys = NativeSys.from_other(_get_decay3(nonnegative=True))
+    assert odesys._nonnegative is True
+    y0, k = [3., 2., 1.], [3.5, 2.5, 0]
+    xout, yout, info = odesys.integrate([1e-10, 1], y0, k, integrator='native')
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success'] and info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
+    assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
+
+
 def _get_transformed_partially_solved_system(NativeSys):
     odesys = _get_decay3()
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {

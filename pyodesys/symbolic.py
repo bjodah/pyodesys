@@ -139,23 +139,24 @@ class SymbolicSys(OdeSys):
 
     @classmethod
     def from_other(cls, ori, **kwargs):  # provisional
-        new_kw = kwargs.copy()
         if ori.roots is not None:
             raise NotImplementedError('roots currently unsupported')
-        if 'params' not in new_kw:
-            new_kw['params'] = ori.params
+        if 'params' not in kwargs:
+            kwargs['params'] = ori.params
+        if 'nonnegative' not in kwargs:
+            kwargs['nonnegative'] = getattr(ori, '_nonnegative', None)
 
         if len(ori.pre_processors) > 0:
-            if 'pre_processors' not in new_kw:
-                new_kw['pre_processors'] = []
-            new_kw['pre_processors'] = new_kw['pre_processors'] + ori.pre_processors
+            if 'pre_processors' not in kwargs:
+                kwargs['pre_processors'] = []
+            kwargs['pre_processors'] = kwargs['pre_processors'] + ori.pre_processors
 
         if len(ori.post_processors) > 0:
-            if 'post_processors' not in new_kw:
-                new_kw['post_processors'] = []
-            new_kw['post_processors'] = ori.post_processors + new_kw['post_processors']
+            if 'post_processors' not in kwargs:
+                kwargs['post_processors'] = []
+            kwargs['post_processors'] = ori.post_processors + kwargs['post_processors']
 
-        return cls(zip(ori.dep, ori.exprs), ori.indep, **new_kw)
+        return cls(zip(ori.dep, ori.exprs), ori.indep, **kwargs)
 
     @property
     def ny(self):
