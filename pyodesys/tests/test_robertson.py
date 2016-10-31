@@ -21,15 +21,14 @@ def test_run_integration():
 
 def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
               logt=False, zero_conc=0, zero_time=0, nonnegative=None,
-              atol=1e-14, rtol=1e-10, **kwargs):
+              atol=1e-14, rtol=1e-10, integrator='cvode', nsteps=6000, **kwargs):
 
     ny, nk = 3, 3
     k = (.04, 1e4, 3e7)
     y0 = (1, zero_conc, zero_conc)
     t0, tend = zero_time, 1e11
     tot0 = np.sum(y0)
-    nsteps_cvode_1e11 = int(6000)
-    kw = dict(integrator='cvode', atol=atol, rtol=rtol, nsteps=nsteps_cvode_1e11)
+    kw = dict(integrator=integrator, atol=atol, rtol=rtol, nsteps=nsteps)
     kw.update(kwargs)
 
     atol_forgive = {

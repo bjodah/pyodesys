@@ -440,6 +440,46 @@ def _get_decay3(**kwargs):
         ], 3, 3, **kwargs)
 
 
+def test_no_diff_adaptive_chained_single():
+    odesys = _get_decay3()
+    tout, y0, k = [3, 5], [3, 2, 1], [3.5, 2.5, 1.5]
+    xout1, yout1, info1 = odesys.integrate(tout, y0, k, integrator='cvode')
+    ref = np.array(bateman_full(y0, k, xout1 - xout1[0], exp=np.exp)).T
+    assert info1['success']
+    assert xout1.size > 10
+    assert xout1.size == yout1.shape[0]
+    assert np.allclose(yout1, ref)
+
+    xout2, yout2, info2 = integrate_chained([odesys], {}, tout, y0, k, integrator='cvode')
+    assert info1['success']
+    assert xout2.size == xout1.size
+    assert np.allclose(yout2, ref)
+
+
+def test_no_diff_adaptive_chained_single__multimode():
+    odesys = _get_decay3()
+    tout = [[3, 5], [4, 6], [6, 8], [9, 11]]
+    _y0 = [3, 2, 1]
+    y0 = [_y0]*4
+    _k = [3.5, 2.5, 1.5]
+    k = [_k]*4
+    res1 = odesys.integrate(tout, y0, k, integrator='cvode')
+    for xout1, yout1, info1 in zip(*res1):
+        assert np.allclose(xout1 - xout1[0], res1[0][0] - res1[0][0][0])
+        assert np.allclose(yout1, res1[1][0])
+        ref = np.array(bateman_full(_y0, _k, xout1 - xout1[0], exp=np.exp)).T
+        assert info1['success']
+        assert xout1.size > 10
+        assert xout1.size == yout1.shape[0]
+        assert np.allclose(yout1, ref)
+
+    res2 = integrate_chained([odesys], {}, tout, y0, k, integrator='cvode')
+    for xout2, yout2, info2 in zip(*res2):
+        assert info1['success']
+        assert xout2.size == xout1.size
+        assert np.allclose(yout2, ref)
+
+
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_PartiallySolvedSystem():
     odesys = _get_decay3(nonnegative=True)

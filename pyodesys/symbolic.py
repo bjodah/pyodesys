@@ -308,6 +308,9 @@ class TransformedSys(SymbolicSys):
         Post processing of the expressions (signature: ``f(exprs) -> exprs``)
         for the derivatives of the dependent variables after transformation
         have been applied.
+    check_transforms : bool
+        Passed as keyword argument ``check`` to :func:`.util.transform_exprs_dep` and
+        :func:`.util.transform_exprs_indep`.
     \*\*kwargs :
         Keyword arguments passed onto :class:`SymbolicSys`.
 
@@ -315,19 +318,19 @@ class TransformedSys(SymbolicSys):
 
     def __init__(self, dep_exprs, indep=None, dep_transf=None,
                  indep_transf=None, params=(), exprs_process_cb=None,
-                 **kwargs):
+                 check_transforms=True, **kwargs):
         dep, exprs = zip(*dep_exprs)
         if dep_transf is not None:
             self.dep_fw, self.dep_bw = zip(*dep_transf)
-            exprs = transform_exprs_dep(self.dep_fw, self.dep_bw,
-                                        list(zip(dep, exprs)))
+            exprs = transform_exprs_dep(
+                self.dep_fw, self.dep_bw, list(zip(dep, exprs)), check_transforms)
         else:
             self.dep_fw, self.dep_bw = None, None
 
         if indep_transf is not None:
             self.indep_fw, self.indep_bw = indep_transf
-            exprs = transform_exprs_indep(self.indep_fw, self.indep_bw,
-                                          list(zip(dep, exprs)), indep)
+            exprs = transform_exprs_indep(
+                self.indep_fw, self.indep_bw, list(zip(dep, exprs)), indep, check_transforms)
         else:
             self.indep_fw, self.indep_bw = None, None
 

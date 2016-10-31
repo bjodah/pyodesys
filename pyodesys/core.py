@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function
 
 from collections import defaultdict
 import os
+import sys
 import warnings
 
 import numpy as np
@@ -604,7 +605,7 @@ class OdeSys(object):
 
 def _new_x(xout, x, guaranteed_autonomous):
     if guaranteed_autonomous:
-        return 0, x[-1] - xout[-1]
+        return 0, abs(x[-1] - xout[-1])  # rounding
     else:
         return xout[-1], x[-1]
 
@@ -640,21 +641,23 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
     multimode = False if x_arr.ndim < 2 else x_arr.shape[0]
     nfo_keys = ('nfev', 'njev', 'time_cpu', 'time_wall')
 
+    next_autonomous = getattr(odes[0], 'autonomous_interface', False) == True  # noqa (np.True_)
     if multimode:
-        tot_x = [np.empty(0) for _ in range(multimode)]
-        tot_y = [np.empty((0, len(y0[0]))) for _ in range(multimode)]
+        tot_x = [np.array([0] if next_autonomous else [x[_][0]]) for _ in range(multimode)]
+        tot_y = [np.asarray([y0[_]]) for _ in range(multimode)]
         tot_nfo = [defaultdict(int) for _ in range(multimode)]
-        glob_x = [0.0]*multimode
+        glob_x = [_[0] for _ in x] if next_autonomous else [0.0]*multimode
     else:
-        tot_x, tot_y, tot_nfo = np.empty(0), np.empty((0, len(y0))), defaultdict(int)
-        glob_x = 0.0
+        tot_x, tot_y, tot_nfo = np.array([0 if next_autonomous else x[0]]), np.asarray([y0]), defaultdict(int)
+        glob_x = x[0] if next_autonomous else 0.0
 
     for oi in range(len(odes)):
         if oi < len(odes) - 1:
-            next_autonomous = getattr(odes[oi+1], 'autonomous_interface', False) is True
+            next_autonomous = getattr(odes[oi+1], 'autonomous_interface', False) == True  # noqa (np.True_)
         _int_kw = kwargs.copy()
         for k, v in kw.items():
             _int_kw[k] = v[oi]
+        # sys.stderr.write(str(x)+'\n')  # DEBUG: DO-NOT-MERGE!
         xout, yout, nfo = odes[oi].integrate(x, y0, params, **_int_kw)
 
         if multimode:

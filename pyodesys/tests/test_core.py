@@ -4,6 +4,7 @@ from __future__ import (absolute_import, division, print_function)
 import pytest
 import numpy as np
 from .. import OdeSys
+from ..core import integrate_chained
 
 
 def vdp_f(t, y, p):
@@ -25,23 +26,30 @@ def vdp_j(t, y, p):
 
 def test_params():
     odes = OdeSys(vdp_f, vdp_j)
-    xout, yout, info = odes.integrate([0, 1, 2], [1, 0], params=[2.0],
-                                      integrator='scipy')
+    tout, y0, p = [0, 1, 2], [1, 0], [2.0]
+    xout, yout, info = odes.integrate(tout, y0, p)
     # blessed values:
     ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
     assert np.allclose(yout, ref)
     assert info['nfev'] > 0
+    assert info['success']
 
 
 @pytest.mark.parametrize('integrator', ['scipy', 'gsl', 'cvode', 'odeint'])
 def test_adaptive(integrator):
     odes = OdeSys(vdp_f, vdp_j, vdp_dfdt)
     kwargs = dict(params=[2.0])
-    xout, yout, info = odes.adaptive([1, 0], 0, 2, integrator=integrator, **kwargs)
+    y0, t0, tend = [1, 0], 0, 2
+    xout, yout, info = odes.adaptive(y0, t0, tend, integrator=integrator, **kwargs)
     # something is off with odeint (it looks as it is the step
     # size control which is too optimistic).
-    assert np.allclose(yout[-1, :], [-1.89021896, -0.71633577],
-                       rtol=.2 if integrator == 'odeint' else 1e-5)
+    ref = [-1.89021896, -0.71633577]
+    assert xout.size > 1
+    assert np.allclose(yout[-1, :], ref, rtol=.2 if integrator == 'odeint' else 1e-5)
+    assert info['success']
+    xout2, yout2, info2 = integrate_chained([odes], {}, [t0, tend], y0, **kwargs)
+    assert xout2.size > 1
+    assert np.allclose(ref, yout2[-1, :])
 
 
 @pytest.mark.parametrize('solver', ['scipy', 'gsl', 'odeint', 'cvode'])

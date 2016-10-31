@@ -20,13 +20,13 @@ from gsl_odeiv2_anyode_parallel cimport multi_predefined, multi_adaptive
 import numpy as np
 
 
-cdef list _as_dict(vector[unordered_map[string, int]] nfos, mode=None):
-    py_nfos = []
-    for idx in range(nfos.size()):
-        dct = {str(k.decode('utf-8')): v for k, v in dict(nfos[idx]).items()}
-        dct['mode'] = mode
-        py_nfos.append(dct)
-    return py_nfos
+cdef dict _as_dict(unordered_map[string, int] nfo,
+                   unordered_map[string, double] nfo_dbl,
+                   mode=None):
+    dct = {str(k.decode('utf-8')): v for k, v in dict(nfo).items()}
+    dct.update({str(k.decode('utf-8')): v for k, v in dict(nfo_dbl).items()})
+    dct['mode'] = mode
+    return dct
 
 
 def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
@@ -35,10 +35,11 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                        double atol, double rtol,
                        double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
-                       long int mxsteps=0, str method='bsimp'):
+                       long int mxsteps=0, str method='bsimp', int autorestart=0,
+                       bool return_on_error=False):
     cdef:
         vector[OdeSys *] systems
-        vector[unordered_map[string, int]] nfos
+        list nfos = []
         string _styp = method.lower().encode('UTF-8')
         vector[pair[vector[double], vector[double]]] result
 
@@ -51,7 +52,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
-        dx0, dx_min, dx_max)
+        dx0, dx_min, dx_max, autorestart, return_on_error)
 
     xout, yout = [], []
     for idx in range(y0.shape[0]):
@@ -59,12 +60,14 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         xout.append(_xout)
         _yout = np.asarray(result[idx].second)
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
-        nfos.push_back(systems[idx].last_integration_info)
+        nfos.append(_as_dict(systems[idx].last_integration_info,
+                             systems[idx].last_integration_info_dbl,
+                             mode='adaptive'))
         del systems[idx]
 
     yout_arr = [np.asarray(_) for _ in yout]
 
-    return (xout, yout, _as_dict(nfos, mode='adaptive'))
+    return (xout, yout, nfos)
 
 
 def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
@@ -75,7 +78,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          long int mxsteps=0, str method='bsimp'):
     cdef:
         vector[OdeSys *] systems
-        vector[unordered_map[string, int]] nfos
+        list nfos = []
         cnp.ndarray[cnp.float64_t, ndim=3, mode='c'] yout
         string _styp = method.lower().encode('UTF-8')
 
@@ -92,11 +95,10 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         mxsteps, dx0, dx_min, dx_max)
 
     for idx in range(y0.shape[0]):
-        nfos.push_back(systems[idx].last_integration_info)
+        nfos.append(_as_dict(systems[idx].last_integration_info,
+                             systems[idx].last_integration_info_dbl,
+                             mode='predefined'))
         del systems[idx]
 
     yout_arr = np.asarray(yout)
-    return (
-        yout,
-        _as_dict(nfos, mode='predefined')
-    )
+    return yout, nfos

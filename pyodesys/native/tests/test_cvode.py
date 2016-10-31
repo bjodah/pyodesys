@@ -55,7 +55,7 @@ def test_PartiallySolved_symmetric_native_multi():
 @pytest.mark.parametrize('reduced', [0, 3])
 def test_chained_multi_native(reduced):
     _test_chained_multi_native(
-        NativeSys, logc=True, logt=True, reduced=reduced, zero_time=1e-10,
+        NativeSys, 'cvode', logc=True, logt=True, reduced=reduced, zero_time=1e-10,
         zero_conc=1e-18, nonnegative=None
     )
 

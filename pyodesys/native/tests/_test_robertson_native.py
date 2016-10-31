@@ -8,7 +8,7 @@ from pyodesys.symbolic import SymbolicSys, PartiallySolvedSystem, symmetricsys, 
 from pyodesys.tests._robertson import get_ode_exprs
 
 
-def _test_chained_multi_native(NativeSys, **kwargs):
+def _test_chained_multi_native(NativeSys, integrator='cvode', **kwargs):
     logc, logt, reduced = kwargs.pop('logc'), kwargs.pop('logt'), kwargs.pop('reduced')
     zero_time, zero_conc, nonnegative = kwargs.pop('zero_time'), kwargs.pop('zero_conc'), kwargs.pop('nonnegative')
     logexp = (sp.log, sp.exp)
@@ -58,7 +58,7 @@ def _test_chained_multi_native(NativeSys, **kwargs):
     ]:
         _x, _y, _nfo = integrate_chained(
             sys_iter, kw, [(zero_time, tend)]*3,
-            [init_conc]*3, [k]*3, integrator='cvode', atol=1e-10, rtol=1e-14)
+            [init_conc]*3, [k]*3, integrator=integrator, atol=1e-10, rtol=1e-14)
 
         for x, y, nfo in zip(_x, _y, _nfo):
             assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=0.02)
