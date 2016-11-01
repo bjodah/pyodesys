@@ -44,12 +44,14 @@ def test_multiple_adaptive_chained():
         NativeSys, {'nsteps': (850, 1100), 'autorestart': (0, 3), 'return_on_error': (True, False)})
 
 
-def test_PartiallySolved_symmetric_native():
-    _test_PartiallySolved_symmetric_native(NativeSys)
+@pytest.mark.parametrize('multiple', [False, True])
+def test_PartiallySolved_symmetric_native(multiple):
+    _test_PartiallySolved_symmetric_native(NativeSys, multiple)
 
 
-def test_PartiallySolved_symmetric_native_multi():
-    _test_PartiallySolved_symmetric_native_multi(NativeSys)
+@pytest.mark.parametrize('multiple', [False, True])
+def test_PartiallySolved_symmetric_native_multi(multiple):
+    _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple)
 
 
 @pytest.mark.parametrize('reduced', [0, 3])

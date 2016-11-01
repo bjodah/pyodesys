@@ -101,11 +101,18 @@ def _test_Decay_nonnegative(NativeSys):
     assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
-def _get_transformed_partially_solved_system(NativeSys):
+def _get_transformed_partially_solved_system(NativeSys, multiple=False):
     odesys = _get_decay3()
-    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
-        odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
-    })
+    if multiple:
+        def substitutions(x0, y0, p0, be):
+            analytic0 = y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
+            analytic2 = y0[0] + y0[1] + y0[2] - analytic0 - odesys.dep[1]
+            return {odesys.dep[0]: analytic0, odesys.dep[2]: analytic2}
+    else:
+        def substitutions(x0, y0, p0, be):
+            return {odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))}
+
+    partsys = PartiallySolvedSystem(odesys, substitutions)
 
     class TransformedNativeSys(TransformedSys, NativeSys):
         pass
@@ -114,20 +121,20 @@ def _get_transformed_partially_solved_system(NativeSys):
     return LogLogSys.from_other(partsys)
 
 
-def _test_PartiallySolved_symmetric_native(NativeSys):
-    trnsfsys = _get_transformed_partially_solved_system(NativeSys)
+def _test_PartiallySolved_symmetric_native(NativeSys, multiple=False, **kwargs):
+    trnsfsys = _get_transformed_partially_solved_system(NativeSys, multiple)
     y0, k = [3., 2., 1.], [3.5, 2.5, 0]
-    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator='native')
+    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator='native', **kwargs)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert info['success'] and info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
     assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
-def _test_PartiallySolved_symmetric_native_multi(NativeSys):
-    trnsfsys = _get_transformed_partially_solved_system(NativeSys)
+def _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple=False, **kwargs):
+    trnsfsys = _get_transformed_partially_solved_system(NativeSys, multiple)
     y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
     ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
-    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='native')
+    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='native', **kwargs)
     for i, (y0, k) in enumerate(zip(y0s, ks)):
         ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
         assert info[i]['success'] and info[i]['nfev'] > 10

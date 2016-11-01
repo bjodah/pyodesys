@@ -12,7 +12,6 @@ from __future__ import absolute_import, division, print_function
 
 from collections import defaultdict
 import os
-import sys
 import warnings
 
 import numpy as np
@@ -56,7 +55,14 @@ class OdeSys(object):
     band : tuple of 2 integers or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
     names : iterable of strings (default: None)
-        names of variables, e.g. used for plotting
+        Names of variables, used for referencing dependent variables by name
+        and for labels in plots.
+    param_names : iterable of strings (default: None)
+        Names of the parameters, used for referencing parameters by name.
+    y_by_name : bool
+        When ``True`` :meth:`integrate` expects a dictionary as input for y0.
+    p_by_name : bool
+        When ``True`` :meth:`integrate` expects a dictionary as input for params.
     pre_processors : iterable of callables (optional)
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:].
         When modifying: insert at beginning.
@@ -80,6 +86,7 @@ class OdeSys(object):
     roots_cb : callback
     nroots : int
     names : iterable of strings
+    param_names : iterable of strings
     internal_xout : 1D array of floats
         internal values of dependent variable before post-processing
     internal_yout : 2D (or higher) array of floats
@@ -106,9 +113,9 @@ class OdeSys(object):
 
     """
 
-    def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None,
-                 band=None, names=None, description=None, pre_processors=None,
-                 post_processors=None, append_iv=False, **kwargs):
+    def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None, band=None,
+                 names=None, param_names=None, description=None, y_by_name=False, p_by_name=False,
+                 pre_processors=None, post_processors=None, append_iv=False, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -119,7 +126,10 @@ class OdeSys(object):
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
         self.names = names
+        self.param_names = param_names
         self.description = description
+        self.y_by_name = y_by_name
+        self.p_by_name = p_by_name
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.append_iv = append_iv
@@ -254,9 +264,13 @@ class OdeSys(object):
             yout : array of the dependent variable(s) for the different values of x
             info : dict ('nfev' is guaranteed to be a key)
         """
+        if self.y_by_name:
+            y0 = [y0[k] for k in self.names]
+        if self.p_by_name:
+            params = [params[k] for k in self.param_names]
         intern_x, intern_y0, intern_p = self.pre_process(x, y0, params)
         intern_x = intern_x.squeeze()
-        intern_y0 = np.atleast_1d(intern_y0.squeeze())
+        intern_y0 = np.atleast_1d(intern_y0)
         if self.append_iv:
             intern_p = np.concatenate((intern_p, intern_y0), axis=-1)
         if hasattr(self, 'ny'):
@@ -541,10 +555,10 @@ class OdeSys(object):
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
-
-        return cb(_default(internal_xout, self._internal[0]),
-                  _default(internal_yout, self._internal[1]),
-                  _default(internal_params, self._internal[2]), **kwargs)
+        _internal = getattr(self, '_internal', [None]*3)
+        return cb(_default(internal_xout, _internal[0]),
+                  _default(internal_yout, _internal[1]),
+                  _default(internal_params, _internal[2]), **kwargs)
 
     def plot_result(self, **kwargs):
         """ Plots the integrated dependent variables from last integration.
@@ -657,7 +671,6 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
         _int_kw = kwargs.copy()
         for k, v in kw.items():
             _int_kw[k] = v[oi]
-        # sys.stderr.write(str(x)+'\n')  # DEBUG: DO-NOT-MERGE!
         xout, yout, nfo = odes[oi].integrate(x, y0, params, **_int_kw)
 
         if multimode:

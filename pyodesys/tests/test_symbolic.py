@@ -2,6 +2,7 @@
 
 from __future__ import print_function, absolute_import, division
 
+from collections import defaultdict
 import math
 
 import numpy as np
@@ -440,30 +441,32 @@ def _get_decay3(**kwargs):
         ], 3, 3, **kwargs)
 
 
-def test_no_diff_adaptive_chained_single():
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_no_diff_adaptive_chained_single(integrator):
     odesys = _get_decay3()
     tout, y0, k = [3, 5], [3, 2, 1], [3.5, 2.5, 1.5]
-    xout1, yout1, info1 = odesys.integrate(tout, y0, k, integrator='cvode')
+    xout1, yout1, info1 = odesys.integrate(tout, y0, k, integrator=integrator)
     ref = np.array(bateman_full(y0, k, xout1 - xout1[0], exp=np.exp)).T
     assert info1['success']
     assert xout1.size > 10
     assert xout1.size == yout1.shape[0]
     assert np.allclose(yout1, ref)
 
-    xout2, yout2, info2 = integrate_chained([odesys], {}, tout, y0, k, integrator='cvode')
+    xout2, yout2, info2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator)
     assert info1['success']
     assert xout2.size == xout1.size
     assert np.allclose(yout2, ref)
 
 
-def test_no_diff_adaptive_chained_single__multimode():
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_no_diff_adaptive_chained_single__multimode(integrator):
     odesys = _get_decay3()
     tout = [[3, 5], [4, 6], [6, 8], [9, 11]]
     _y0 = [3, 2, 1]
     y0 = [_y0]*4
     _k = [3.5, 2.5, 1.5]
     k = [_k]*4
-    res1 = odesys.integrate(tout, y0, k, integrator='cvode')
+    res1 = odesys.integrate(tout, y0, k, integrator=integrator)
     for xout1, yout1, info1 in zip(*res1):
         assert np.allclose(xout1 - xout1[0], res1[0][0] - res1[0][0][0])
         assert np.allclose(yout1, res1[1][0])
@@ -473,7 +476,7 @@ def test_no_diff_adaptive_chained_single__multimode():
         assert xout1.size == yout1.shape[0]
         assert np.allclose(yout1, ref)
 
-    res2 = integrate_chained([odesys], {}, tout, y0, k, integrator='cvode')
+    res2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator)
     for xout2, yout2, info2 in zip(*res2):
         assert info1['success']
         assert xout2.size == xout1.size
@@ -481,32 +484,77 @@ def test_no_diff_adaptive_chained_single__multimode():
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_PartiallySolvedSystem():
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem(integrator):
     odesys = _get_decay3(nonnegative=True)
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be: {
         odesys.dep[0]: y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
     })
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 1.5]
-    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='cvode')
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator=integrator)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert info['success']
     assert np.allclose(yout, ref)
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_PartiallySolvedSystem__using_y():
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem__using_y(integrator):
     odesys = _get_decay3()
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
         odesys.dep[2]: y0[0] + y0[1] + y0[2] - odesys.dep[0] - odesys.dep[1]
     })
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 0]
-    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='cvode')
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator=integrator)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert info['success']
     assert np.allclose(yout, ref)
     assert np.allclose(np.sum(yout, axis=1), sum(y0))
+
+
+@pytest.mark.skipif(sym is None, reason='package sym missing')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem_multiple_subs(integrator):
+    odesys = _get_decay3(nonnegative=True)
+
+    def substitutions(x0, y0, p0, be):
+        analytic0 = y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
+        analytic2 = y0[0] + y0[1] + y0[2] - analytic0 - odesys.dep[1]
+        return {odesys.dep[0]: analytic0, odesys.dep[2]: analytic2}
+
+    partsys = PartiallySolvedSystem(odesys, substitutions)
+    y0 = [3, 2, 1]
+    k = [3.5, 2.5, 0]
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator=integrator)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
+    assert np.allclose(yout, ref)
+
+
+@pytest.mark.skipif(sym is None, reason='package sym missing')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
+    odesys = _get_decay3(nonnegative=True)
+
+    def substitutions(x0, y0, p0, be):
+        analytic0 = y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
+        analytic2 = y0[0] + y0[1] + y0[2] - analytic0 - odesys.dep[1]
+        return {odesys.dep[0]: analytic0, odesys.dep[2]: analytic2}
+
+    partsys = PartiallySolvedSystem(odesys, substitutions)
+    LogLogSys = symmetricsys(logexp, logexp)
+    loglogpartsys = LogLogSys.from_other(partsys)
+    y0 = [3, 2, 1]
+    k = [3.5, 2.5, 0]
+    tend = 1
+    xout, yout, info = loglogpartsys.integrate([1e-12, tend], y0, k, integrator=integrator)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
+    assert info['internal_yout'].shape[-1] == 1
+    assert info['internal_yout'][-1, 0] < 0  # ln(y[1])
+    assert np.allclose(yout, ref)
 
 
 def _get_transf_part_system():
@@ -519,11 +567,12 @@ def _get_transf_part_system():
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_PartiallySolvedSystem__symmetricsys():
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem__symmetricsys(integrator):
     trnsfsys = _get_transf_part_system()
     y0 = [3., 2., 1.]
     k = [3.5, 2.5, 0]
-    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator='cvode')
+    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator=integrator)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert info['success']
     assert np.allclose(yout, ref)
@@ -531,11 +580,12 @@ def test_PartiallySolvedSystem__symmetricsys():
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_PartiallySolvedSystem__symmetricsys__multi():
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
     trnsfsys = _get_transf_part_system()
     y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
     ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
-    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='cvode')
+    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator=integrator)
     for i, (y0, k) in enumerate(zip(y0s, ks)):
         ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
         assert info[i]['success'] and info[i]['nfev'] > 10
@@ -600,41 +650,41 @@ def test_SymbolicSys_from_callback__backends(backend):
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
-@pytest.mark.parametrize('p', [0, 1, 2, 3])
-def test_integrate_chained(p):
-    n, a = 7, 5
-    atol, rtol = 1e-10, 1e-10
-    y0, k, linsys = get_special_chain(n, p, a)
-    y0 += 1e-10
-    LogLogSys = symmetricsys(logexp, logexp)
-    logsys = LogLogSys.from_other(linsys)
-    tout = [10**-12, 1]
-    kw = dict(
-        integrator='cvode', method='adams', atol=atol, rtol=rtol,
-    )
-    forgive = (5+p)*1.2
+@pytest.mark.parametrize('integrator,method', [('cvode', 'adams'), ('gsl', 'msadams')])
+def test_integrate_chained(integrator, method):
+    for p in (0, 1, 2, 3):
+        n, a = 7, 5
+        atol, rtol = 1e-10, 1e-10
+        y0, k, linsys = get_special_chain(n, p, a)
+        y0 += 1e-10
+        LogLogSys = symmetricsys(logexp, logexp)
+        logsys = LogLogSys.from_other(linsys)
+        tout = [10**-12, 1]
+        kw = dict(
+            integrator=integrator, method=method, atol=atol, rtol=rtol,
+        )
+        forgive = (5+p)*1.2
 
-    xout, yout, info = integrate_chained([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
-                                         return_on_error=True, **kw)
-    assert info['success'] is False
-    ntot = 400
-    nlinear = 60*(p+3)
+        xout, yout, info = integrate_chained([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
+                                             return_on_error=True, **kw)
+        assert info['success'] is False
+        ntot = 400
+        nlinear = 60*(p+3)
 
-    xout, yout, info = integrate_chained([logsys, linsys], {
-        'nsteps': [ntot - nlinear, nlinear],
-        'first_step': [30.0, 1e-5],
-        'return_on_error': [True, False]
-    }, tout, y0, **kw)
-    assert info['success'] is True
-    check(yout[-1, :], n, p, a, atol, rtol, forgive)
+        xout, yout, info = integrate_chained([logsys, linsys], {
+            'nsteps': [ntot - nlinear, nlinear],
+            'first_step': [30.0, 1e-5],
+            'return_on_error': [True, False]
+        }, tout, y0, **kw)
+        assert info['success'] is True
+        check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
-def _test_cetsa(integrator, y0, params, extra=False):
+def _test_cetsa(y0, params, extra=False, **kwargs):
     # real-world based test-case
     from ._cetsa import _get_cetsa_odesys
     molar_unitless = 1e9
     t0, tend = 1e-16, 180
-    integrate_kwargs = dict(integrator=integrator)
     odesys = _get_cetsa_odesys(molar_unitless, False)
     tsys = _get_cetsa_odesys(molar_unitless, True)
     if y0.ndim == 1:
@@ -643,7 +693,7 @@ def _test_cetsa(integrator, y0, params, extra=False):
         tout = np.asarray([(t0, tend)]*y0.shape[0])
 
     comb_res = integrate_chained([tsys, odesys], {'nsteps': [500, 20]}, tout, y0/molar_unitless, params,
-                                 return_on_error=True, autorestart=2, **integrate_kwargs)
+                                 return_on_error=True, autorestart=2, **kwargs)
     if isinstance(comb_res[2], dict):
         assert comb_res[2]['success']
         assert comb_res[2]['nfev'] > 10
@@ -655,22 +705,80 @@ def _test_cetsa(integrator, y0, params, extra=False):
     if extra:
         with pytest.raises(RuntimeError):  # (failure)
             odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, atol=1e-7, rtol=1e-7,
-                             nsteps=500, **integrate_kwargs)
+                             nsteps=500, **kwargs)
 
-        res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1),
-                               **integrate_kwargs)
+        res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1), **kwargs)
         assert np.min(res[1][-1, :]) < -1e-6  # crazy! (failure of the linear formulation)
-        tres = tsys.integrate([t0, tend], y0/molar_unitless, params, nsteps=int(1345*1.1), **integrate_kwargs)
+        tres = tsys.integrate([t0, tend], y0/molar_unitless, params, nsteps=int(1345*1.1), **kwargs)
         assert tres[2]['success'] is True
         assert tres[2]['nfev'] > 100
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_cetsa():
-    _test_cetsa('cvode', _cetsa.ys[0], _cetsa.ps[0], extra=True)
-    _test_cetsa('cvode', _cetsa.ys[1], _cetsa.ps[1])
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_cetsa(integrator):
+    _test_cetsa(_cetsa.ys[1], _cetsa.ps[1], integrator=integrator)
+    if integrator == 'cvode':
+        _test_cetsa(_cetsa.ys[0], _cetsa.ps[0], extra=True, integrator=integrator)
 
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_cetsa_multi():
-    _test_cetsa('cvode', np.asarray(_cetsa.ys), np.asarray(_cetsa.ps))
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_cetsa_multi(integrator):
+    _test_cetsa(np.asarray(_cetsa.ys), np.asarray(_cetsa.ps), integrator=integrator)
+
+
+def test_y_by_name():
+    def _sin(t, y, p):
+        return {'prim': y['bis'], 'bis': -p[0]**2 * y['prim']}
+    odesys = SymbolicSys.from_callback(_sin, names=['prim', 'bis'], nparams=1, y_by_name=True)
+    A, k = 2, 3
+    xout, yout, info = odesys.integrate(np.linspace(0, 1), {'prim': 0, 'bis': A*k}, [k],
+                                        integrator='cvode', method='adams')
+    assert info['success']
+    assert xout.size > 7
+    ref = [
+        A*np.sin(k*(xout - xout[0])),
+        A*np.cos(k*(xout - xout[0]))*k
+    ]
+    assert np.allclose(yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
+    assert np.allclose(yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
+
+
+def _get_cetsa_isothermal():
+    # tests rhs returning dict, integrate with y0 being a dict & multiple solved variables
+    names = ('NL', 'N', 'L', 'U', 'A')
+    k_names = ('dis', 'as', 'un', 'fo', 'ag')
+
+    def i(n):
+        return names.index(n)
+
+    def k(n):
+        return k_names.index(n)
+
+    def rhs(x, y, p):
+        r = {
+            'diss': p['dis']*y['NL'],
+            'asso': p['as']*y['N']*y['L'],
+            'unfo': p['un']*y['N'],
+            'fold': p['fo']*y['U'],
+            'aggr': p['ag']*y['U']
+        }
+        return {
+            'NL': r['asso'] - r['diss'],
+            'N': r['diss'] - r['asso'] + r['fold'] - r['unfo'],
+            'L': r['diss'] - r['asso'],
+            'U': r['unfo'] - r['fold'] - r['aggr'],
+            'A': r['aggr']
+        }
+
+    return SymbolicSys.from_callback(rhs, y_by_name=True, p_by_name=True, names=names, param_names=k_names)
+
+
+def test_cetsa_isothermal():
+    odesys = _get_cetsa_isothermal()
+    tout = (0, 300)
+    par = {'dis': 10.0, 'as': 1e9, 'un': 0.1, 'fo': 2.0, 'ag': 0.05}
+    conc0 = defaultdict(float, {'NL': 1, 'L': 5})
+    xout, yout, nfo = odesys.integrate(tout, conc0, par)
+    assert nfo['success']

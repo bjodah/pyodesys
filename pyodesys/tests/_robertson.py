@@ -61,7 +61,7 @@ def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):
 
     def dydt(x, y, p, backend=np):
         if backend == np and not logc:
-            if np.any(y < 0):
+            if np.any(np.asarray(y) < 0):
                 raise RecoverableError
         exp = backend.exp
         k1, k2, k3 = p[:3]

@@ -8,6 +8,7 @@ solved systems.
 
 from __future__ import absolute_import, division, print_function
 
+from collections import OrderedDict
 from itertools import repeat
 
 import numpy as np
@@ -75,7 +76,8 @@ class SymbolicSys(OdeSys):
     roots : iterable of expressions or None
         Roots to report for during integration.
     ny : int
-        ``len(self.dep)``
+        ``len(self.dep)`` note that this is not neccessarily the expected length of
+        ``y0`` in the case of e.g. :class:`PartiallySolvedSystem`.
     be : module
         Symbolic backend.
 
@@ -109,40 +111,84 @@ class SymbolicSys(OdeSys):
             **kwargs)
 
     @classmethod
-    def from_callback(cls, cb, ny, nparams=0, **kwargs):
+    def from_callback(cls, rhs, ny=None, nparams=None, **kwargs):
         """ Create an instance from a callback.
 
         Parameters
         ----------
-        cb : callbable
-            Signature ``rhs(x, y[:], p[:]) -> f[:]``
+        rhs : callbable
+            Signature ``rhs(x, y[:], p[:]) -> f[:]``.
         ny : int
-            length of y
-        nparams : int (default: 0)
-            length of p
+            Length of ``y`` in ``rhs``.
+        nparams : int
+            Length of ``p`` in ``rhs``.
+        y_by_name : bool
+            Make ``y`` passed to ``rhs`` a dict (keys from :attr:`names`) and convert
+            its return value from dict to array.
+        p_by_name : bool
+            Make ``p`` passed to ``rhs`` a dict (keys from :attr:`param_names`).
         \*\*kwargs :
-            keyword arguments passed onto :class:`SymbolicSys`
+            Keyword arguments passed onto :class:`SymbolicSys`.
+
+        Examples
+        --------
+        >>> def decay(x, y, p, backend=None):
+        ...     rate = y['Po-210']*p[0]
+        ...     return {'Po-210': -rate, 'Pb-206': rate}
+        ...
+        >>> odesys = SymbolicSys.from_callback(decay, y_by_name=True, names=('Po-210', 'Pb-206'), nparams=1)
+        >>> xout, yout, info = odesys.integrate([0, 138.4*24*3600], {'Po-210': 1.0, 'Pb-206': 0.0}, [5.798e-8])
+        >>> import numpy as np; np.allclose(yout[-1, :], [0.5, 0.5], rtol=1e-3, atol=1e-3)
+        True
+
 
         Returns
         -------
         An instance of :class:`SymbolicSys`.
         """
+        if kwargs.get('y_by_name', False):
+            if 'names' not in kwargs:
+                raise ValueError("Need ``names`` in kwargs.")
+            if ny is None:
+                ny = len(kwargs['names'])
+            elif ny != len(kwargs['names']):
+                raise ValueError("Inconsistent between ``ny`` and length of ``names``.")
+
+        if kwargs.get('p_by_name', False):
+            if 'param_names' not in kwargs:
+                raise ValueError("Need ``param_names`` in kwargs.")
+            if nparams is None:
+                nparams = len(kwargs['param_names'])
+            elif nparams != len(kwargs['param_names']):
+                raise ValueError("Inconsistent between ``nparams`` and length of ``param_names``.")
+
+        if nparams is None:
+            nparams = 0
+
+        if ny is None:
+            raise ValueError("Need ``ny`` or ``names`` together with ``y_by_name==True``.")
+
         be = Backend(kwargs.pop('backend', None))
         x, = be.real_symarray('x', 1)
         y = be.real_symarray('y', ny)
         p = be.real_symarray('p', nparams)
+        _y = dict(zip(kwargs['names'], y)) if kwargs.get('y_by_name', False) else y
+        _p = dict(zip(kwargs['param_names'], p)) if kwargs.get('p_by_name', False) else p
         try:
-            exprs = cb(x, y, p, be)
+            exprs = rhs(x, _y, _p, be)
         except TypeError:
-            exprs = _ensure_4args(cb)(x, y, p, be)
+            exprs = _ensure_4args(rhs)(x, _y, _p, be)
+        if kwargs.get('y_by_name', False):
+            exprs = [exprs[k] for k in kwargs['names']]
         return cls(zip(y, exprs), x, p, backend=be, **kwargs)
 
     @classmethod
     def from_other(cls, ori, **kwargs):  # provisional
         if ori.roots is not None:
             raise NotImplementedError('roots currently unsupported')
-        if 'params' not in kwargs:
-            kwargs['params'] = ori.params
+        for k in ('params', 'names', 'param_names'):
+            if k not in kwargs:
+                kwargs[k] = getattr(ori, k)
         if 'nonnegative' not in kwargs:
             kwargs['nonnegative'] = getattr(ori, '_nonnegative', None)
 
@@ -213,7 +259,7 @@ class SymbolicSys(OdeSys):
 
     def _callback_factory(self, exprs):
         args = [self.indep] + list(self.dep) + list(self.params)
-        return _Wrapper(self.be.Lambdify(args, exprs), self.ny)
+        return _Wrapper(self.be.Lambdify(args, exprs), len(self.dep))
 
     def get_f_ty_callback(self):
         """ Generates a callback for evaluating ``self.exprs``. """
@@ -413,7 +459,7 @@ class TransformedSys(SymbolicSys):
         x, y, p = map(np.asarray, (x, y, p))
         if y.ndim == 1:
             return (x if self.f_indep is None else
-                    [self.f_indep(_, y, p) for _ in x],
+                    np.concatenate([self.f_indep(_, y, p) for _ in x]),
                     y if self.f_dep is None else self.f_dep(x[0], y, p), p)
         elif y.ndim == 2:
             return zip(*[self._forward_transform_xy(_x, _y, _p) for _x, _y, _p in zip(x, y, p)])
@@ -652,10 +698,12 @@ class PartiallySolvedSystem(SymbolicSys):
         new_params = _append(original_system.params, (self.init_indep,), self.init_dep)
         self.analytic_cb = self._get_analytic_cb(
             original_system, list(self.analytic_exprs.values()), new_dep, new_params)
-        analytic_ids = [original_system.dep.index(dep) for dep in self.analytic_exprs]
-        nanalytic = len(analytic_ids)
+        ori_analyt_idx_map = OrderedDict([(original_system.dep.index(dep), idx)
+                                          for idx, dep in enumerate(self.analytic_exprs)])
+        ori_remaining_idx_map = {original_system.dep.index(dep): idx for idx, dep in enumerate(new_dep)}
+        nanalytic = len(self.analytic_exprs)
         new_exprs = [expr.subs(self.analytic_exprs) for idx, expr in
-                     enumerate(original_system.exprs) if idx not in analytic_ids]
+                     enumerate(original_system.exprs) if idx not in ori_analyt_idx_map]
         new_kw = kwargs.copy()
         if 'name' not in new_kw and original_system.names is not None:
             new_kw['names'] = original_system.names
@@ -667,7 +715,7 @@ class PartiallySolvedSystem(SymbolicSys):
             if y.ndim == 2:
                 return zip(*[partially_solved_pre_processor(_x, _y, _p)
                              for _x, _y, _p in zip(x, y, p)])
-            return (x, _skip(analytic_ids, y), _append(p, [x[0]], y))
+            return (x, _skip(ori_analyt_idx_map, y), _append(p, [x[0]], y))
 
         def partially_solved_post_processor(x, y, p):
             try:
@@ -679,15 +727,11 @@ class PartiallySolvedSystem(SymbolicSys):
                              for _x, _y, _p in zip(x, y, p)])
             new_y = np.empty(y.shape[:-1] + (y.shape[-1]+nanalytic,))
             analyt_y = self.analytic_cb(x, y, p)
-            analyt_idx = 0
-            intern_idx = 0
             for idx in range(original_system.ny):
-                if idx in analytic_ids:
-                    new_y[..., idx] = analyt_y[..., analyt_idx]
-                    analyt_idx += 1
+                if idx in ori_analyt_idx_map:
+                    new_y[..., idx] = analyt_y[..., ori_analyt_idx_map[idx]]
                 else:
-                    new_y[..., idx] = y[..., intern_idx]
-                    intern_idx += 1
+                    new_y[..., idx] = y[..., ori_remaining_idx_map[idx]]
             return x, new_y, p[:-(1+original_system.ny)]
 
         new_kw['pre_processors'] = original_system.pre_processors + [partially_solved_pre_processor]

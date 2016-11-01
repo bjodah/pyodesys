@@ -172,6 +172,34 @@ def sine_dfdt(t, y, p):
     return [0, 0]
 
 
+def test_p_by_name():
+    odesys = OdeSys(sine, sine_jac, param_names=['k'], p_by_name=True)
+    A, k = 2, 3
+    xout, yout, info = odesys.integrate(np.linspace(0, 1), [0, A*k], {'k': k})
+    assert info['success']
+    assert xout.size > 7
+    ref = [
+        A*np.sin(k*(xout - xout[0])),
+        A*np.cos(k*(xout - xout[0]))*k
+    ]
+    assert np.allclose(yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
+    assert np.allclose(yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
+
+
+def test_y_by_name():
+    odesys = OdeSys(sine, sine_jac, names=['prim', 'bis'], y_by_name=True)
+    A, k = 2, 3
+    xout, yout, info = odesys.integrate(np.linspace(0, 1), {'prim': 0, 'bis': A*k}, [k])
+    assert info['success']
+    assert xout.size > 7
+    ref = [
+        A*np.sin(k*(xout - xout[0])),
+        A*np.cos(k*(xout - xout[0]))*k
+    ]
+    assert np.allclose(yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
+    assert np.allclose(yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
+
+
 def _test_integrate_multiple_adaptive(odes, **kwargs):
     _xout = np.array([[0, 1], [1, 2], [1, 7]])
     Ak = [[2, 3], [3, 4], [4, 5]]

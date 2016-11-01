@@ -24,4 +24,5 @@ PYTHON=python2 ./scripts/run_tests.sh
 PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 
 ./scripts/render_notebooks.sh
+(cd $PKG_NAME/tests; jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
 ./scripts/generate_docs.sh

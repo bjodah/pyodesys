@@ -45,18 +45,18 @@ def test_multiple_adaptive_chained():
 
 
 def test_PartiallySolved_symmetric_native():
-    _test_PartiallySolved_symmetric_native(NativeSys)
+    _test_PartiallySolved_symmetric_native(NativeSys, first_step=1e-10)
 
 
 def test_PartiallySolved_symmetric_native_multi():
-    _test_PartiallySolved_symmetric_native_multi(NativeSys)
+    _test_PartiallySolved_symmetric_native_multi(NativeSys, first_step=1e-10)
 
 
 @pytest.mark.parametrize('reduced', [0, 3])
 def test_chained_multi_native(reduced):
     _test_chained_multi_native(
         NativeSys, logc=True, logt=True, reduced=reduced, zero_time=1e-10,
-        zero_conc=1e-18, nonnegative=None
+        zero_conc=1e-18, nonnegative=None, integrator='gsl'
     )
 
 
