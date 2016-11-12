@@ -5,7 +5,10 @@ import copy
 import os
 import warnings
 
-import pygslodeiv2
+try:
+    import pygslodeiv2
+except ImportError:
+    pygslodeiv2 = None
 
 from .base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 

@@ -20,8 +20,8 @@ else:
 
 from .. import ODESys
 from ..core import integrate_chained
-from ..symbolic import SymbolicSys
-from ..symbolic import ScaledSys, symmetricsys, PartiallySolvedSystem
+from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem
+from ..util import requires
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
 from . import _cetsa
@@ -34,7 +34,7 @@ idty2 = (identity, identity)
 logexp = (sp.log, sp.exp)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 def test_SymbolicSys():
     odesys = SymbolicSys.from_callback(lambda x, y, p, be: [y[1], -y[0]], 2,
                                        names=['foo', 'bar'])
@@ -42,14 +42,13 @@ def test_SymbolicSys():
     with pytest.raises(ValueError):
         odesys.integrate(1, [0])
 
-    odesys2 = SymbolicSys.from_callback(lambda x, y, p, be: [y['bar'], -y['foo']], 2,
-                                        names=['foo', 'bar'])
-    odesys3 = SymbolicSys.from_callback(lambda x, y, p, be: {'foo': y['bar'],
-                                                             'bar': -y['foo']}, 2,
-                                        names=['foo', 'bar'])
-    for system in [odesys, odesys2, odesys3]:
+    odesys2 = SymbolicSys.from_callback(lambda x, y, p, be: {'foo': -y['foo'],
+                                                             'bar': y['foo']}, 2,
+                                        names=['foo', 'bar'], y_by_names=True)
+    for system in [odesys, odesys2]:
         xout, yout, info = system.integrate(1, {'foo': 2, 'bar': 3})
         assert np.allclose(yout[0, :], 2*np.exp(-xout))
+        assert np.allclose(yout[0, 1], 3 + 2*(1 - np.exp(-xout)))
 
 
 def decay_rhs(t, y, k):
@@ -77,27 +76,27 @@ def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1, **
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 def test_TransformedSys_liny_linx():
     _test_TransformedSys(idty2, idty2, 1e-11, 1e-11, 0, 15)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 def test_TransformedSys_logy_logx():
     _test_TransformedSys(logexp, logexp, 1e-7, 1e-7, 1e-4, 150, nsteps=800)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 def test_TransformedSys_logy_linx():
     _test_TransformedSys(logexp, idty2, 1e-8, 1e-8, 0, 150, nsteps=1700)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 def test_TransformedSys_liny_logx():
     _test_TransformedSys(idty2, logexp, 1e-9, 1e-9, 0, 150)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 def test_ScaledSys():
     k = k0, k1, k2 = [7., 3, 2]
     y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
@@ -117,7 +116,7 @@ def test_ScaledSys():
     assert np.allclose(yout, ref, rtol=2e-11, atol=2e-11)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 def test_ScaledSys_from_callback():
     # this is actually a silly example since it is linear
     def f(t, x, k):
@@ -137,7 +136,7 @@ def test_ScaledSys_from_callback():
         odesys.integrate([1e-12, 1], [0]*len(k), k, integrator='scipy')
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 def test_ScaledSys_from_callback__exprs():
     def f(t, x, k):
         return [-k[0]*x[0]*x[0]*t]
@@ -158,7 +157,7 @@ def timeit(callback, *args, **kwargs):
     return time.clock() - t0, result
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pyodeint')
 @pytest.mark.parametrize('method', ['bs', 'rosenbrock4'])
 def test_exp(method):
     x = sp.Symbol('x')
@@ -205,7 +204,7 @@ def decay_dydt_factory(k):
 
 # Short decay chains, using Bateman's equation
 # --------------------------------------------
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('band', [(1, 0), None])
 def test_SymbolicSys__from_callback_bateman(band):
     # Decay chain of 3 species (2 decays)
@@ -220,8 +219,8 @@ def test_SymbolicSys__from_callback_bateman(band):
     assert np.allclose(yout, ref, rtol=rtol, atol=atol)
 
 
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('band', [(1, 0), None])
-@pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_SymbolicSys_bateman(band):
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
@@ -266,7 +265,7 @@ def get_special_chain(n, p, a, **kwargs):
     return y0, k, SymbolicSys.from_callback(dydt, n, **kwargs)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('p', [0, 1, 2, 3])
 def test_check(p):
     n, a = 7, 5
@@ -277,7 +276,7 @@ def test_check(p):
 
 # adaptive stepsize with vode is performing ridiculously
 # poorly for this problem
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('name,forgive', zip(
     'dopri5 dop853 vode'.split(), (1, 1, (3, 3e6))))
 def test_scipy(name, forgive):
@@ -302,7 +301,7 @@ def test_scipy(name, forgive):
 
 
 # (dopri5, .2), (bs, .03) <-- works in boost 1.59
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pyodeint')
 @pytest.mark.parametrize('method,forgive', zip(
     'rosenbrock4'.split(), (.2,)))
 def test_odeint(method, forgive):
@@ -330,14 +329,14 @@ def _gsl(tout, method, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pygslodeiv2')
 @pytest.mark.parametrize('method,forgive', zip(
     'msadams msbdf rkck bsimp'.split(), (5, 14, 0.2, 0.02)))
 def test_gsl_predefined(method, forgive):
     _gsl([10**i for i in range(-14, 1)], method, forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pygslodeiv2')
 @pytest.mark.parametrize('method,forgive', zip(
     'bsimp msadams msbdf rkck'.split(), (0.004, 4, 14, 0.21)))
 def test_gsl_adaptive(method, forgive):
@@ -356,6 +355,7 @@ def _cvode(tout, method, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
+@requires('sym', 'pycvodes')
 @pytest.mark.parametrize('method,forgive', zip(
     'adams bdf'.split(), (1.3, 5.0)))
 def test_cvode_predefined(method, forgive):
@@ -363,14 +363,14 @@ def test_cvode_predefined(method, forgive):
 
 
 # cvode performs significantly better than vode:
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 @pytest.mark.parametrize('method,forgive', zip(
     'adams bdf'.split(), (1.5, 5)))
 def test_cvode_adaptive(method, forgive):
     _cvode(1, method, forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('n,forgive', [(4, 1), (17, 1), (42, 7)])
 def test_long_chain_dense(n, forgive):
     p, a = 0, n
@@ -382,7 +382,7 @@ def test_long_chain_dense(n, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('n', [29])  # something maxes out at 31
 def test_long_chain_banded_scipy(n):
     p, a = 0, n
@@ -413,7 +413,7 @@ def test_long_chain_banded_scipy(n):
     assert min_time_dens*2 > min_time_band  # (2x: fails sometimes due to load)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 @pytest.mark.parametrize('n', [29, 79])
 def test_long_chain_banded_cvode(n):
     p, a = 0, n
@@ -451,6 +451,7 @@ def _get_decay3(**kwargs):
         ], 3, 3, **kwargs)
 
 
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_no_diff_adaptive_chained_single(integrator):
     odesys = _get_decay3()
@@ -468,6 +469,7 @@ def test_no_diff_adaptive_chained_single(integrator):
     assert np.allclose(yout2, ref)
 
 
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_no_diff_adaptive_chained_single__multimode(integrator):
     odesys = _get_decay3()
@@ -493,7 +495,7 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
         assert np.allclose(yout2, ref)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem(integrator):
     odesys = _get_decay3(nonnegative=True)
@@ -508,7 +510,7 @@ def test_PartiallySolvedSystem(integrator):
     assert np.allclose(yout, ref)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem__using_y(integrator):
     odesys = _get_decay3()
@@ -524,7 +526,7 @@ def test_PartiallySolvedSystem__using_y(integrator):
     assert np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem_multiple_subs(integrator):
     odesys = _get_decay3(nonnegative=True)
@@ -543,7 +545,7 @@ def test_PartiallySolvedSystem_multiple_subs(integrator):
     assert np.allclose(yout, ref)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
     odesys = _get_decay3(nonnegative=True)
@@ -576,7 +578,7 @@ def _get_transf_part_system():
     return LogLogSys.from_other(partsys)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem__symmetricsys(integrator):
     trnsfsys = _get_transf_part_system()
@@ -589,7 +591,7 @@ def test_PartiallySolvedSystem__symmetricsys(integrator):
     assert np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
     trnsfsys = _get_transf_part_system()
@@ -603,7 +605,7 @@ def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
         assert np.allclose(yout[i], ref) and np.allclose(np.sum(yout[i], axis=1), sum(y0))
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 def test_SymbolicSys_from_other():
     scaled = ScaledSys.from_callback(lambda x, y: [y[0]*y[0]], 1,
                                      dep_scaling=101)
@@ -619,7 +621,7 @@ def test_SymbolicSys_from_other():
     assert np.allclose(yout, analytic)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 def test_backend():
 
     def f(x, y, p, backend=math):
@@ -648,9 +650,8 @@ def test_backend():
     _test_odesys(SymbolicSys.from_callback(f, 1, 1))
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
-@pytest.mark.parametrize('backend', sym_backends)
-def test_SymbolicSys_from_callback__backends(backend):
+@requires('sym', 'scipy')
+def _test_SymbolicSys_from_callback__backend(backend):
     ss = SymbolicSys.from_callback(vdp_f, 2, 1, backend=backend)
     xout, yout, info = ss.integrate([0, 1, 2], [1, 0], params=[2.0])
     # blessed values:
@@ -659,7 +660,26 @@ def test_SymbolicSys_from_callback__backends(backend):
     assert info['nfev'] > 0
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+def _test_SymbolicSys_from_callback__backend(backend):
+    _test_SymbolicSys_from_callback__backend('sympy')
+
+
+@requires('sym', 'sympy')
+def test_SymbolicSys_from_callback__sympy(backend):
+    _test_SymbolicSys_from_callback__backend('sympy')
+
+
+@requires('sym', 'symengine')
+def test_SymbolicSys_from_callback__symengine(backend):
+    _test_SymbolicSys_from_callback__backend('symengine')
+
+
+@requires('sym', 'symcxx')
+def test_SymbolicSys_from_callback__symcxx(backend):
+    _test_SymbolicSys_from_callback__backend('symcxx')
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator,method', [('cvode', 'adams'), ('gsl', 'msadams')])
 def test_integrate_chained(integrator, method):
     for p in (0, 1, 2, 3):
@@ -724,7 +744,7 @@ def _test_cetsa(y0, params, extra=False, **kwargs):
         assert tres[2]['nfev'] > 100
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_cetsa(integrator):
     _test_cetsa(_cetsa.ys[1], _cetsa.ps[1], integrator=integrator)
@@ -732,12 +752,13 @@ def test_cetsa(integrator):
         _test_cetsa(_cetsa.ys[0], _cetsa.ps[0], extra=True, integrator=integrator)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_cetsa_multi(integrator):
     _test_cetsa(np.asarray(_cetsa.ys), np.asarray(_cetsa.ps), integrator=integrator)
 
 
+@requires('sym', 'pycvodes')
 def test_y_by_name():
     def _sin(t, y, p):
         return {'prim': y['bis'], 'bis': -p[0]**2 * y['prim']}
@@ -785,6 +806,7 @@ def _get_cetsa_isothermal():
     return SymbolicSys.from_callback(rhs, y_by_name=True, p_by_name=True, names=names, param_names=k_names)
 
 
+@requires('sym', 'scipy')
 def test_cetsa_isothermal():
     odesys = _get_cetsa_isothermal()
     tout = (0, 300)

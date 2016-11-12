@@ -9,18 +9,30 @@ import shutil
 import sys
 import tempfile
 
-from appdirs import user_cache_dir
 import numpy as np
 import pkg_resources
-from pycodeexport.codeexport import Cpp_Code
-from pycompilation import compile_sources
 
 from ..symbolic import SymbolicSys
 from .. import __version__
 
-appauthor = "bjodah"
-appname = "python%d.%d-pyodesys-%s" % (sys.version_info[:2] + (__version__,))
-cachedir = user_cache_dir(appname, appauthor)
+try:
+    import appdirs
+except ImportError:
+    chachedir = None
+else:
+    appauthor = "bjodah"
+    appname = "python%d.%d-pyodesys-%s" % (sys.version_info[:2] + (__version__,))
+    cachedir = appdirs.user_cache_dir(appname, appauthor)
+
+try:
+    import pycodeexport
+except ImportError:
+    Cpp_Code = object
+    compile_sources = None
+else:
+    from pycodeexport.codeexport import Cpp_Code
+    from pycompilation import compile_sources
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -57,6 +69,8 @@ class _NativeCodeBase(Cpp_Code):
         self.so_file = '%s%s' % (self.wrapper_name, '.so')
         _wrapper_src = pkg_resources.resource_filename(
             __name__, 'sources/%s.pyx' % self.wrapper_name)
+        if cachedir is None:
+            raise ImportError("No module named appdirs (needed for caching)")
         _wrapper_obj = os.path.join(cachedir, '%s%s' % (self.wrapper_name, _obj_suffix))
         if not os.path.exists(cachedir):
             os.makedirs(cachedir)

@@ -9,11 +9,13 @@ import pytest
 from .. import ODESys
 from ..core import integrate_chained
 from ..symbolic import SymbolicSys, PartiallySolvedSystem, symmetricsys
+from ..util import requires
 from ._robertson import run_integration, get_ode_exprs
 
 _yref_1e11 = (0.2083340149701255e-7, 0.8333360770334713e-13, 0.9999999791665050)
 
 
+@requires('sym', 'sympy', 'pyodeint')
 def test_run_integration():
     xout, yout, info = run_integration(integrator='odeint')
     assert info['success'] is True
@@ -81,6 +83,7 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
                        rtol=kw['rtol'])
 
 
+@requires('sym', 'sympy', 'pycvodes')
 def test_get_ode_exprs_symbolic():
     _test_goe(symbolic=True, logc=True, logt=False, zero_conc=1e-20,
               atol=1e-8, rtol=1e-10, extra_forgive=2)
@@ -104,6 +107,7 @@ def test_get_ode_exprs_symbolic():
             _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14)
 
 
+@requires('sym', 'sympy', 'pycvodes')
 def test_get_ode_exprs_ODESys():
     _test_goe(symbolic=False, logc=True, logt=False, zero_conc=1e-20,
               atol=1e-8, rtol=1e-10, extra_forgive=2)
@@ -126,6 +130,7 @@ def test_get_ode_exprs_ODESys():
         _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14)
 
 
+@requires('sym', 'sympy', 'pycvodes')
 @pytest.mark.parametrize('reduced_nsteps', [
     (0, [(1, 1705*1.01), (4988*1.01, 1), (100, 1513*1.01), (4988*0.69, 1705*0.69)]),  # pays off in steps!
     (1, [(1, 1563), (100, 1600)]),  # worse than using nothing
@@ -162,6 +167,7 @@ def test_integrate_chained_robertson(reduced_nsteps):
         nfo['asdjklda']
 
 
+@requires('sym', 'sympy', 'pycvodes')
 def test_integrate_chained_multi_robertson():
     odes = logsys, linsys = [ODESys(*get_ode_exprs(l, l)) for l in [True, False]]
 

@@ -4,8 +4,12 @@ from __future__ import (absolute_import, division, print_function)
 import copy
 import os
 
-import pycvodes
-from pycvodes import _config
+try:
+    import pycvodes
+except ImportError:
+    pycvodes = None
+else:
+    from pycvodes import _config
 
 from .base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 

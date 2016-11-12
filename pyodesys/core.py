@@ -716,5 +716,6 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
     return tot_x, tot_y, tot_nfo
 
 
-OdeSys = ODESys  # deprecated
-OdeSys.__doc__ = "DEPRECATED, use ODESys instead."
+class OdeSys(ODESys):
+    """ DEPRECATED, use ODESys instead. """
+    pass
