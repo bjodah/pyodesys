@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This module contains a subclass of OdeSys which allows the user to generate
+This module contains a subclass of ODESys which allows the user to generate
 auxiliary expressions from a canonical set of symbolic expressions. Subclasses
 are also provided for dealing with variable transformations and partially
 solved systems.
@@ -20,16 +20,16 @@ except ImportError:
         def __call__(self, *args, **kwargs):
             raise ImportError("Could not import package 'sym'.")
 
-from .core import OdeSys, RecoverableError
+from .core import ODESys, RecoverableError
 from .util import (
     transform_exprs_dep, transform_exprs_indep, _ensure_4args, _Wrapper
 )
 
 
-class SymbolicSys(OdeSys):
+class SymbolicSys(ODESys):
     """ ODE System from symbolic expressions
 
-    Creates a :class:`OdeSys` instance
+    Creates a :class:`ODESys` instance
     from symbolic expressions. Jacboian and second derivatives
     are derived when needed.
 
@@ -60,7 +60,7 @@ class SymbolicSys(OdeSys):
     nonnegative : bool
         Convenience option setting the constraint: [y > 0 for y in self.dep]
     \*\*kwargs:
-        See :py:class:`OdeSys`
+        See :py:class:`ODESys`
 
     Attributes
     ----------
@@ -329,7 +329,7 @@ class SymbolicSys(OdeSys):
         Calculate sittness ratio, i.e. the ratio between the largest and
         smallest absolute eigenvalue of the (analytic) jacobian matrix.
 
-        See :meth:`OdeSys.stiffness` for more info.
+        See :meth:`ODESys.stiffness` for more info.
         """
         return self.stiffness(xyp, self._get_analytic_stiffness_cb())
 

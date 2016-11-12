@@ -177,7 +177,7 @@ def plot_phase_plane(x, y, params=(), indices=None, post_processors=(),
     indices: pair of integers (default: None)
         what dependent variable to plot for (None => (0, 1))
     post_processors: iterable of callbles
-        see :class:OdeSystem
+        see :class:ODESystem
     plot: callable (default: None)
         Uses matplotlib.pyplot.plot if None
     names: iterable of strings

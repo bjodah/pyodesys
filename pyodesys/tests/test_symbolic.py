@@ -18,7 +18,7 @@ except ImportError:
 else:
     sym_backends = sym.Backend.backends.keys()
 
-from .. import OdeSys
+from .. import ODESys
 from ..core import integrate_chained
 from ..symbolic import SymbolicSys
 from ..symbolic import ScaledSys, symmetricsys, PartiallySolvedSystem
@@ -36,10 +36,20 @@ logexp = (sp.log, sp.exp)
 
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 def test_SymbolicSys():
-    odesys = SymbolicSys.from_callback(lambda x, y, p, be: [y[1], -y[0]], 2)
+    odesys = SymbolicSys.from_callback(lambda x, y, p, be: [y[1], -y[0]], 2,
+                                       names=['foo', 'bar'])
     assert odesys.autonomous_interface is True
     with pytest.raises(ValueError):
         odesys.integrate(1, [0])
+
+    odesys2 = SymbolicSys.from_callback(lambda x, y, p, be: [y['bar'], -y['foo']], 2,
+                                        names=['foo', 'bar'])
+    odesys3 = SymbolicSys.from_callback(lambda x, y, p, be: {'foo': y['bar'],
+                                                             'bar': -y['foo']}, 2,
+                                        names=['foo', 'bar'])
+    for system in [odesys, odesys2, odesys3]:
+        xout, yout, info = system.integrate(1, {'foo': 2, 'bar': 3})
+        assert np.allclose(yout[0, :], 2*np.exp(-xout))
 
 
 def decay_rhs(t, y, k):
@@ -601,7 +611,7 @@ def test_SymbolicSys_from_other():
     transformed_scaled = LogLogSys.from_other(scaled)
     tout = np.array([0, .2, .5])
     y0 = [1.]
-    ref, nfo1 = OdeSys(lambda x, y: y[0]*y[0]).predefined(
+    ref, nfo1 = ODESys(lambda x, y: y[0]*y[0]).predefined(
         y0, tout, first_step=1e-14)
     analytic = 1/(1-tout.reshape(ref.shape))
     assert np.allclose(ref, analytic)
@@ -634,7 +644,7 @@ def test_backend():
         yout, info = odesys.predefined([y0], tout, [p])
         assert np.allclose(yout.flatten(), ref)
 
-    _test_odesys(OdeSys(f))
+    _test_odesys(ODESys(f))
     _test_odesys(SymbolicSys.from_callback(f, 1, 1))
 
 

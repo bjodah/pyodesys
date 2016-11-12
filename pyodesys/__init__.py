@@ -14,4 +14,4 @@ together.
 from __future__ import absolute_import
 
 from ._release import __version__
-from .core import OdeSys
+from .core import ODESys

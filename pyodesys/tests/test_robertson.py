@@ -6,7 +6,7 @@ import numpy as np
 import sympy
 import pytest
 
-from .. import OdeSys
+from .. import ODESys
 from ..core import integrate_chained
 from ..symbolic import SymbolicSys, PartiallySolvedSystem, symmetricsys
 from ._robertson import run_integration, get_ode_exprs
@@ -62,7 +62,7 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
             k += y0
             y0 = [y0[idx] for idx in range(3) if idx != reduced - 1]
 
-        s = OdeSys(f, j, autonomous_interface=not logt)
+        s = ODESys(f, j, autonomous_interface=not logt)
 
         if logc:
             y0 = np.log(y0)
@@ -104,7 +104,7 @@ def test_get_ode_exprs_symbolic():
             _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14)
 
 
-def test_get_ode_exprs_OdeSys():
+def test_get_ode_exprs_ODESys():
     _test_goe(symbolic=False, logc=True, logt=False, zero_conc=1e-20,
               atol=1e-8, rtol=1e-10, extra_forgive=2)
     _test_goe(symbolic=False, logc=True, logt=True, zero_conc=1e-20, zero_time=1e-12,
@@ -134,7 +134,7 @@ def test_get_ode_exprs_OdeSys():
 ])
 def test_integrate_chained_robertson(reduced_nsteps):
     rtols = {0: 0.02, 1: 0.1, 2: 0.02, 3: 0.015}
-    odes = logsys, linsys = [OdeSys(*get_ode_exprs(l, l, reduced=reduced_nsteps[0])) for l in [True, False]]
+    odes = logsys, linsys = [ODESys(*get_ode_exprs(l, l, reduced=reduced_nsteps[0])) for l in [True, False]]
 
     def pre(x, y, p):
         return np.log(x), np.log(y), p
@@ -163,7 +163,7 @@ def test_integrate_chained_robertson(reduced_nsteps):
 
 
 def test_integrate_chained_multi_robertson():
-    odes = logsys, linsys = [OdeSys(*get_ode_exprs(l, l)) for l in [True, False]]
+    odes = logsys, linsys = [ODESys(*get_ode_exprs(l, l)) for l in [True, False]]
 
     def pre(x, y, p):
         return np.log(x), np.log(y), p

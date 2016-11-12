@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import pytest
 import numpy as np
-from .. import OdeSys
+from .. import ODESys, OdeSys  # OdeSys deprecated
 from ..core import integrate_chained
 
 
@@ -37,7 +37,7 @@ def test_params():
 
 @pytest.mark.parametrize('integrator', ['scipy', 'gsl', 'cvode', 'odeint'])
 def test_adaptive(integrator):
-    odes = OdeSys(vdp_f, vdp_j, vdp_dfdt)
+    odes = ODESys(vdp_f, vdp_j, vdp_dfdt)
     kwargs = dict(params=[2.0])
     y0, t0, tend = [1, 0], 0, 2
     xout, yout, info = odes.adaptive(y0, t0, tend, integrator=integrator, **kwargs)
@@ -54,7 +54,7 @@ def test_adaptive(integrator):
 
 @pytest.mark.parametrize('solver', ['scipy', 'gsl', 'odeint', 'cvode'])
 def test_predefined(solver):
-    odes = OdeSys(vdp_f, vdp_j, vdp_dfdt)
+    odes = ODESys(vdp_f, vdp_j, vdp_dfdt)
     xout = [0, 0.7, 1.3, 2]
     yout, info = odes.predefined([1, 0], xout, params=[2.0], integrator=solver)
     assert np.allclose(yout[-1, :], [-1.89021896, -0.71633577])
@@ -94,7 +94,7 @@ def test_pre_post_processors():
     def dsdr(x, y, p):
         return [-1]
 
-    odesys = OdeSys(dsdr, pre_processors=(pre1, pre2),
+    odesys = ODESys(dsdr, pre_processors=(pre1, pre2),
                     post_processors=(post2, post1))
     k = 3.7
     A = 42
@@ -109,7 +109,7 @@ def test_pre_post_processors():
 
 def test_custom_module():
     from pyodesys.integrators import RK4_example_integartor
-    odes = OdeSys(vdp_f, vdp_j)
+    odes = ODESys(vdp_f, vdp_j)
     xout, yout, info = odes.integrate(
         [0, 2], [1, 0], params=[2.0], integrator=RK4_example_integartor,
         first_step=1e-2)
@@ -144,10 +144,10 @@ def _test_integrate_multiple_predefined(odes, **kwargs):
 
 
 def test_integarte_multiple_predefined():
-    _test_integrate_multiple_predefined(OdeSys(decay), integrator='scipy', method='dopri5')
-    _test_integrate_multiple_predefined(OdeSys(decay), integrator='cvode', method='adams', atol=1e-9)
-    _test_integrate_multiple_predefined(OdeSys(decay), integrator='odeint', method='bulirsch_stoer', atol=1e-9)
-    _test_integrate_multiple_predefined(OdeSys(decay), integrator='gsl', method='rkck')
+    _test_integrate_multiple_predefined(ODESys(decay), integrator='scipy', method='dopri5')
+    _test_integrate_multiple_predefined(ODESys(decay), integrator='cvode', method='adams', atol=1e-9)
+    _test_integrate_multiple_predefined(ODESys(decay), integrator='odeint', method='bulirsch_stoer', atol=1e-9)
+    _test_integrate_multiple_predefined(ODESys(decay), integrator='gsl', method='rkck')
 
 
 def sine(t, y, p):
@@ -173,7 +173,7 @@ def sine_dfdt(t, y, p):
 
 
 def test_p_by_name():
-    odesys = OdeSys(sine, sine_jac, param_names=['k'], p_by_name=True)
+    odesys = ODESys(sine, sine_jac, param_names=['k'], p_by_name=True)
     A, k = 2, 3
     xout, yout, info = odesys.integrate(np.linspace(0, 1), [0, A*k], {'k': k})
     assert info['success']
@@ -187,7 +187,7 @@ def test_p_by_name():
 
 
 def test_y_by_name():
-    odesys = OdeSys(sine, sine_jac, names=['prim', 'bis'], y_by_name=True)
+    odesys = ODESys(sine, sine_jac, names=['prim', 'bis'], y_by_name=True)
     A, k = 2, 3
     xout, yout, info = odesys.integrate(np.linspace(0, 1), {'prim': 0, 'bis': A*k}, [k])
     assert info['success']
@@ -218,18 +218,18 @@ def _test_integrate_multiple_adaptive(odes, **kwargs):
 
 
 def test_integarte_multiple_adaptive():
-    _test_integrate_multiple_adaptive(OdeSys(sine, sine_jac),
+    _test_integrate_multiple_adaptive(ODESys(sine, sine_jac),
                                       integrator='scipy', method='bdf', name='vode', first_step=1e-9)
-    _test_integrate_multiple_adaptive(OdeSys(sine, sine_jac),
+    _test_integrate_multiple_adaptive(ODESys(sine, sine_jac),
                                       integrator='cvode', method='bdf', nsteps=700)
-    _test_integrate_multiple_adaptive(OdeSys(sine, sine_jac, sine_dfdt),
+    _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, sine_dfdt),
                                       integrator='odeint', method='rosenbrock4', nsteps=1000)
-    _test_integrate_multiple_adaptive(OdeSys(sine, sine_jac, sine_dfdt),
+    _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, sine_dfdt),
                                       integrator='gsl', method='bsimp')
 
 
 def test_zero_time_adaptive():
-    odes = OdeSys(sine, sine_jac)
+    odes = ODESys(sine, sine_jac)
     xout, yout, info = odes.integrate(0, [0, 1], [2])
     assert xout.shape == (1,)
     assert yout.shape == (1, 2)

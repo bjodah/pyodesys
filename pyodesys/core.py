@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Core functionality from OdeSys.
+Core functionality for ODESys.
 
 Note that it is possible to use new custom ODE integrators with pyodesys by
 providing a module with two functions named ``integrate_adaptive`` and
@@ -24,10 +24,10 @@ class RecoverableError(Exception):
     pass
 
 
-class OdeSys(object):
+class ODESys(object):
     """ Object representing an ODE system.
 
-    ``OdeSys`` provides unified interface to:
+    ``ODESys`` provides unified interface to:
 
     - scipy.integarte.ode
     - pygslodeiv2
@@ -101,7 +101,7 @@ class OdeSys(object):
 
     Examples
     --------
-    >>> odesys = OdeSys(lambda x, y, p: p[0]*x + p[1]*y[0]*y[0])
+    >>> odesys = ODESys(lambda x, y, p: p[0]*x + p[1]*y[0]*y[0])
     >>> yout, info = odesys.predefined([1], [0, .2, .5], [2, 1])
     >>> print(info['success'])
     True
@@ -642,7 +642,7 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
     y0 : array_like
     params : array_like
     \*\*kwargs:
-        See :meth:`OdeSys.integrate`
+        See :meth:`ODESys.integrate`
 
     Notes
     -----
@@ -714,3 +714,7 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
     else:
         tot_nfo = dict(nsys=oi+1, **tot_nfo)
     return tot_x, tot_y, tot_nfo
+
+
+OdeSys = ODESys  # deprecated
+OdeSys.__doc__ = "DEPRECATED, use ODESys instead."
