@@ -25,12 +25,11 @@ else:
     cachedir = appdirs.user_cache_dir(appname, appauthor)
 
 try:
-    import pycodeexport
+    from pycodeexport.codeexport import Cpp_Code
 except ImportError:
     Cpp_Code = object
     compile_sources = None
 else:
-    from pycodeexport.codeexport import Cpp_Code
     from pycompilation import compile_sources
 
 

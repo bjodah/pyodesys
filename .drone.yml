@@ -1,10 +1,11 @@
 build:
-  image: bjodah/bjodahimg16:v1.2
+  image: bjodah/bjodahimg16dev:latest
   commands:
     - bash -c '[[ $(python setup.py --version) =~ ^[0-9]+.* ]]'
     - ./scripts/ci.sh pyodesys
-#    - ./scripts/ci_conda.sh pyodesys
     - ./scripts/prepare_deploy.sh
+    - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
+    - PATH=/opt/miniconda3/bin:$PATH conda build conda-recipe
     - if grep "DO-NOT-MERGE!" -R . --exclude ".drone.yml"; then exit 1; fi
 
 deploy:

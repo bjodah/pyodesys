@@ -7,6 +7,7 @@ from .. import ODESys, OdeSys  # OdeSys deprecated
 from ..core import integrate_chained
 from ..util import requires
 
+
 def vdp_f(t, y, p):
     return [y[1], -y[0] + p[0]*y[1]*(1 - y[0]**2)]
 

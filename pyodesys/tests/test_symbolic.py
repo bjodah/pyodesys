@@ -36,7 +36,8 @@ logexp = (sp.log, sp.exp)
 
 @requires('sym', 'scipy')
 def test_SymbolicSys():
-    odesys = SymbolicSys.from_callback(lambda x, y, p, be: [y[1], -y[0]], 2,
+    from pyodesys.integrators import RK4_example_integartor
+    odesys = SymbolicSys.from_callback(lambda x, y, p, be: [-y[0], y[0]], 2,
                                        names=['foo', 'bar'])
     assert odesys.autonomous_interface is True
     with pytest.raises(ValueError):
@@ -44,11 +45,11 @@ def test_SymbolicSys():
 
     odesys2 = SymbolicSys.from_callback(lambda x, y, p, be: {'foo': -y['foo'],
                                                              'bar': y['foo']}, 2,
-                                        names=['foo', 'bar'], y_by_names=True)
-    for system in [odesys, odesys2]:
-        xout, yout, info = system.integrate(1, {'foo': 2, 'bar': 3})
-        assert np.allclose(yout[0, :], 2*np.exp(-xout))
-        assert np.allclose(yout[0, 1], 3 + 2*(1 - np.exp(-xout)))
+                                        names=['foo', 'bar'], y_by_name=True)
+    for system, y0 in zip([odesys, odesys2], [[2, 3], {'foo': 2, 'bar': 3}]):
+        xout, yout, info = system.integrate(1, y0, integrator=RK4_example_integartor, dx0=1e-3)
+        assert np.allclose(yout[:, 0], 2*np.exp(-xout))
+        assert np.allclose(yout[:, 1], 3 + 2*(1 - np.exp(-xout)))
 
 
 def decay_rhs(t, y, k):
@@ -660,22 +661,18 @@ def _test_SymbolicSys_from_callback__backend(backend):
     assert info['nfev'] > 0
 
 
-def _test_SymbolicSys_from_callback__backend(backend):
-    _test_SymbolicSys_from_callback__backend('sympy')
-
-
 @requires('sym', 'sympy')
-def test_SymbolicSys_from_callback__sympy(backend):
+def test_SymbolicSys_from_callback__sympy():
     _test_SymbolicSys_from_callback__backend('sympy')
 
 
 @requires('sym', 'symengine')
-def test_SymbolicSys_from_callback__symengine(backend):
+def test_SymbolicSys_from_callback__symengine():
     _test_SymbolicSys_from_callback__backend('symengine')
 
 
 @requires('sym', 'symcxx')
-def test_SymbolicSys_from_callback__symcxx(backend):
+def test_SymbolicSys_from_callback__symcxx():
     _test_SymbolicSys_from_callback__backend('symcxx')
 
 

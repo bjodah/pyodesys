@@ -10,7 +10,6 @@ from pkg_resources import parse_requirements, parse_version
 import numpy as np
 
 
-
 def stack_1d_on_left(x, y):
     """ Stack a 1D array on the left side of a 2D array
 

@@ -1,25 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
-import pytest
+from ..util import requires
 
-try:
-    import matplotlib
-except ImportError:
-    matplotlib = None
 
 from pyodesys import ODESys
 from .test_core import vdp_f, vdp_j
 
 
-@pytest.mark.skipif(matplotlib is None, reason='package matplotlib missing')
+@requires('matplotlib')
 def test_plot_result():
     odes = ODESys(vdp_f, vdp_j)
     odes.integrate([0, 1, 2], [1, 0], params=[2.0], integrator='scipy')
     odes.plot_result()
 
 
-@pytest.mark.skipif(matplotlib is None, reason='package matplotlib missing')
+@requires('matplotlib', 'pycvodes')
 def test_plot_result_interpolation():
     odes = ODESys(vdp_f, vdp_j)
     odes.integrate([0, 1, 2], [1, 0], params=[2.0], nderiv=1,
