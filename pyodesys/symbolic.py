@@ -122,10 +122,10 @@ class SymbolicSys(ODESys):
             Length of ``y`` in ``rhs``.
         nparams : int
             Length of ``p`` in ``rhs``.
-        y_by_name : bool
+        dep_by_name : bool
             Make ``y`` passed to ``rhs`` a dict (keys from :attr:`names`) and convert
             its return value from dict to array.
-        p_by_name : bool
+        par_by_name : bool
             Make ``p`` passed to ``rhs`` a dict (keys from :attr:`param_names`).
         \*\*kwargs :
             Keyword arguments passed onto :class:`SymbolicSys`.
@@ -136,7 +136,7 @@ class SymbolicSys(ODESys):
         ...     rate = y['Po-210']*p[0]
         ...     return {'Po-210': -rate, 'Pb-206': rate}
         ...
-        >>> odesys = SymbolicSys.from_callback(decay, y_by_name=True, names=('Po-210', 'Pb-206'), nparams=1)
+        >>> odesys = SymbolicSys.from_callback(decay, dep_by_name=True, names=('Po-210', 'Pb-206'), nparams=1)
         >>> xout, yout, info = odesys.integrate([0, 138.4*24*3600], {'Po-210': 1.0, 'Pb-206': 0.0}, [5.798e-8])
         >>> import numpy as np; np.allclose(yout[-1, :], [0.5, 0.5], rtol=1e-3, atol=1e-3)
         True
@@ -146,7 +146,7 @@ class SymbolicSys(ODESys):
         -------
         An instance of :class:`SymbolicSys`.
         """
-        if kwargs.get('y_by_name', False):
+        if kwargs.get('dep_by_name', False):
             if 'names' not in kwargs:
                 raise ValueError("Need ``names`` in kwargs.")
             if ny is None:
@@ -154,7 +154,7 @@ class SymbolicSys(ODESys):
             elif ny != len(kwargs['names']):
                 raise ValueError("Inconsistent between ``ny`` and length of ``names``.")
 
-        if kwargs.get('p_by_name', False):
+        if kwargs.get('par_by_name', False):
             if 'param_names' not in kwargs:
                 raise ValueError("Need ``param_names`` in kwargs.")
             if nparams is None:
@@ -166,19 +166,19 @@ class SymbolicSys(ODESys):
             nparams = 0
 
         if ny is None:
-            raise ValueError("Need ``ny`` or ``names`` together with ``y_by_name==True``.")
+            raise ValueError("Need ``ny`` or ``names`` together with ``dep_by_name==True``.")
 
         be = Backend(kwargs.pop('backend', None))
         x, = be.real_symarray('x', 1)
         y = be.real_symarray('y', ny)
         p = be.real_symarray('p', nparams)
-        _y = dict(zip(kwargs['names'], y)) if kwargs.get('y_by_name', False) else y
-        _p = dict(zip(kwargs['param_names'], p)) if kwargs.get('p_by_name', False) else p
+        _y = dict(zip(kwargs['names'], y)) if kwargs.get('dep_by_name', False) else y
+        _p = dict(zip(kwargs['param_names'], p)) if kwargs.get('par_by_name', False) else p
         try:
             exprs = rhs(x, _y, _p, be)
         except TypeError:
             exprs = _ensure_4args(rhs)(x, _y, _p, be)
-        if kwargs.get('y_by_name', False):
+        if kwargs.get('dep_by_name', False):
             exprs = [exprs[k] for k in kwargs['names']]
         return cls(zip(y, exprs), x, p, backend=be, **kwargs)
 

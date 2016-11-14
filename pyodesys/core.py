@@ -54,15 +54,19 @@ class ODESys(object):
         Signature dfdx(x, y[:], p[:]) -> out[:] (used by e.g. GSL)
     band : tuple of 2 integers or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
-    names : iterable of strings (default: None)
+    names : iterable of strings (default : None)
         Names of variables, used for referencing dependent variables by name
         and for labels in plots.
     param_names : iterable of strings (default: None)
         Names of the parameters, used for referencing parameters by name.
-    y_by_name : bool
+    dep_by_name : bool
         When ``True`` :meth:`integrate` expects a dictionary as input for y0.
-    p_by_name : bool
+    par_by_name : bool
         When ``True`` :meth:`integrate` expects a dictionary as input for params.
+    latex_names : iterable of strings (default : None)
+        Names of variables in LaTeX format (e.g. for labels in plots).
+    latex_param_names : iterable of strings (default : None)
+        Names of parameters in LaTeX format (e.g. for labels in plots).
     pre_processors : iterable of callables (optional)
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:].
         When modifying: insert at beginning.
@@ -114,8 +118,9 @@ class ODESys(object):
     """
 
     def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None, band=None,
-                 names=None, param_names=None, description=None, y_by_name=False, p_by_name=False,
-                 pre_processors=None, post_processors=None, append_iv=False, **kwargs):
+                 names=None, param_names=None, description=None, dep_by_name=False, par_by_name=False,
+                 latex_names=None, latex_param_names=None, pre_processors=None, post_processors=None,
+                 append_iv=False, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -128,8 +133,10 @@ class ODESys(object):
         self.names = names
         self.param_names = param_names
         self.description = description
-        self.y_by_name = y_by_name
-        self.p_by_name = p_by_name
+        self.dep_by_name = dep_by_name
+        self.par_by_name = par_by_name
+        self.latex_names = latex_names
+        self.latex_param_names = latex_param_names
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.append_iv = append_iv
@@ -264,9 +271,9 @@ class ODESys(object):
             yout : array of the dependent variable(s) for the different values of x
             info : dict ('nfev' is guaranteed to be a key)
         """
-        if self.y_by_name:
+        if self.dep_by_name and isinstance(y0, dict):
             y0 = [y0[k] for k in self.names]
-        if self.p_by_name:
+        if self.par_by_name and isinstance(params, dict):
             params = [params[k] for k in self.param_names]
         intern_x, intern_y0, intern_p = self.pre_process(x, y0, params)
         intern_x = intern_x.squeeze()

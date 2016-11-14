@@ -2,10 +2,12 @@ unreleased
 ==========
 - New function ``core.integrate_chained`` for use with TransformedSys.
 - Calls to ``f(x, y[:], p[:])`` now carries y0 in p[np:np+ny] (also applies to jac, etc.)
+- Renamed OdeSys to ODESys (OdeSys left as a deprecated alias)
+- New arguments to ODESys: dep_by_name, par_by_name, param_names, latex_names, latex_param_names
 
 v0.7.0
 ======
-- Generate (multi-threaded) native code (against pyodeint, pycvodes, pygslodeiv2)
+- Generate (multi-threaded) C++ code (against pyodeint, pycvodes, pygslodeiv2)
 - OdeSys.internal_* -> OdeSys._internal
 
 v0.6.0
@@ -18,8 +20,7 @@ v0.5.3
 
 v0.5.2
 ======
-- from_callback now respects backend paramter (e.g. ``math`` or
-  ``sympy``)
+- from_callback now respects backend paramter (e.g. ``math`` or ``sympy``)
 
 v0.5.1
 ======
