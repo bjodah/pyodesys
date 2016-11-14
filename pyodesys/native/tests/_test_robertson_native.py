@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import sympy as sp
+try:
+    import sympy as sp
+except ImportError:
+    sp = None
 
 from pyodesys.core import integrate_chained
 from pyodesys.symbolic import SymbolicSys, PartiallySolvedSystem, symmetricsys, TransformedSys

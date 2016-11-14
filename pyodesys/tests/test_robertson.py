@@ -3,7 +3,10 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-import sympy
+try:
+    import sympy
+except ImportError:
+    sympy = None
 import pytest
 
 from .. import ODESys

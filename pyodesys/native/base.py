@@ -59,7 +59,8 @@ class _NativeCodeBase(Cpp_Code):
 
     namespace = {
         'p_includes': ['"odesys_anyode.hpp"'],
-        'support_recoverable_error': False
+        'p_support_recoverable_error': False,
+        'p_jacobian_set_to_zero_by_solver': False
     }
 
     def __init__(self, odesys, *args, **kwargs):

@@ -6,9 +6,13 @@ from collections import defaultdict
 import math
 
 import numpy as np
-import sympy as sp
 import pytest
 import time
+
+try:
+    import sympy as sp
+except ImportError:
+    sp = None
 
 try:
     import sym
@@ -31,7 +35,10 @@ def identity(x):
     return x
 
 idty2 = (identity, identity)
-logexp = (sp.log, sp.exp)
+
+
+def get_logexp():
+    return (sp.log, sp.exp)
 
 
 @requires('sym', 'scipy')
@@ -84,17 +91,17 @@ def test_TransformedSys_liny_linx():
 
 @requires('sym', 'pycvodes')
 def test_TransformedSys_logy_logx():
-    _test_TransformedSys(logexp, logexp, 1e-7, 1e-7, 1e-4, 150, nsteps=800)
+    _test_TransformedSys(get_logexp(), get_logexp(), 1e-7, 1e-7, 1e-4, 150, nsteps=800)
 
 
 @requires('sym', 'pycvodes')
 def test_TransformedSys_logy_linx():
-    _test_TransformedSys(logexp, idty2, 1e-8, 1e-8, 0, 150, nsteps=1700)
+    _test_TransformedSys(get_logexp(), idty2, 1e-8, 1e-8, 0, 150, nsteps=1700)
 
 
 @requires('sym', 'pycvodes')
 def test_TransformedSys_liny_logx():
-    _test_TransformedSys(idty2, logexp, 1e-9, 1e-9, 0, 150)
+    _test_TransformedSys(idty2, get_logexp(), 1e-9, 1e-9, 0, 150)
 
 
 @requires('sym', 'pycvodes')
@@ -557,7 +564,7 @@ def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
         return {odesys.dep[0]: analytic0, odesys.dep[2]: analytic2}
 
     partsys = PartiallySolvedSystem(odesys, substitutions)
-    LogLogSys = symmetricsys(logexp, logexp)
+    LogLogSys = symmetricsys(get_logexp(), get_logexp())
     loglogpartsys = LogLogSys.from_other(partsys)
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 0]
@@ -575,7 +582,7 @@ def _get_transf_part_system():
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
         odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
     })
-    LogLogSys = symmetricsys(logexp, logexp)
+    LogLogSys = symmetricsys(get_logexp(), get_logexp())
     return LogLogSys.from_other(partsys)
 
 
@@ -610,7 +617,7 @@ def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
 def test_SymbolicSys_from_other():
     scaled = ScaledSys.from_callback(lambda x, y: [y[0]*y[0]], 1,
                                      dep_scaling=101)
-    LogLogSys = symmetricsys(logexp, logexp)
+    LogLogSys = symmetricsys(get_logexp(), get_logexp())
     transformed_scaled = LogLogSys.from_other(scaled)
     tout = np.array([0, .2, .5])
     y0 = [1.]
@@ -684,7 +691,7 @@ def test_integrate_chained(integrator, method):
         atol, rtol = 1e-10, 1e-10
         y0, k, linsys = get_special_chain(n, p, a)
         y0 += 1e-10
-        LogLogSys = symmetricsys(logexp, logexp)
+        LogLogSys = symmetricsys(get_logexp(), get_logexp())
         logsys = LogLogSys.from_other(linsys)
         tout = [10**-12, 1]
         kw = dict(

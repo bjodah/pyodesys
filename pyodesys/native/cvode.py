@@ -19,7 +19,8 @@ class NativeCvodeCode(_NativeCodeBase):
 
     namespace = {
         'p_includes': ['"odesys_anyode_iterative.hpp"'],
-        'support_recoverable_error': True
+        'p_support_recoverable_error': True,
+        'p_jacobian_set_to_zero_by_solver': True
     }
 
     def __init__(self, *args, **kwargs):

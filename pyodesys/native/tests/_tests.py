@@ -3,7 +3,11 @@
 from __future__ import print_function, absolute_import, division
 
 import numpy as np
-import sympy as sp
+
+try:
+    import sympy as sp
+except ImportError:
+    sp = None
 
 from pyodesys.core import integrate_chained
 from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys, PartiallySolvedSystem
@@ -12,7 +16,7 @@ from pyodesys.tests.test_core import (
     vdp_f, _test_integrate_multiple_adaptive, _test_integrate_multiple_predefined, sine, decay
 )
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
-from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3, logexp
+from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3, get_logexp
 
 
 def _test_NativeSys(NativeSys, **kwargs):
@@ -117,7 +121,7 @@ def _get_transformed_partially_solved_system(NativeSys, multiple=False):
     class TransformedNativeSys(TransformedSys, NativeSys):
         pass
 
-    LogLogSys = symmetricsys(logexp, logexp, SuperClass=TransformedNativeSys)
+    LogLogSys = symmetricsys(get_logexp(), get_logexp(), SuperClass=TransformedNativeSys)
     return LogLogSys.from_other(partsys)
 
 

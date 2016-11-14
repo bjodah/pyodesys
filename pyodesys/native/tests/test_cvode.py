@@ -75,5 +75,13 @@ def test_chained_multi_native(reduced):
 
 
 @requires('pycvodes')
+def test_chained_multi_native_nonnegative():
+    _test_chained_multi_native(
+        NativeSys, 'cvode', logc=True, logt=True, reduced=0, zero_time=1e-10,
+        zero_conc=1e-18, nonnegative=True
+    )
+
+
+@requires('pycvodes')
 def test_Decay_nonnegative():
     _test_Decay_nonnegative(NativeSys)

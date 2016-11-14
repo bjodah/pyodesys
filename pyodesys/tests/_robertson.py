@@ -36,7 +36,10 @@ from __future__ import division, print_function, absolute_import
 import math
 
 import numpy as np
-import sympy as sp
+try:
+    import sympy as sp
+except ImportError:
+    sp = None
 
 from ..core import RecoverableError
 from ..symbolic import ScaledSys

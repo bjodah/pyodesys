@@ -58,7 +58,12 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
 
   % for i_major in range(p_odesys.ny):
    % for i_minor in range(p_odesys.ny):
-    jac[ldim*${i_major} + ${i_minor}] = ${p_jac_exprs[i_minor, i_major] if order == 'cmaj' else p_jac_exprs[i_major, i_minor]};
+    <%
+      curr_expr = p_jac_exprs[i_minor, i_major] if order == 'cmaj' else p_jac_exprs[i_major, i_minor]
+      if curr_expr == '0' and p_jacobian_set_to_zero_by_solver:
+          continue
+    %>
+    jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
    % endfor
 
   % endfor

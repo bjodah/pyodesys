@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 from ..symbolic import SymbolicSys
+from ..util import requires
 from .test_symbolic import decay_dydt_factory
 
 
+@requires('sym', 'scipy')
 def test_banded_jacobian():
     # Decay chain of 3 species (2 decays)
     # A --[k0=4]--> B --[k1=3]--> C

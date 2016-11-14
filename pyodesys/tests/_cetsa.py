@@ -4,8 +4,11 @@ from __future__ import (absolute_import, division, print_function)
 import math
 from collections import OrderedDict
 
-import sympy as sp
 import numpy as np
+try:
+    import sympy as sp
+except ImportError:
+    sp = None
 
 from ..symbolic import SymbolicSys, TransformedSys, symmetricsys
 
