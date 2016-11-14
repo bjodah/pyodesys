@@ -32,4 +32,4 @@ PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 python3 -m pip install virtualenv
 python3 -m virtualenv venv
 set +u
-(source ./venv/bin/activate; python3 -m pip install pytest; python3 -m pytest $PKG_NAME)
+(source ./venv/bin/activate; python3 -m pip install pytest .; python3 -m pytest $PKG_NAME)
