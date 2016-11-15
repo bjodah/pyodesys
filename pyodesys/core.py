@@ -159,6 +159,11 @@ class ODESys(object):
 
     def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
+        if self.dep_by_name and isinstance(y0, dict):
+            y0 = [y0[k] for k in self.names]
+        if self.par_by_name and isinstance(params, dict):
+            params = [params[k] for k in self.param_names]
+
         try:
             nx = len(xout)
             if nx == 1:
@@ -271,10 +276,6 @@ class ODESys(object):
             yout : array of the dependent variable(s) for the different values of x
             info : dict ('nfev' is guaranteed to be a key)
         """
-        if self.dep_by_name and isinstance(y0, dict):
-            y0 = [y0[k] for k in self.names]
-        if self.par_by_name and isinstance(params, dict):
-            params = [params[k] for k in self.param_names]
         intern_x, intern_y0, intern_p = self.pre_process(x, y0, params)
         intern_x = intern_x.squeeze()
         intern_y0 = np.atleast_1d(intern_y0)
