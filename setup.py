@@ -4,7 +4,9 @@
 import io
 from itertools import chain
 import os
+import re
 import shutil
+import subprocess
 import warnings
 
 from setuptools import setup
@@ -40,6 +42,15 @@ else:
     TAGGED_RELEASE = False
     # read __version__ attribute from _release.py:
     exec(open(release_py_path).read())
+    if __version__.endswith('git'):
+        try:
+            _git_version = subprocess.check_output(['git', 'describe']).rstrip().decode('utf-8')
+        except subprocess.CalledProcessError:
+            warnings.warn("A git-archive is being installed - version information incomplete.")
+        else:
+            warnings.warn("Using git to derive version: dev-branches may compete.")
+            __version__ = re.sub('v([0-9.]+)-(\d+)-(\w+)', r'\1.dev\2+\3', _git_version)
+
 
 classifiers = [
     "Development Status :: 4 - Beta",
