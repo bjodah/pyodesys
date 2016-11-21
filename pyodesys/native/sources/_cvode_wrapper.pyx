@@ -40,14 +40,14 @@ cdef dict _as_dict(unordered_map[string, int] nfo,
 
 
 def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
-                       cnp.ndarray[cnp.float64_t, ndim=1] x0,
-                       cnp.ndarray[cnp.float64_t, ndim=1] xend,
+                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] x0,
+                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] xend,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                        vector[double] atol,
                        double rtol,
-                       cnp.ndarray[cnp.float64_t, ndim=1] dx0,
-                       cnp.ndarray[cnp.float64_t, ndim=1] dx_min,
-                       cnp.ndarray[cnp.float64_t, ndim=1] dx_max,
+                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx0,
+                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx_min=None,
+                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx_max=None,
                        long int mxsteps=0,
                        str iter_type='undecided', int linear_solver=0, str method='BDF',
                        bool with_jacobian=True, int autorestart=0, bool return_on_error=False):
@@ -67,11 +67,18 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         raise ValueError("NaN found in y0")
 
     if dx0 is None:
-        dx0 = np.zeros_like(y0.shape[0])
+        dx0 = np.zeros(y0.shape[0])
     if dx_min is None:
-        dx_min = np.zeros_like(y0.shape[0])
+        dx_min = np.zeros(y0.shape[0])
     if dx_max is None:
-        dx_max = np.zeros_like(y0.shape[0])
+        dx_max = np.zeros(y0.shape[0])
+
+    if dx0.size < y0.shape[0]:
+        raise ValueError('dx0 too short')
+    if dx_min.size < y0.shape[0]:
+        raise ValueError('dx_min too short')
+    if dx_max.size < y0.shape[0]:
+        raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
@@ -105,9 +112,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                          vector[double] atol,
                          double rtol,
-                         cnp.ndarray[cnp.float64_t, ndim=1] dx0,
-                         cnp.ndarray[cnp.float64_t, ndim=1] dx_min,
-                         cnp.ndarray[cnp.float64_t, ndim=1] dx_max,
+                         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx0,
+                         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx_min=None,
+                         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx_max=None,
                          long int mxsteps=0,
                          str iter_type='undecided', int linear_solver=0, str method='BDF',
                          bool with_jacobian=True, int autorestart=0):
@@ -125,11 +132,18 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         raise ValueError("NaN found in y0")
 
     if dx0 is None:
-        dx0 = np.zeros_like(y0.shape[0])
+        dx0 = np.zeros(y0.shape[0])
     if dx_min is None:
-        dx_min = np.zeros_like(y0.shape[0])
+        dx_min = np.zeros(y0.shape[0])
     if dx_max is None:
-        dx_max = np.zeros_like(y0.shape[0])
+        dx_max = np.zeros(y0.shape[0])
+
+    if dx0.size < y0.shape[0]:
+        raise ValueError('dx0 too short')
+    if dx_min.size < y0.shape[0]:
+        raise ValueError('dx_min too short')
+    if dx_max.size < y0.shape[0]:
+        raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))

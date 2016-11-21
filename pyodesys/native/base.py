@@ -151,6 +151,11 @@ class _NativeSysBase(SymbolicSys):
         params = np.ascontiguousarray(intern_p, dtype=np.float64)
         if atol.size != 1 and atol.size != self.ny:
             raise ValueError("atol needs to be of length 1 or %d" % self.ny)
+        if not isinstance(first_step, np.ndarray):
+            first_step = np.asarray(first_step)
+            if first_step.ndim == 0:
+                first_step = first_step.repeat(y0.shape[0])
+
         if intern_x.shape[-1] == 2 and not force_predefined:
             intern_xout, yout, info = self._native.mod.integrate_adaptive(
                 y0=y0,
