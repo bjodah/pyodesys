@@ -30,11 +30,13 @@ cdef dict _as_dict(unordered_map[string, int] nfo,
 
 
 def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] x0,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] xend,
+                       cnp.ndarray[cnp.float64_t, ndim=1] x0,
+                       cnp.ndarray[cnp.float64_t, ndim=1] xend,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                        double atol, double rtol,
-                       double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
+                       cnp.ndarray[cnp.float64_t, ndim=1] dx0,
+                       cnp.ndarray[cnp.float64_t, ndim=1] dx_min,
+                       cnp.ndarray[cnp.float64_t, ndim=1] dx_max,
                        long int mxsteps=0, str method='bsimp', int autorestart=0,
                        bool return_on_error=False):
     cdef:
@@ -46,13 +48,20 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
+    if dx0 is None:
+        dx0 = np.zeros_like(y0.shape[0])
+    if dx_min is None:
+        dx_min = np.zeros_like(y0.shape[0])
+    if dx_max is None:
+        dx_max = np.zeros_like(y0.shape[0])
+
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
-        dx0, dx_min, dx_max, autorestart, return_on_error)
+        &dx0[0], &dx_min[0], &dx_max[0], autorestart, return_on_error)
 
     xout, yout = [], []
     for idx in range(y0.shape[0]):
@@ -74,7 +83,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] xout,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                          double atol, double rtol,
-                         double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
+                         cnp.ndarray[cnp.float64_t, ndim=1] dx0,
+                         cnp.ndarray[cnp.float64_t, ndim=1] dx_min,
+                         cnp.ndarray[cnp.float64_t, ndim=1] dx_max,
                          long int mxsteps=0, str method='bsimp'):
     cdef:
         vector[OdeSys *] systems
@@ -85,6 +96,13 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
+    if dx0 is None:
+        dx0 = np.zeros_like(y0.shape[0])
+    if dx_min is None:
+        dx_min = np.zeros_like(y0.shape[0])
+    if dx_max is None:
+        dx_max = np.zeros_like(y0.shape[0])
+
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
 
@@ -92,7 +110,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     multi_predefined[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data, xout.shape[1],
         <double *>xout.data, <double *>yout.data,
-        mxsteps, dx0, dx_min, dx_max)
+        mxsteps, &dx0[0], &dx_min[0], &dx_max[0])
 
     for idx in range(y0.shape[0]):
         nfos.append(_as_dict(systems[idx].last_integration_info,

@@ -19,11 +19,13 @@ import numpy as np
 
 from odesys_util cimport adaptive_return
 
+
 cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
     cdef cppclass OdeSys:
         OdeSys(const double * const) nogil except +
         unordered_map[string, int] last_integration_info
         unordered_map[string, double] last_integration_info_dbl
+
 
 cdef dict _as_dict(unordered_map[string, int] nfo,
                    unordered_map[string, double] nfo_dbl,
@@ -38,12 +40,14 @@ cdef dict _as_dict(unordered_map[string, int] nfo,
 
 
 def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] x0,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] xend,
+                       cnp.ndarray[cnp.float64_t, ndim=1] x0,
+                       cnp.ndarray[cnp.float64_t, ndim=1] xend,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                        vector[double] atol,
                        double rtol,
-                       double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
+                       cnp.ndarray[cnp.float64_t, ndim=1] dx0,
+                       cnp.ndarray[cnp.float64_t, ndim=1] dx_min,
+                       cnp.ndarray[cnp.float64_t, ndim=1] dx_max,
                        long int mxsteps=0,
                        str iter_type='undecided', int linear_solver=0, str method='BDF',
                        bool with_jacobian=True, int autorestart=0, bool return_on_error=False):
@@ -62,13 +66,20 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
+    if dx0 is None:
+        dx0 = np.zeros_like(y0.shape[0])
+    if dx_min is None:
+        dx_min = np.zeros_like(y0.shape[0])
+    if dx_max is None:
+        dx_max = np.zeros_like(y0.shape[0])
+
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
-        dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver,
+        &dx0[0], &dx_min[0], &dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
         maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error
     )
 
@@ -94,7 +105,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                          vector[double] atol,
                          double rtol,
-                         double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
+                         cnp.ndarray[cnp.float64_t, ndim=1] dx0,
+                         cnp.ndarray[cnp.float64_t, ndim=1] dx_min,
+                         cnp.ndarray[cnp.float64_t, ndim=1] dx_max,
                          long int mxsteps=0,
                          str iter_type='undecided', int linear_solver=0, str method='BDF',
                          bool with_jacobian=True, int autorestart=0):
@@ -111,13 +124,20 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
+    if dx0 is None:
+        dx0 = np.zeros_like(y0.shape[0])
+    if dx_min is None:
+        dx_min = np.zeros_like(y0.shape[0])
+    if dx_max is None:
+        dx_max = np.zeros_like(y0.shape[0])
+
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data, <double *>yout.data,
-        mxsteps, dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver, autorestart)
+        mxsteps, &dx0[0], &dx_min[0], &dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver, autorestart)
 
     for idx in range(y0.shape[0]):
         root_indices.push_back(result[idx].first)
