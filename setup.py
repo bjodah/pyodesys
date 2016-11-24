@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import warnings
 
 from setuptools import setup
