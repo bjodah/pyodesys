@@ -26,6 +26,31 @@ from .util import (
 )
 
 
+def _get_ny_nparams_from_kw(ny, nparams, kwargs):
+    if kwargs.get('dep_by_name', False):
+        if 'names' not in kwargs:
+            raise ValueError("Need ``names`` in kwargs.")
+        if ny is None:
+            ny = len(kwargs['names'])
+        elif ny != len(kwargs['names']):
+            raise ValueError("Inconsistent between ``ny`` and length of ``names``.")
+
+    if kwargs.get('par_by_name', False):
+        if 'param_names' not in kwargs:
+            raise ValueError("Need ``param_names`` in kwargs.")
+        if nparams is None:
+            nparams = len(kwargs['param_names'])
+        elif nparams != len(kwargs['param_names']):
+            raise ValueError("Inconsistent between ``nparams`` and length of ``param_names``.")
+
+    if nparams is None:
+        nparams = 0
+
+    if ny is None:
+        raise ValueError("Need ``ny`` or ``names`` together with ``dep_by_name==True``.")
+    return ny, nparams
+
+
 class SymbolicSys(ODESys):
     """ ODE System from symbolic expressions
 
@@ -146,28 +171,7 @@ class SymbolicSys(ODESys):
         -------
         An instance of :class:`SymbolicSys`.
         """
-        if kwargs.get('dep_by_name', False):
-            if 'names' not in kwargs:
-                raise ValueError("Need ``names`` in kwargs.")
-            if ny is None:
-                ny = len(kwargs['names'])
-            elif ny != len(kwargs['names']):
-                raise ValueError("Inconsistent between ``ny`` and length of ``names``.")
-
-        if kwargs.get('par_by_name', False):
-            if 'param_names' not in kwargs:
-                raise ValueError("Need ``param_names`` in kwargs.")
-            if nparams is None:
-                nparams = len(kwargs['param_names'])
-            elif nparams != len(kwargs['param_names']):
-                raise ValueError("Inconsistent between ``nparams`` and length of ``param_names``.")
-
-        if nparams is None:
-            nparams = 0
-
-        if ny is None:
-            raise ValueError("Need ``ny`` or ``names`` together with ``dep_by_name==True``.")
-
+        ny, nparams = _get_ny_nparams_from_kw(ny, nparams, kwargs)
         be = Backend(kwargs.pop('backend', None))
         x, = be.real_symarray('x', 1)
         y = be.real_symarray('y', ny)
@@ -397,7 +401,7 @@ class TransformedSys(SymbolicSys):
         self.b_indep = None if self.indep_bw is None else self._callback_factory([self.indep_bw])
 
     @classmethod
-    def from_callback(cls, cb, ny, nparams=0, dep_transf_cbs=None,
+    def from_callback(cls, cb, ny=None, nparams=None, dep_transf_cbs=None,
                       indep_transf_cbs=None, **kwargs):
         """
         Create an instance from a callback.
@@ -420,6 +424,7 @@ class TransformedSys(SymbolicSys):
             Keyword arguments passed onto :class:`TransformedSys`.
 
         """
+        ny, nparams = _get_ny_nparams_from_kw(ny, nparams, kwargs)
         be = Backend(kwargs.pop('backend', None))
         x, = be.real_symarray('x', 1)
         y = be.real_symarray('y', ny)
@@ -524,7 +529,7 @@ def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs
                 **new_kwargs)
 
         @classmethod
-        def from_callback(cls, cb, ny, nparams=0, **inner_kwargs):
+        def from_callback(cls, cb, ny=None, nparams=None, **inner_kwargs):
             new_kwargs = kwargs.copy()
             new_kwargs.update(inner_kwargs)
             return SuperClass.from_callback(
@@ -588,7 +593,7 @@ class ScaledSys(TransformedSys):
             **kwargs)
 
     @classmethod
-    def from_callback(cls, cb, ny, nparams=0, dep_scaling=1, indep_scaling=1,
+    def from_callback(cls, cb, ny=None, nparams=None, dep_scaling=1, indep_scaling=1,
                       **kwargs):
         """
         Create an instance from a callback.
