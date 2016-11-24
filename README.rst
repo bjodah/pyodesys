@@ -25,9 +25,11 @@ pyodesys
 
 `pyodesys <https://github.com/bjodah/pyodesys>`_ provides a straightforward way
 of numerically integrating systems of ordinary differential equations (intial value problems).
-It unifies the interface of several python libraries. It also provides a convenience class for 
+It unifies the interface of several libraries for performing the numerical integration as well as
+several libraries for symbolic representation. It also provides a convenience class for 
 representing and integrating ODE systems defined by symbolic expressions, e.g. `SymPy <http://www.sympy.org>`_
-expressions.
+expressions. This allows the user to write concise code and rely on pyodesys to handle the subtle differences
+between libraries.
 
 The numerical integration is perfomed using eiher:
 
@@ -38,6 +40,8 @@ The numerical integration is perfomed using eiher:
 
 Note that implicit steppers which require a user supplied
 callback for calculating the jacobian is provided automatically by pyodesys.
+
+The symbolic representation is abstracted by using `sym <https://github.com/bjodah/sym>`_.
 
 When performance is of outmost importance, e.g. in model fitting where results are needed
 for a large set of initial conditions and parameters choices, the user may transparently

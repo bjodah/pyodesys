@@ -124,6 +124,35 @@ def test_ScaledSys():
     assert np.allclose(yout, ref, rtol=2e-11, atol=2e-11)
 
 
+@requires('sym', 'scipy', 'pycvodes')
+@pytest.mark.parametrize('nbody', [2, 3, 4, 5])
+def test_ScaledSysByName(nbody):
+    sfact = nbody * 7
+    kwargs = dict(names=['foo', 'bar'], dep_scaling=sfact)
+
+    def nmerization(x, y, p):
+        return [-nbody*p[0]*y[0]**nbody, nbody*p[0]*y[0]**nbody]
+
+    odesys = ScaledSys.from_callback(nmerization, 2, 1, **kwargs)
+    assert odesys.autonomous_interface is True
+    with pytest.raises(TypeError):
+        odesys.integrate(1, [0])
+
+    def nmerization_name(x, y, p):
+        return {'foo': -nbody*p[0]*y['foo']**nbody, 'bar': nbody*p[0]*y['foo']**nbody}
+
+    odesys2 = ScaledSys.from_callback(nmerization_name, dep_by_name=True, nparams=1, **kwargs)
+    assert odesys2.autonomous_interface is True
+    k = 5
+    foo0 = 2
+    for system, y0 in zip([odesys, odesys2], [[foo0, 3], {'foo': foo0, 'bar': 3}]):
+        xout, yout, info = system.integrate(1, y0, [k], integrator='cvode', nsteps=707*1.01,
+                                            dx0=1e-3, atol=1e-10, rtol=1e-10)
+        _r = (1/(foo0**(1-nbody) + nbody*k*xout*(nbody-1)))**(1/(nbody-1))
+        assert np.allclose(yout[:, 0], _r, atol=1e-9, rtol=1e-9)
+        assert np.allclose(yout[:, 1], 3 + 2 - _r, atol=1e-9, rtol=1e-9)
+
+
 @requires('sym', 'scipy')
 def test_ScaledSys_from_callback():
     # this is actually a silly example since it is linear

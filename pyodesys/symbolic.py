@@ -429,7 +429,9 @@ class TransformedSys(SymbolicSys):
         x, = be.real_symarray('x', 1)
         y = be.real_symarray('y', ny)
         p = be.real_symarray('p', nparams)
-        exprs = _ensure_4args(cb)(x, y, p, be)
+        _y = dict(zip(kwargs['names'], y)) if kwargs.get('dep_by_name', False) else y
+        _p = dict(zip(kwargs['param_names'], p)) if kwargs.get('par_by_name', False) else p
+        exprs = _ensure_4args(cb)(x, _y, _p, be)
         if dep_transf_cbs is not None:
             dep_transf = [(fw(yi), bw(yi)) for (fw, bw), yi
                           in zip(dep_transf_cbs, y)]
@@ -440,7 +442,8 @@ class TransformedSys(SymbolicSys):
             indep_transf = indep_transf_cbs[0](x), indep_transf_cbs[1](x)
         else:
             indep_transf = None
-
+        if kwargs.get('dep_by_name', False):
+            exprs = [exprs[k] for k in kwargs['names']]
         return cls(list(zip(y, exprs)), x, dep_transf,
                    indep_transf, p, backend=be, **kwargs)
 
@@ -563,9 +566,12 @@ class ScaledSys(TransformedSys):
     --------
     >>> from sympy import Symbol
     >>> x = Symbol('x')
-    >>> scaled = ScaledSys([(x, x*x)], dep_scaling=1000)
-    >>> scaled.exprs
+    >>> scaled1 = ScaledSys([(x, x*x)], dep_scaling=1000)
+    >>> scaled1.exprs
     (x**2/1000,)
+    >>> scaled2 = ScaledSys([(x, x**3)], dep_scaling=1000)
+    >>> scaled2.exprs
+    (x**3/1000000,)
 
     """
 
@@ -591,6 +597,8 @@ class ScaledSys(TransformedSys):
             indep_transf=(transf_indep_cbs[0](indep),
                           transf_indep_cbs[0](indep)) if indep is not None else None,
             **kwargs)
+        if self.autonomous_interface is None:
+            self.autonomous_interface = self.autonomous_exprs
 
     @classmethod
     def from_callback(cls, cb, ny=None, nparams=None, dep_scaling=1, indep_scaling=1,
@@ -624,12 +632,15 @@ class ScaledSys(TransformedSys):
         (p_0*y_0**2/10,)
 
         """
-        return TransformedSys.from_callback(
+        res = TransformedSys.from_callback(
             cb, ny, nparams,
             dep_transf_cbs=repeat(cls._scale_fw_bw(dep_scaling)),
             indep_transf_cbs=cls._scale_fw_bw(indep_scaling),
             **kwargs
         )
+        if res.autonomous_interface is None:
+            res.autonomous_interface = res.autonomous_exprs
+        return res
 
 
 def _skip(indices, iterable):
