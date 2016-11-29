@@ -11,7 +11,7 @@ from ._tests import (
     _test_multiple_predefined, _test_multiple_adaptive_chained,
     _test_PartiallySolved_symmetric_native,
     _test_PartiallySolved_symmetric_native_multi,
-    _test_Decay_nonnegative
+    _test_Decay_nonnegative, _test_NativeSys__first_step_cb
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..gsl import NativeGSLSys as NativeSys
@@ -75,3 +75,8 @@ def test_chained_multi_native(reduced):
 @requires('pygslodeiv2')
 def test_Decay_nonnegative():
     _test_Decay_nonnegative(NativeSys)
+
+
+@requires('pygslodeiv2')
+def test_NativeSys_first_step_expr__decay():
+    _test_NativeSys__first_step_cb(NativeSys)

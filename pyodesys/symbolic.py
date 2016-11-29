@@ -207,7 +207,7 @@ class SymbolicSys(ODESys):
     def from_other(cls, ori, **kwargs):  # provisional
         if ori.roots is not None:
             raise NotImplementedError('roots currently unsupported')
-        for k in ('params', 'names', 'param_names'):
+        for k in ('first_step_expr', 'params', 'names', 'param_names'):
             if k not in kwargs:
                 kwargs[k] = getattr(ori, k)
         if 'nonnegative' not in kwargs:

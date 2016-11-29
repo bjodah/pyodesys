@@ -21,5 +21,6 @@ namespace odesys_anyode {
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt=nullptr) override;
+        double get_dx0(double, const double * const) override;
     };
 }

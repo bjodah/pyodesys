@@ -8,12 +8,12 @@
 namespace AnyODE {
     struct PyOdeSys : public AnyODE::OdeSysBase {
         int ny;
-        PyObject *py_rhs, *py_jac, *py_roots, *py_kwargs;
+        PyObject *py_rhs, *py_jac, *py_roots, *py_kwargs, *py_dx0cb;
         int mlower, mupper, nroots;
         PyOdeSys(int ny, PyObject * py_rhs, PyObject * py_jac=nullptr, PyObject * py_roots=nullptr,
-                 PyObject * py_kwargs=nullptr, int mlower=-1, int mupper=-1, int nroots=0) :
+                 PyObject * py_kwargs=nullptr, int mlower=-1, int mupper=-1, int nroots=0, PyObject * py_dx0cb=nullptr) :
             ny(ny), py_rhs(py_rhs), py_jac(py_jac), py_roots(py_roots),
-            py_kwargs(py_kwargs), mlower(mlower), mupper(mupper), nroots(nroots)
+            py_kwargs(py_kwargs), py_dx0cb(py_dx0cb), mlower(mlower), mupper(mupper), nroots(nroots)
         {
             if (py_rhs == nullptr)
                 throw std::runtime_error("py_rhs must not be nullptr");
@@ -37,6 +37,26 @@ namespace AnyODE {
         virtual int get_mlower() const override { return mlower; }
         virtual int get_mupper() const override { return mupper; }
         virtual int get_nroots() const override { return nroots; }
+        virtual double get_dx0(double t, const double * const y) {
+            if (py_dx0cb == nullptr or py_dx0cb == Py_None)
+                return default_dx0;
+            npy_intp dims[1] { static_cast<npy_intp>(this->ny) } ;
+            const auto type_tag = NPY_DOUBLE;
+            PyObject * py_yarr = PyArray_SimpleNewFromData(
+                1, dims, type_tag, static_cast<void*>(const_cast<double*>(y)));
+            PyArray_CLEARFLAGS(reinterpret_cast<PyArrayObject*>(py_yarr), NPY_ARRAY_WRITEABLE);  // make yarr read-only
+            PyObject * py_arglist = Py_BuildValue("(dO)", (double)(t), py_yarr);
+            PyObject * py_result = PyEval_CallObjectWithKeywords(this->py_dx0cb, py_arglist, this->py_kwargs);
+            Py_DECREF(py_arglist);
+            Py_DECREF(py_yarr);
+            if (py_result == nullptr)
+                throw std::runtime_error("get_dx0 failed (dx0cb failed)");
+            double res = PyFloat_AsDouble(py_result);
+            Py_DECREF(py_result);
+            if (PyErr_Occurred() and res == -1.0)
+                throw std::runtime_error("get_dx0 failed (value returned by dx0cb could not be converted to float)");
+            return res;
+        }
         Status handle_status_(PyObject * py_result, const std::string what_arg){
             if (py_result == nullptr){
                 throw std::runtime_error(what_arg + " failed");

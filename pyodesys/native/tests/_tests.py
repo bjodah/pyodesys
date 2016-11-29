@@ -187,5 +187,14 @@ def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
         assert nfo['success'] == True  # noqa
 
 
-def _test_NativeSys__first_step_cb():
-    raise NotImplementedError("To be implemented")
+def _test_NativeSys__first_step_cb(NativeSys, forgive=20):
+    dec3 = _get_decay3()
+    dec3.first_step_expr = dec3.dep[0]*1e-30
+    odesys = NativeSys.from_other(dec3)
+    y0, k = [.7, 0, 0], [1e23, 2, 3.]
+    kwargs = dict(atol=1e-8, rtol=1e-8)
+    xout, yout, info = odesys.integrate(5, y0, k, integrator='native', **kwargs)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    allclose_kw = dict(atol=kwargs['atol']*forgive, rtol=kwargs['rtol']*forgive)
+    assert info['success'] and info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
+    assert np.allclose(yout, ref, **allclose_kw)

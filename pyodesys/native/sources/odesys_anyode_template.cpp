@@ -79,12 +79,14 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
 % endfor
 % endif
 
-% if p_first_step is not None:
 double OdeSys::get_dx0(double t,
                        const double * const y) {
+% if p_first_step is not None:
   % for cse_token, cse_expr in p_first_step['cses']:
     const double ${cse_token} = ${cse_expr};
   % endfor
-    return p_first_step['expr']
-}
+    return ${p_first_step['expr']};
+% else:
+    return 0.0;  // invokes solver's default behaviour
 % endif
+}
