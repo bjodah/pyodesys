@@ -4,7 +4,7 @@ export PKG_NAME=$1
 
 echo "deb http://ppa.launchpad.net/symengine/ppa/ubuntu xenial main" >>/etc/apt/sources.list
 apt-get update
-apt-get install python-symengine python3-symengine
+apt-get install --quiet --assume-yes --no-install-recommends python-symengine python3-symengine
 
 for PY in python2 python3; do
     $PY -c "import symengine"  # make sure symengine is installed
@@ -12,7 +12,7 @@ for PY in python2 python3; do
 done
 
 python setup.py sdist
-(cd dist/; python -m pip install --force-reinstall --upgrade $PKG_NAME-*.tar.gz)
+(cd dist/; python -m pip install --force-reinstall $PKG_NAME-*.tar.gz)
 
 
 for PY in python2 python3; do
