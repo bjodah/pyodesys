@@ -140,6 +140,7 @@ def decay_jac(t, y, p):
     return [[-p[0], 0],
             [p[0], 0]]
 
+
 def decay_dfdt(t, y, p):
     return [0, 0]
 

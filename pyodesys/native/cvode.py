@@ -11,7 +11,7 @@ except ImportError:
 else:
     from pycvodes import _config
 
-from .base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
+from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
 
 class NativeCvodeCode(_NativeCodeBase):
@@ -26,8 +26,8 @@ class NativeCvodeCode(_NativeCodeBase):
     def __init__(self, *args, **kwargs):
         self.compile_kwargs = copy.deepcopy(_compile_kwargs)
         self.compile_kwargs['include_dirs'].append(pycvodes.get_include())
-        _lapack = os.environ.get('PYODESYS_LAPACK', _config.env['LAPACK'])
-        self.compile_kwargs['libraries'].extend(['sundials_cvodes', _lapack, 'sundials_nvecserial', 'm'])
+        self.compile_kwargs['libraries'].extend(_config.env['SUNDIALS_LIBS'].split(','))
+        self.compile_kwargs['libraries'].extend(os.environ.get('PYODESYS_LAPACK', _config.env['LAPACK']).split(','))
         super(NativeCvodeCode, self).__init__(*args, **kwargs)
 
 

@@ -8,7 +8,7 @@ try:
 except ImportError:
     pyodeint = None
 
-from .base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
+from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
 
 class NativeOdeintCode(_NativeCodeBase):

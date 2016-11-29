@@ -375,7 +375,7 @@ def test_gsl_predefined(method, forgive):
 
 @requires('sym', 'pygslodeiv2')
 @pytest.mark.parametrize('method,forgive', zip(
-    'bsimp msadams msbdf rkck'.split(), (0.004, 4, 14, 0.21)))
+    'bsimp msadams msbdf rkck'.split(), (0.01, 4, 14, 0.21)))
 def test_gsl_adaptive(method, forgive):
     _gsl(1, method, forgive)
 
@@ -394,7 +394,7 @@ def _cvode(tout, method, forgive):
 
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('method,forgive', zip(
-    'adams bdf'.split(), (1.3, 5.0)))
+    'adams bdf'.split(), (2.4, 5.0)))
 def test_cvode_predefined(method, forgive):
     _cvode([10**i for i in range(-15, 1)], method, forgive)
 
@@ -402,7 +402,7 @@ def test_cvode_predefined(method, forgive):
 # cvode performs significantly better than vode:
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('method,forgive', zip(
-    'adams bdf'.split(), (1.5, 5)))
+    'adams bdf'.split(), (2.4, 5)))
 def test_cvode_adaptive(method, forgive):
     _cvode(1, method, forgive)
 
@@ -515,7 +515,7 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
     y0 = [_y0]*4
     _k = [3.5, 2.5, 1.5]
     k = [_k]*4
-    res1 = odesys.integrate(tout, y0, k, integrator=integrator)
+    res1 = odesys.integrate(tout, y0, k, integrator=integrator, first_step=1e-14)
     for xout1, yout1, info1 in zip(*res1):
         assert np.allclose(xout1 - xout1[0], res1[0][0] - res1[0][0][0])
         assert np.allclose(yout1, res1[1][0])
@@ -525,7 +525,7 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
         assert xout1.size == yout1.shape[0]
         assert np.allclose(yout1, ref)
 
-    res2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator)
+    res2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator, first_step=1e-14)
     for xout2, yout2, info2 in zip(*res2):
         assert info1['success']
         assert xout2.size == xout1.size
@@ -598,7 +598,7 @@ def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 0]
     tend = 1
-    xout, yout, info = loglogpartsys.integrate([1e-12, tend], y0, k, integrator=integrator)
+    xout, yout, info = loglogpartsys.integrate([1e-12, tend], y0, k, integrator=integrator, first_step=1e-14)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert info['success']
     assert info['internal_yout'].shape[-1] == 1
@@ -621,7 +621,7 @@ def test_PartiallySolvedSystem__symmetricsys(integrator):
     trnsfsys = _get_transf_part_system()
     y0 = [3., 2., 1.]
     k = [3.5, 2.5, 0]
-    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator=integrator)
+    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator=integrator, first_step=1e-14)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert info['success']
     assert np.allclose(yout, ref)
@@ -634,7 +634,7 @@ def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
     trnsfsys = _get_transf_part_system()
     y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
     ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
-    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator=integrator)
+    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator=integrator, first_step=1e-14)
     for i, (y0, k) in enumerate(zip(y0s, ks)):
         ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
         assert info[i]['success'] and info[i]['nfev'] > 10
@@ -743,7 +743,7 @@ def test_integrate_chained(integrator, method):
         check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
-def _test_cetsa(y0, params, extra=False, **kwargs):
+def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
     # real-world based test-case
     from ._cetsa import _get_cetsa_odesys
     molar_unitless = 1e9
@@ -755,7 +755,7 @@ def _test_cetsa(y0, params, extra=False, **kwargs):
     elif y0.ndim == 2:
         tout = np.asarray([(t0, tend)]*y0.shape[0])
 
-    comb_res = integrate_chained([tsys, odesys], {'nsteps': [500, 20]}, tout, y0/molar_unitless, params,
+    comb_res = integrate_chained([tsys, odesys], {'nsteps': [500*stepx, 20*stepx]}, tout, y0/molar_unitless, params,
                                  return_on_error=True, autorestart=2, **kwargs)
     if isinstance(comb_res[2], dict):
         assert comb_res[2]['success']
@@ -768,27 +768,30 @@ def _test_cetsa(y0, params, extra=False, **kwargs):
     if extra:
         with pytest.raises(RuntimeError):  # (failure)
             odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, atol=1e-7, rtol=1e-7,
-                             nsteps=500, **kwargs)
+                             nsteps=500, first_step=1e-14, **kwargs)
 
-        res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1), **kwargs)
+        res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1),
+                               first_step=1e-14, **kwargs)
         assert np.min(res[1][-1, :]) < -1e-6  # crazy! (failure of the linear formulation)
         tres = tsys.integrate([t0, tend], y0/molar_unitless, params, nsteps=int(1345*1.1), **kwargs)
         assert tres[2]['success'] is True
         assert tres[2]['nfev'] > 100
 
 
-@requires('sym', 'pycvodes', 'pygslodeiv2')
-@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+@requires('sym', 'pycvodes', 'pygslodeiv2', 'pyodeint')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl', 'odeint'])
 def test_cetsa(integrator):
-    _test_cetsa(_cetsa.ys[1], _cetsa.ps[1], integrator=integrator)
+    _test_cetsa(_cetsa.ys[1], _cetsa.ps[1], integrator=integrator, first_step=1e-14,
+                stepx=2 if integrator == 'odeint' else 1)
     if integrator == 'cvode':
         _test_cetsa(_cetsa.ys[0], _cetsa.ps[0], extra=True, integrator=integrator)
 
 
-@requires('sym', 'pycvodes', 'pygslodeiv2')
-@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+@requires('sym', 'pycvodes', 'pygslodeiv2', 'pyodeint')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl', 'odeint'])
 def test_cetsa_multi(integrator):
-    _test_cetsa(np.asarray(_cetsa.ys), np.asarray(_cetsa.ps), integrator=integrator)
+    _test_cetsa(np.asarray(_cetsa.ys), np.asarray(_cetsa.ps), integrator=integrator, first_step=1e-14,
+                stepx=2 if integrator == 'odeint' else 1)
 
 
 @requires('sym', 'pycvodes')

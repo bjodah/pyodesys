@@ -89,31 +89,32 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
 @requires('sym', 'sympy', 'pycvodes')
 def test_get_ode_exprs_symbolic():
     _test_goe(symbolic=True, logc=True, logt=False, zero_conc=1e-20,
-              atol=1e-8, rtol=1e-10, extra_forgive=2)
+              atol=1e-8, rtol=1e-10, extra_forgive=2, first_step=1e-14)
     _test_goe(symbolic=True, logc=True, logt=True, zero_conc=1e-20, zero_time=1e-12,
               atol=1e-8, rtol=1e-12, extra_forgive=2)
     _test_goe(symbolic=True, logc=False, logt=True, zero_conc=0, zero_time=1e-12,
               atol=1e-8, rtol=1e-12, extra_forgive=0.4)
     for reduced in range(4):
-        _test_goe(symbolic=True, reduced=reduced)
+        _test_goe(symbolic=True, reduced=reduced, first_step=1e-14)
         if reduced != 2:
             _test_goe(symbolic=True, reduced=reduced, logc=True, logt=False, zero_conc=1e-16,
-                      atol=1e-8, rtol=1e-10, extra_forgive=2)
+                      atol=1e-8, rtol=1e-10, extra_forgive=2, first_step=1e-14)
         if reduced == 3:
             _test_goe(symbolic=True, reduced=reduced, logc=True, logt=True, zero_conc=1e-18,
                       zero_time=1e-12, atol=1e-12, rtol=1e-10, extra_forgive=1e-4)  # note extra_forgive
 
         if reduced != 3:
             _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
-                      atol=1e-8, rtol=1e-10, extra_forgive=1)
+                      atol=1e-8, rtol=1e-10, extra_forgive=1, first_step=1e-14)
 
-            _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14)
+            _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14,
+                      first_step=1e-10)
 
 
 @requires('sym', 'sympy', 'pycvodes')
 def test_get_ode_exprs_ODESys():
     _test_goe(symbolic=False, logc=True, logt=False, zero_conc=1e-20,
-              atol=1e-8, rtol=1e-10, extra_forgive=2)
+              atol=1e-8, rtol=1e-10, extra_forgive=2, first_step=1e-14)
     _test_goe(symbolic=False, logc=True, logt=True, zero_conc=1e-20, zero_time=1e-12,
               atol=1e-8, rtol=1e-12, extra_forgive=2)
     _test_goe(symbolic=False, logc=False, logt=True, zero_conc=0, zero_time=1e-12,
@@ -122,23 +123,24 @@ def test_get_ode_exprs_ODESys():
         _test_goe(symbolic=False, reduced=reduced, extra_forgive=3)
         if reduced != 2:
             _test_goe(symbolic=False, reduced=reduced, logc=True, logt=False, zero_conc=1e-18,
-                      atol=1e-8, rtol=1e-10, extra_forgive=2)
+                      atol=1e-8, rtol=1e-10, extra_forgive=2, first_step=1e-14)
         if reduced == 3:
-            _test_goe(symbolic=False, reduced=reduced, logc=True, logt=True, zero_conc=1e-18,
-                      zero_time=1e-12, atol=1e-12, rtol=1e-12, extra_forgive=1e-8)  # note extra_forgive
+            _test_goe(symbolic=False, reduced=reduced, logc=True, logt=True, zero_conc=1e-18, zero_time=1e-12,
+                      atol=1e-12, rtol=1e-12, extra_forgive=1e-3, first_step=1e-13)  # note extra_forgive
 
         _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
                   atol=1e-8, rtol=1e-10, extra_forgive=1, nonnegative=True)  # tests RecoverableError
 
-        _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14)
+        _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-9,
+                  atol=1e-13, rtol=1e-14, first_step=1e-14, extra_forgive=3)
 
 
 @requires('sym', 'sympy', 'pycvodes')
 @pytest.mark.parametrize('reduced_nsteps', [
-    (0, [(1, 1705*1.01), (4988*1.01, 1), (100, 1513*1.01), (4988*0.69, 1705*0.69)]),  # pays off in steps!
-    (1, [(1, 1563), (100, 1600)]),  # worse than using nothing
+    (0, [(1, 1705*1.01), (4988*1.01, 1), (200, 1633), (4988*0.69, 1705*0.69)]),  # pays off in steps!
+    (1, [(1, 1563), (100, 1700)]),  # worse than using nothing
     (2, [(1, 1674), (100, 1597*1.01)]),  # no pay back
-    (3, [(1, 1591*1.01), (4572*1.01, 1), (100, 1545), (4572*0.66, 1591*0.66)])  # no pay back
+    (3, [(1, 1591*1.01), (4700, 1), (100, 1600), (4572*0.66, 1100)])  # no pay back
 ])
 def test_integrate_chained_robertson(reduced_nsteps):
     rtols = {0: 0.02, 1: 0.1, 2: 0.02, 3: 0.015}
@@ -158,7 +160,7 @@ def test_integrate_chained_robertson(reduced_nsteps):
     for nsteps in reduced_nsteps[1]:
         y0 = [_ for i, _ in enumerate(init_conc) if i != reduced_nsteps[0] - 1]
         x, y, nfo = integrate_chained(odes, {'nsteps': nsteps, 'return_on_error': [True, False]}, (zero_time, 1e11),
-                                      y0, k+init_conc, integrator='cvode', atol=1e-10, rtol=1e-14)
+                                      y0, k+init_conc, integrator='cvode', atol=1e-10, rtol=1e-14, first_step=1e-12)
         if reduced_nsteps[0] > 0:
             y = np.insert(y, reduced_nsteps[0]-1, init_conc[0] - np.sum(y, axis=1), axis=1)
         assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=rtols[reduced_nsteps[0]])
@@ -186,11 +188,11 @@ def test_integrate_chained_multi_robertson():
     init_conc = (1, zero_conc, zero_conc)
     k = (.04, 1e4, 3e7)
 
-    for sys_iter, kw in [(odes, {'nsteps': [100, 1513*1.01], 'return_on_error': [True, False]}),
+    for sys_iter, kw in [(odes, {'nsteps': [100, 1660], 'return_on_error': [True, False]}),
                          (odes[1:], {'nsteps': [1705*1.01]})]:
         _x, _y, _nfo = integrate_chained(
             sys_iter, kw, [(zero_time, 1e11)]*3,
-            [init_conc]*3, [k+init_conc]*3, integrator='cvode', atol=1e-10, rtol=1e-14)
+            [init_conc]*3, [k+init_conc]*3, integrator='cvode', atol=1e-10, rtol=1e-14, first_step=1e-14)
         assert len(_x) == 3 and len(_y) == 3 and len(_nfo) == 3
         for x, y, nfo in zip(_x, _y, _nfo):
             assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=0.02)

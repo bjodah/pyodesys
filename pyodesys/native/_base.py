@@ -109,18 +109,35 @@ class _NativeCodeBase(Cpp_Code):
             return self.odesys.be.ccode(expr.xreplace(subsd))
 
         rhs_cses, rhs_exprs = self.odesys.be.cse(self.odesys.exprs)
-        jac_cses, jac_exprs = self.odesys.be.cse(list(reduce(
-            add, self.odesys.get_jac().tolist() + self.odesys.get_dfdx().tolist())))
+        jac = self.odesys.get_jac()
+        if jac is not False:
+            jac_cses, jac_exprs = self.odesys.be.cse(list(reduce(
+                add, jac.tolist() + self.odesys.get_dfdx().tolist())))
+
+        first_step = self.odesys.first_step_expr
+        if first_step is not None:
+            first_step_cses, first_step_exprs = self.odesys.be.cse([first_step])
 
         ns = dict(
-            _message_for_rendered='This is a rendered source file (from template).',
+            _message_for_rendered=[
+                "-*- mode: read-only -*-",
+                "This file was generated using pyodesys-%s" % __version__
+            ],
             p_odesys=self.odesys,
-            p_rhs_cses=[(symb.name, _ccode(expr)) for symb, expr in rhs_cses],
-            p_rhs_exprs=map(_ccode, rhs_exprs),
-            p_jac_cses=[(symb.name, _ccode(expr)) for symb, expr in jac_cses],
-            p_jac_exprs={(idx//ny, idx % ny): _ccode(expr)
-                         for idx, expr in enumerate(jac_exprs[:ny*ny])},
-            p_jac_dfdt_exprs=list(map(_ccode, jac_exprs[ny*ny:]))
+            p_rhs={
+                'cses': [(symb.name, _ccode(expr)) for symb, expr in rhs_cses],
+                'exprs': map(_ccode, rhs_exprs)
+            },
+            p_jac=None if jac is False else {
+                'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
+                'exprs': {(idx//ny, idx % ny): _ccode(expr)
+                          for idx, expr in enumerate(jac_exprs[:ny*ny])},
+                'dfdt_exprs': list(map(_ccode, jac_exprs[ny*ny:]))
+            },
+            p_first_step=None if first_step is None else {
+                'cses': first_step_cses,
+                'expr': _ccode(first_step_exprs[0]),
+            }
         )
         ns.update(self.namespace)
         return ns

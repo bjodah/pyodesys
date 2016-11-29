@@ -1,9 +1,9 @@
 // -*- coding: utf-8 -*-
-// -*- ${'mode: read-only'} -*-
-// ${_message_for_rendered}
+// ${'\n// '.join(_message_for_rendered)}
 
 // User provided system description: ${p_odesys.description}
 // Names of dependent variables: ${p_odesys.names}
+// Names of parameters: ${p_odesys.param_names}
 
 #include <math.h>
 #include <vector>
@@ -24,11 +24,11 @@ AnyODE::Status OdeSys::rhs(double t,
                            const double * const __restrict__ y,
                            double * const __restrict__ f) {
     ${'AnyODE::ignore(t);' if p_odesys.autonomous_exprs else ''}
-  % for cse_token, cse_expr in p_rhs_cses:
+  % for cse_token, cse_expr in p_rhs['cses']:
     const double ${cse_token} = ${cse_expr};
   % endfor
 
-  % for i, expr in enumerate(p_rhs_exprs):
+  % for i, expr in enumerate(p_rhs['exprs']):
     f[${i}] = ${expr};
   % endfor
     this->nfev++;
@@ -38,6 +38,7 @@ AnyODE::Status OdeSys::rhs(double t,
     return AnyODE::Status::success;
 }
 
+% if p_jac is not None:
 % for order in ('cmaj', 'rmaj'):
 
 AnyODE::Status OdeSys::dense_jac_${order}(double t,
@@ -46,20 +47,20 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt) {
-    // The AnyODE::ignore(...) calls below are used to generate code free from compiler warnings.
+    // The AnyODE::ignore(...) calls below are used to generate code free from false compiler warnings.
     AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
     ${'AnyODE::ignore(t);' if p_odesys.autonomous_exprs else ''}
     ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
 
-  % for cse_token, cse_expr in p_jac_cses:
+  % for cse_token, cse_expr in p_jac['cses']:
     const double ${cse_token} = ${cse_expr};
   % endfor
 
   % for i_major in range(p_odesys.ny):
    % for i_minor in range(p_odesys.ny):
     <%
-      curr_expr = p_jac_exprs[i_minor, i_major] if order == 'cmaj' else p_jac_exprs[i_major, i_minor]
+      curr_expr = p_jac['exprs'][i_minor, i_major] if order == 'cmaj' else p_jac['exprs'][i_major, i_minor]
       if curr_expr == '0' and p_jacobian_set_to_zero_by_solver:
           continue
     %>
@@ -68,7 +69,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
 
   % endfor
     if (dfdt){
-      % for idx, expr in enumerate(p_jac_dfdt_exprs):
+      % for idx, expr in enumerate(p_jac['dfdt_exprs']):
         dfdt[${idx}] = ${expr};
       % endfor
     }
@@ -76,3 +77,14 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
     return AnyODE::Status::success;
 }
 % endfor
+% endif
+
+% if p_first_step is not None:
+double OdeSys::get_dx0(double t,
+                       const double * const y) {
+  % for cse_token, cse_expr in p_first_step['cses']:
+    const double ${cse_token} = ${cse_expr};
+  % endfor
+    return p_first_step['expr']
+}
+% endif
