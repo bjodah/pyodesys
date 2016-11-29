@@ -4,6 +4,7 @@ unreleased
 - Calls to ``f(x, y[:], p[:])`` now carries y0 in p[np:np+ny] (also applies to jac, etc.)
 - Renamed OdeSys to ODESys (OdeSys left as a deprecated alias)
 - New arguments to ODESys: dep_by_name, par_by_name, param_names, latex_names, latex_param_names
+- New kwargs: first_step_{cb,expr,factory} in ODESys, SymbolicSys & SymbolicSys.from_callback respectively.
 
 v0.7.0
 ======

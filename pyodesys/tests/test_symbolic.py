@@ -848,3 +848,48 @@ def test_cetsa_isothermal():
     conc0 = defaultdict(float, {'NL': 1, 'L': 5})
     xout, yout, nfo = odesys.integrate(tout, conc0, par)
     assert nfo['success']
+
+
+@requires('sym', 'sympy', 'pycvodes')
+def test_SymbolicSys__first_step_expr():
+    import sympy
+    tend, k, y0 = 5, [1e23, 3], (.7, .0, .0)
+    kwargs = dict(integrator='cvode', atol=1e-8, rtol=1e-8)
+    factory = decay_dydt_factory(k)
+    dep = sympy.symbols('y0 y1 y2', real=True)
+    exprs = factory(k, dep)
+    odesys = SymbolicSys(zip(dep, exprs), jac=True, first_step_expr=dep[0]*1e-30)
+    xout, yout, info = odesys.integrate(tend, y0, **kwargs)
+    ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+    assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+
+
+@requires('sym', 'pygslodeiv2')
+def test_SymbolicSys__from_callback__first_step_expr():
+    tend, k, y0 = 5, [1e23, 3], (.7, .0, .0)
+    kwargs = dict(integrator='gsl', atol=1e-8, rtol=1e-8)
+    factory = decay_dydt_factory(k)
+    odesys = SymbolicSys.from_callback(factory, 3, first_step_factory=lambda x, y, p: y[0]*1e-30)
+    xout, yout, info = odesys.integrate(tend, y0, **kwargs)
+    ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+    assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys__from_callback__first_step_expr__by_name():
+    kwargs = dict(integrator='cvode', atol=1e-8, rtol=1e-8)
+    names = ['foo', 'bar', 'baz']
+    par_names = 'first second third'.split()
+    odesys = SymbolicSys.from_callback(
+        lambda x, y, p, be: {
+            'foo': -p['first']*y['foo'],
+            'bar': p['first']*y['foo'] - p['second']*y['bar'],
+            'baz': p['second']*y['bar'] - p['third']*y['baz']
+        }, names=names, param_names=par_names,
+        dep_by_name=True, par_by_name=True,
+        first_step_factory=lambda x0, ic: 1e-30*ic['foo'])
+    y0 = {'foo': .7, 'bar': 0, 'baz': 0}
+    p = {'first': 1e23, 'second': 2, 'third': 3}
+    xout, yout, info = odesys.integrate(5, y0, p, **kwargs)
+    ref = np.array(bateman_full([y0[k] for k in names], [p[k] for k in par_names], xout - xout[0], exp=np.exp)).T
+    assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])

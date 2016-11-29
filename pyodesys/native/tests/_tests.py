@@ -185,3 +185,7 @@ def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
         assert 0 < nfo['time_cpu'] < 100
         assert 0 < nfo['time_wall'] < 100
         assert nfo['success'] == True  # noqa
+
+
+def _test_NativeSys__first_step_cb():
+    raise NotImplementedError("To be implemented")

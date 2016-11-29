@@ -136,6 +136,14 @@ def decay(t, y, p):
     return [-y[0]*p[0], y[0]*p[0]]
 
 
+def decay_jac(t, y, p):
+    return [[-p[0], 0],
+            [p[0], 0]]
+
+def decay_dfdt(t, y, p):
+    return [0, 0]
+
+
 def _test_integrate_multiple_predefined(odes, **kwargs):
     _xout = np.array([[0, 1, 2], [0, 1, 2], [0, 1, 2]])
     _y0 = np.array([[1, 2], [2, 3], [3, 4]])
@@ -268,3 +276,29 @@ def test_zero_time_adaptive():
     xout, yout, info = odes.integrate(0, [0, 1], [2])
     assert xout.shape == (1,)
     assert yout.shape == (1, 2)
+
+
+def _test_first_step_cb(integrator, atol=1e-8, rtol=1e-8, forgive=10):
+    odesys = ODESys(decay, decay_jac, decay_dfdt, first_step_cb=lambda x, y, p, backend=None: y[0]*1e-30)
+    _y0 = [.7, 0]
+    k = [1e23]
+    xout, yout, info = odesys.integrate(5, _y0, k, integrator=integrator, atol=atol, rtol=rtol)
+    ref = _y0[0]*np.exp(-k[0]*xout[:])
+    assert np.allclose(yout[:, 0], ref, atol=atol*forgive, rtol=rtol*forgive)
+    assert np.allclose(yout[:, 1], _y0[0] - ref + _y0[1], atol=atol*forgive, rtol=rtol*forgive)
+    assert info['nfev'] > 0
+
+
+@requires('pycvodes')
+def test_first_step_cb__cvode():
+    _test_first_step_cb('cvode')
+
+
+@requires('pygslodeiv2')
+def test_first_step_cb__gsl():
+    _test_first_step_cb('gsl')
+
+
+@requires('pyodeint')
+def test_first_step_cb__odeint():
+    _test_first_step_cb('odeint')

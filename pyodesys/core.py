@@ -45,13 +45,20 @@ class ODESys(object):
     f : callback
         first derivatives of dependent variables (y) with respect to
         dependent variable (x). Signature is any of:
-            - rhs(x, y[:]) --> f[:]
-            - rhs(x, y[:], p[:]) --> f[:]
-            - rhs(x, y[:], p[:], backend=math) --> f[:]
+            - ``rhs(x, y[:]) -> f[:]``
+            - ``rhs(x, y[:], p[:]) -> f[:]``
+            - ``rhs(x, y[:], p[:], backend=math) -> f[:]``
     jac : callback
         Jacobian matrix (dfdy). Required for implicit methods.
     dfdx : callback
-        Signature dfdx(x, y[:], p[:]) -> out[:] (used by e.g. GSL)
+        Signature ``dfdx(x, y[:], p[:]) -> out[:]`` (used by e.g. GSL)
+    first_step_cb : callback
+        Signature ``step1st(x, y[:], p[:]) -> dx0`` (pass first_step==0 to use).
+        This is available for ``cvode``, ``odeint`` & ``gsl``, but not for ``scipy``.
+    roots : callback
+        Signature ``roots(x, y[:], p[:]=(), backend=math) -> discr[:]``.
+    nroots : int
+        Length of return vector from ``roots``.
     band : tuple of 2 integers or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
     names : iterable of strings (default : None)
@@ -84,24 +91,28 @@ class ODESys(object):
     Attributes
     ----------
     f_cb : callback
-        for evaluating the vector of derivatives
-    j_cb : callback
-        for evaluating the Jacobian matrix of f
+        For evaluating the vector of derivatives.
+    j_cb : callback or None
+        For evaluating the Jacobian matrix of f.
+    dfdx_cb : callback or None
+        For evaluating the second order derivatives.
+    first_step_cb : callback or None
+        For calculating the first step based on x0, y0 & p.
     roots_cb : callback
     nroots : int
     names : iterable of strings
     param_names : iterable of strings
-    internal_xout : 1D array of floats
-        internal values of dependent variable before post-processing
-    internal_yout : 2D (or higher) array of floats
-        internal values of dependent variable before post-processing
-    internal_params : 1D array of floats
-        internal parameter values before post-processing
+    description : str
+    dep_by_name : bool
+    par_by_name : bool
+    latex_names : iterable of str
+    latex_param_names : iterable of str
+    pre_processors : iterable of callbacks
+    post_processors : iterable of callbacks
+    append_iv : bool
     autonomous_interface : bool or None
         Indicates whether the system appears autonomous upon call to
         :meth:`integrate`. ``None`` indicates that it is unknown.
-
-
 
     Examples
     --------
@@ -113,17 +124,18 @@ class ODESys(object):
 
     Notes
     -----
-    banded jacobians are supported by "scipy" and "cvode" integrators
+    Banded jacobians are supported by "scipy" and "cvode" integrators.
 
     """
 
-    def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None, band=None,
+    def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots=None, nroots=None, band=None,
                  names=None, param_names=None, description=None, dep_by_name=False, par_by_name=False,
                  latex_names=None, latex_param_names=None, pre_processors=None, post_processors=None,
                  append_iv=False, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
+        self.first_step_cb = first_step_cb
         self.roots_cb = roots
         self.nroots = nroots or 0
         if band is not None:
@@ -430,13 +442,11 @@ class ODESys(object):
         return results
 
     def _integrate(self, adaptive, predefined, intern_xout, intern_y0, intern_p,
-                   atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
+                   atol=1e-8, rtol=1e-8, first_step=0.0, with_jacobian=None,
                    force_predefined=False, **kwargs):
         nx = intern_xout.shape[-1]
         results = []
         for _xout, _y0, _p in zip(intern_xout, intern_y0, intern_p):
-            if first_step is None:
-                first_step = 1e-14 + abs(_xout[0])*1e-14  # arbitrary, heur.
             new_kwargs = dict(dx0=first_step, atol=atol,
                               rtol=rtol, check_indexing=False)
             new_kwargs.update(kwargs)
@@ -465,6 +475,17 @@ class ODESys(object):
                             dfdx_out[:] = np.asarray(self.dfdx_cb(x, y))
             else:
                 _j = None
+
+            if self.first_step_cb is not None:
+                def _first_step(x, y):
+                    if len(_p) > 0:
+                        return self.first_step_cb(x, y, _p)
+                    else:
+                        return self.first_step_cb(x, y)
+                if 'dx0cb' in new_kwargs:
+                    raise ValueError("cannot override dx0cb")
+                else:
+                    new_kwargs['dx0cb'] = _first_step
 
             if self.roots_cb is not None:
                 def _roots(x, y, out):

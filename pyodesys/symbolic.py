@@ -72,6 +72,12 @@ class SymbolicSys(ODESys):
             do not compute jacobian (use explicit steppers)
         if instance of ImmutableMatrix:
             user provided expressions for the jacobian
+    dfdx : iterable of expressions
+        Derivatives of :attr:`exprs` with respect to :attr`indep`.
+    first_step_expr : expression
+        Closed form expression for calculating the first step. Be sure to pass
+        ``first_step==0`` to enable its use during integration. If not given,
+        the solver default behavior will be invoked.
     roots : iterable of expressions
         Equations to look for root's for during integration
         (currently available through cvode).
@@ -108,13 +114,14 @@ class SymbolicSys(ODESys):
 
     """
 
-    def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True, roots=None,
-                 backend=None, constraints=None, nonnegative=None, **kwargs):
+    def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True, first_step_expr=None,
+                 roots=None, backend=None, constraints=None, nonnegative=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self.params = params
         self._jac = jac
         self._dfdx = dfdx
+        self.first_step_expr = first_step_expr
         self.roots = roots
         self.be = Backend(backend)
         if nonnegative is not None:
@@ -131,12 +138,13 @@ class SymbolicSys(ODESys):
             self.get_f_ty_callback(),
             self.get_j_ty_callback(),
             self.get_dfdx_callback(),
+            self.get_first_step_callback(),
             self.get_roots_callback(),
             nroots=None if roots is None else len(roots),
             **kwargs)
 
     @classmethod
-    def from_callback(cls, rhs, ny=None, nparams=None, **kwargs):
+    def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None, **kwargs):
         """ Create an instance from a callback.
 
         Parameters
@@ -147,6 +155,8 @@ class SymbolicSys(ODESys):
             Length of ``y`` in ``rhs``.
         nparams : int
             Length of ``p`` in ``rhs``.
+        first_step_factory : callabble
+            Signature ``step1st(x, y[:], p[:]) -> dx0``.
         dep_by_name : bool
             Make ``y`` passed to ``rhs`` a dict (keys from :attr:`names`) and convert
             its return value from dict to array.
@@ -182,6 +192,13 @@ class SymbolicSys(ODESys):
             exprs = rhs(x, _y, _p, be)
         except TypeError:
             exprs = _ensure_4args(rhs)(x, _y, _p, be)
+        if first_step_factory is not None:
+            if 'first_step_exprs' in kwargs:
+                raise ValueError("Cannot override first_step_exprs.")
+            try:
+                kwargs['first_step_expr'] = first_step_factory(x, _y, _p, be)
+            except TypeError:
+                kwargs['first_step_expr'] = _ensure_4args(first_step_factory)(x, _y, _p, be)
         if kwargs.get('dep_by_name', False):
             exprs = [exprs[k] for k in kwargs['names']]
         return cls(zip(y, exprs), x, p, backend=be, **kwargs)
@@ -290,6 +307,11 @@ class SymbolicSys(ODESys):
         if dfdx_exprs is False:
             return None
         return self._callback_factory(dfdx_exprs)
+
+    def get_first_step_callback(self):
+        if self.first_step_expr is None:
+            return None
+        return self._callback_factory([self.first_step_expr])
 
     def get_roots_callback(self):
         """ Generate a callback for evaluating ``self.roots`` """

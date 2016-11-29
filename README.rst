@@ -73,8 +73,8 @@ alternatively you may also use `pip`:
 
 see `setup.py <setup.py>`_ for optional requirements.
 
-Example
--------
+Examples
+--------
 The classic van der Pol oscillator (see `examples/van_der_pol.py <examples/van_der_pol.py>`_)
 
 .. code:: python
@@ -82,13 +82,34 @@ The classic van der Pol oscillator (see `examples/van_der_pol.py <examples/van_d
    >>> from pyodesys.symbolic import SymbolicSys
    >>> def f(t, y, p):
    ...     return [y[1], -y[0] + p[0]*y[1]*(1 - y[0]**2)]
-   ...
+   ... 
    >>> odesys = SymbolicSys.from_callback(f, 2, 1)
    >>> xout, yout, info = odesys.integrate(10, [1, 0], [1], integrator='odeint', nsteps=1000)
    >>> _ = odesys.plot_result()
    >>> import matplotlib.pyplot as plt; plt.show()  # doctest: +SKIP
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/van_der_pol.png
+
+If the expression contains transcendental functions you will need to provide a ``backend`` keyword argument:
+
+.. code:: python
+
+   >>> import math
+   >>> from pyodesys.symbolic import SymbolicSys
+   >>> def f(x, y, p, backend=math):
+   ...     return [backend.exp(-p[0]*y[0])]  # analytic: y(x) := ln(kx + kc)/k
+   ... 
+   >>> odesys = SymbolicSys.from_callback(f, 1, 1)
+   >>> y0, k = -1, 3
+   >>> xout, yout, info = odesys.integrate(5, [y0], [k], integrator='cvode', method='bdf')
+   >>> _ = odesys.plot_result()
+   >>> import matplotlib.pyplot as plt
+   >>> import numpy as np
+   >>> c = 1./k*math.exp(k*y0)  # integration constant
+   >>> _ = plt.plot(xout, np.log(k*(xout+c))/k, '--', linewidth=2, alpha=.5, label='analytic')
+   >>> _ = plt.legend(loc='best'); plt.show()  # doctest: +SKIP
+
+.. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/lnx.png
 
 for more examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered jupyter notebooks here:
 `<http://hera.physchem.kth.se/~pyodesys/branches/master/examples>`_
