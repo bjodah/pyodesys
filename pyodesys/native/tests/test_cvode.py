@@ -90,3 +90,10 @@ def test_Decay_nonnegative():
 @requires('pycvodes')
 def test_NativeSys_first_step_expr__decay():
     _test_NativeSys__first_step_cb(NativeSys)
+
+@requires('pycvodes')
+def test_chained_multi_native__dx_max_scalar():
+    _test_chained_multi_native(
+        NativeSys, logc=True, logt=True, reduced=0, zero_time=1e-10,
+        zero_conc=1e-18, nonnegative=None, integrator='cvode', dx_max=1e10
+    )

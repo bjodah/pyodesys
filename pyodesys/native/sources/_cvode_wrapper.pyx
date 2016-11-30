@@ -45,9 +45,9 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                        vector[double] atol,
                        double rtol,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx0,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx_min=None,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx_max=None,
+                       dx0,
+                       dx_min=None,
+                       dx_max=None,
                        long int mxsteps=0,
                        str iter_type='undecided', int linear_solver=0, str method='BDF',
                        bool with_jacobian=True, int autorestart=0, bool return_on_error=False):
@@ -62,22 +62,38 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         double eps_lin=0.0
         unsigned nderiv=0,
         bool return_on_root=False
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
     if dx0 is None:
-        dx0 = np.zeros(y0.shape[0])
-    if dx_min is None:
-        dx_min = np.zeros(y0.shape[0])
-    if dx_max is None:
-        dx_max = np.zeros(y0.shape[0])
-
-    if dx0.size < y0.shape[0]:
+        _dx0 = np.zeros(y0.shape[0])
+    else:
+        _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
+        if _dx0.size == 1:
+            _dx0 = _dx0*np.ones(y0.shape[0])
+    if _dx0.size < y0.shape[0]:
         raise ValueError('dx0 too short')
-    if dx_min.size < y0.shape[0]:
+
+    if dx_min is None:
+        _dx_min = np.zeros(y0.shape[0])
+    else:
+        _dx_min = np.ascontiguousarray(dx_min, dtype=np.float64)
+        if _dx_min.size == 1:
+            _dx_min = _dx_min*np.ones(y0.shape[0])
+    if _dx_min.size < y0.shape[0]:
         raise ValueError('dx_min too short')
-    if dx_max.size < y0.shape[0]:
+
+    if dx_max is None:
+        _dx_max = np.zeros(y0.shape[0])
+    else:
+        _dx_max = np.ascontiguousarray(dx_max, dtype=np.float64)
+        if _dx_max.size == 1:
+            _dx_max = _dx_max*np.ones(y0.shape[0])
+    if _dx_max.size < y0.shape[0]:
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
@@ -86,7 +102,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
-        &dx0[0], &dx_min[0], &dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
+        &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
         maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error
     )
 
@@ -112,9 +128,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                          vector[double] atol,
                          double rtol,
-                         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx0,
-                         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx_min=None,
-                         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx_max=None,
+                         dx0,
+                         dx_min=None,
+                         dx_max=None,
                          long int mxsteps=0,
                          str iter_type='undecided', int linear_solver=0, str method='BDF',
                          bool with_jacobian=True, int autorestart=0):
@@ -127,22 +143,38 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
         vector[pair[vector[int], vector[double]]] result
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
     if dx0 is None:
-        dx0 = np.zeros(y0.shape[0])
-    if dx_min is None:
-        dx_min = np.zeros(y0.shape[0])
-    if dx_max is None:
-        dx_max = np.zeros(y0.shape[0])
-
-    if dx0.size < y0.shape[0]:
+        _dx0 = np.zeros(y0.shape[0])
+    else:
+        _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
+        if _dx0.size == 1:
+            _dx0 = _dx0*np.ones(y0.shape[0])
+    if _dx0.size < y0.shape[0]:
         raise ValueError('dx0 too short')
-    if dx_min.size < y0.shape[0]:
+
+    if dx_min is None:
+        _dx_min = np.zeros(y0.shape[0])
+    else:
+        _dx_min = np.ascontiguousarray(dx_min, dtype=np.float64)
+        if _dx_min.size == 1:
+            _dx_min = _dx_min*np.ones(y0.shape[0])
+    if _dx_min.size < y0.shape[0]:
         raise ValueError('dx_min too short')
-    if dx_max.size < y0.shape[0]:
+
+    if dx_max is None:
+        _dx_max = np.zeros(y0.shape[0])
+    else:
+        _dx_max = np.ascontiguousarray(dx_max, dtype=np.float64)
+        if _dx_max.size == 1:
+            _dx_max = _dx_max*np.ones(y0.shape[0])
+    if _dx_max.size < y0.shape[0]:
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
@@ -151,7 +183,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data, <double *>yout.data,
-        mxsteps, &dx0[0], &dx_min[0], &dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver, autorestart)
+        mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver, autorestart)
 
     for idx in range(y0.shape[0]):
         root_indices.push_back(result[idx].first)

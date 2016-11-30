@@ -87,6 +87,7 @@ double OdeSys::get_dx0(double t,
   % endfor
     return ${p_first_step['expr']};
 % else:
+    AnyODE::ignore(t); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return 0.0;  // invokes solver's default behaviour
 % endif
 }

@@ -34,21 +34,25 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] xend,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                        double atol, double rtol,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx0,
+                       dx0,
                        long int mxsteps=0, str method='rosenbrock4'):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
         string _styp = method.lower().encode('UTF-8')
         vector[pair[vector[double], vector[double]]] result
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
     if dx0 is None:
-        dx0 = np.zeros(y0.shape[0])
-
-    if dx0.size < y0.shape[0]:
+        _dx0 = np.zeros(y0.shape[0])
+    else:
+        _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
+        if _dx0.size == 1:
+            _dx0 = _dx0*np.ones(y0.shape[0])
+    if _dx0.size < y0.shape[0]:
         raise ValueError('dx0 too short')
 
     for idx in range(y0.shape[0]):
@@ -57,7 +61,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
-        &dx0[0])
+        &_dx0[0])
 
     xout, yout = [], []
     for idx in range(y0.shape[0]):
@@ -79,22 +83,26 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] xout,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                          double atol, double rtol,
-                         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] dx0,
+                         dx0,
                          long int mxsteps=0, str method='rosenbrock4'):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
         cnp.ndarray[cnp.float64_t, ndim=3, mode='c'] yout
         string _styp = method.lower().encode('UTF-8')
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
     if dx0 is None:
-        dx0 = np.zeros(y0.shape[0])
-    if dx0.size < y0.shape[0]:
+        _dx0 = np.zeros(y0.shape[0])
+    else:
+        _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
+        if _dx0.size == 1:
+            _dx0 = _dx0*np.ones(y0.shape[0])
+    if _dx0.size < y0.shape[0]:
         raise ValueError('dx0 too short')
-
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
@@ -103,7 +111,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     multi_predefined[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data, xout.shape[1],
         <double *>xout.data, <double *>yout.data,
-        mxsteps, &dx0[0])
+        mxsteps, &_dx0[0])
 
     for idx in range(y0.shape[0]):
         nfos.append(_as_dict(systems[idx].last_integration_info,

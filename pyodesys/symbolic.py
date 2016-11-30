@@ -106,6 +106,8 @@ class SymbolicSys(ODESys):
         Problem parameters.
     roots : iterable of expressions or None
         Roots to report for during integration.
+    be : module
+        Symbolic backend, e.g. ``sympy`` or ``symcxx``.
     ny : int
         ``len(self.dep)`` note that this is not neccessarily the expected length of
         ``y0`` in the case of e.g. :class:`PartiallySolvedSystem`.
