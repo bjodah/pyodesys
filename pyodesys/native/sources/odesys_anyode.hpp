@@ -4,7 +4,9 @@
 namespace odesys_anyode {
     struct OdeSys : public AnyODE::OdeSysBase {
         std::vector<double> m_p;
-        OdeSys(const double * const params);
+        std::vector<double> m_atol;
+        double m_rtol;
+        OdeSys(const double * const, std::vector<double>, double);
         int get_ny() const override;
         AnyODE::Status rhs(double t,
                            const double * const __restrict__ y,

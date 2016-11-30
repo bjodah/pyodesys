@@ -1,6 +1,8 @@
 // -*- coding: utf-8 -*-
 // ${'\n// '.join(_message_for_rendered)}
-
+<%doc>
+This is file is a mako-formatted template
+</%doc>
 // User provided system description: ${p_odesys.description}
 // Names of dependent variables: ${p_odesys.names}
 // Names of parameters: ${p_odesys.param_names}
@@ -12,9 +14,15 @@
 #include ${inc}
 %endfor
 
+%if p_anon is not None:
+namespace {  // anonymous namespace for user-defined helper functions
+    ${p_anon}
+}
+%endif
 using odesys_anyode::OdeSys;
 
-OdeSys::OdeSys(const double * const params) {
+OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol) :
+    m_atol(atol), m_rtol(rtol) {
     m_p.assign(params, params + ${len(p_odesys.params)});
 }
 int OdeSys::get_ny() const {
@@ -81,13 +89,15 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
 
 double OdeSys::get_dx0(double t,
                        const double * const y) {
-% if p_first_step is not None:
+% if p_first_step is None:
+    AnyODE::ignore(t); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
+    return 0.0;  // invokes the default behaviour of the chosen solver
+% elif isinstance(p_first_step, str):
+    ${p_first_step}
+% else:
   % for cse_token, cse_expr in p_first_step['cses']:
     const double ${cse_token} = ${cse_expr};
   % endfor
     return ${p_first_step['expr']};
-% else:
-    AnyODE::ignore(t); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
-    return 0.0;  // invokes solver's default behaviour
 % endif
 }

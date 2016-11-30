@@ -56,13 +56,13 @@ def test_multiple_adaptive_chained():
 @requires('pycvodes')
 @pytest.mark.parametrize('multiple', [False, True])
 def test_PartiallySolved_symmetric_native(multiple):
-    _test_PartiallySolved_symmetric_native(NativeSys, multiple)
+    _test_PartiallySolved_symmetric_native(NativeSys, multiple, forgive=1e2)
 
 
 @requires('pycvodes')
 @pytest.mark.parametrize('multiple', [False, True])
 def test_PartiallySolved_symmetric_native_multi(multiple):
-    _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple)
+    _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple, forgive=1e2)
 
 
 @requires('pycvodes')
@@ -90,6 +90,7 @@ def test_Decay_nonnegative():
 @requires('pycvodes')
 def test_NativeSys_first_step_expr__decay():
     _test_NativeSys__first_step_cb(NativeSys)
+
 
 @requires('pycvodes')
 def test_chained_multi_native__dx_max_scalar():

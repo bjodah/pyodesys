@@ -12,19 +12,13 @@ from libcpp.vector cimport vector
 from libcpp.string cimport string
 
 cimport numpy as cnp
+from odesys_anyode_iterative cimport OdeSys
 from cvodes_cxx cimport lmm_from_name, iter_type_from_name
 from cvodes_anyode_parallel cimport multi_predefined, multi_adaptive
 
 import numpy as np
 
 from odesys_util cimport adaptive_return
-
-
-cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
-    cdef cppclass OdeSys:
-        OdeSys(const double * const) nogil except +
-        unordered_map[string, int] last_integration_info
-        unordered_map[string, double] last_integration_info_dbl
 
 
 cdef dict _as_dict(unordered_map[string, int] nfo,
@@ -97,7 +91,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
+        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
+                                     atol, rtol))
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data,
@@ -178,7 +173,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
+        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
+                                     atol, rtol))
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeSys](

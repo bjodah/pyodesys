@@ -49,21 +49,31 @@ _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
 
 
 class _NativeCodeBase(Cpp_Code):
+    """ Base class for generated code.
+
+    Note kwargs ``namespace_override`` which allows the user to customize
+    the variables used when rendering the template.
+    """
+
     wrapper_name = None
     basedir = os.path.dirname(__file__)
     templates = ('sources/odesys_anyode_template.cpp',)
+    _written_files = ()
     build_files = ()
     source_files = ('odesys_anyode.cpp',)
     obj_files = ('odesys_anyode.o',)
     _save_temp = False
 
+    namespace_default = {'p_anon': None}
     namespace = {
         'p_includes': ['"odesys_anyode.hpp"'],
         'p_support_recoverable_error': False,
-        'p_jacobian_set_to_zero_by_solver': False
+        'p_jacobian_set_to_zero_by_solver': False,
     }
+    # `namespace_override` is set in init
 
     def __init__(self, odesys, *args, **kwargs):
+        self.namespace_override = kwargs.pop('namespace_override', {})
         self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
         self.so_file = '%s%s' % (self.wrapper_name, '.so')
@@ -139,7 +149,9 @@ class _NativeCodeBase(Cpp_Code):
                 'expr': _ccode(first_step_exprs[0]),
             }
         )
+        ns.update(self.namespace_default)
         ns.update(self.namespace)
+        ns.update(self.namespace_override)
         return ns
 
 
@@ -168,10 +180,6 @@ class _NativeSysBase(SymbolicSys):
         params = np.ascontiguousarray(intern_p, dtype=np.float64)
         if atol.size != 1 and atol.size != self.ny:
             raise ValueError("atol needs to be of length 1 or %d" % self.ny)
-        if not isinstance(first_step, np.ndarray):
-            first_step = np.asarray(first_step)
-            if first_step.ndim == 0:
-                first_step = first_step.repeat(y0.shape[0])
 
         if intern_x.shape[-1] == 2 and not force_predefined:
             intern_xout, yout, info = self._native.mod.integrate_adaptive(

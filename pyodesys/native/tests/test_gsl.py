@@ -55,12 +55,12 @@ def test_multiple_adaptive_chained():
 
 @requires('pygslodeiv2')
 def test_PartiallySolved_symmetric_native():
-    _test_PartiallySolved_symmetric_native(NativeSys, first_step=1e-10)
+    _test_PartiallySolved_symmetric_native(NativeSys, first_step=1e-10, forgive=10)
 
 
 @requires('pygslodeiv2')
 def test_PartiallySolved_symmetric_native_multi():
-    _test_PartiallySolved_symmetric_native_multi(NativeSys, first_step=1e-10)
+    _test_PartiallySolved_symmetric_native_multi(NativeSys, first_step=1e-10, forgive=10)
 
 
 @requires('pygslodeiv2')

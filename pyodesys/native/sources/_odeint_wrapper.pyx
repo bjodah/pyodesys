@@ -35,7 +35,9 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                        double atol, double rtol,
                        dx0,
-                       long int mxsteps=0, str method='rosenbrock4'):
+                       long int mxsteps=0, str method='rosenbrock4',
+                       int autorestart=0,
+                       bool return_on_error=False):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
@@ -56,12 +58,13 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         raise ValueError('dx0 too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
+        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
+                                     [atol], rtol))
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
-        &_dx0[0])
+        &_dx0[0], autorestart, return_on_error)
 
     xout, yout = [], []
     for idx in range(y0.shape[0]):
@@ -84,7 +87,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                          double atol, double rtol,
                          dx0,
-                         long int mxsteps=0, str method='rosenbrock4'):
+                         long int mxsteps=0, str method='rosenbrock4',
+                         int autorestart=0,
+                         bool return_on_error=False):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
@@ -105,13 +110,14 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         raise ValueError('dx0 too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
+        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
+                                     [atol], rtol))
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     multi_predefined[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data, xout.shape[1],
         <double *>xout.data, <double *>yout.data,
-        mxsteps, &_dx0[0])
+        mxsteps, &_dx0[0], autorestart, return_on_error)
 
     for idx in range(y0.shape[0]):
         nfos.append(_as_dict(systems[idx].last_integration_info,

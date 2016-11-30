@@ -125,25 +125,34 @@ def _get_transformed_partially_solved_system(NativeSys, multiple=False):
     return LogLogSys.from_other(partsys)
 
 
-def _test_PartiallySolved_symmetric_native(NativeSys, multiple=False, **kwargs):
+def _test_PartiallySolved_symmetric_native(NativeSys, multiple=False, forgive=1, **kwargs):
     trnsfsys = _get_transformed_partially_solved_system(NativeSys, multiple)
     y0, k = [3., 2., 1.], [3.5, 2.5, 0]
     xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator='native', **kwargs)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
-    assert info['success'] and info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
-    assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
+    assert info['success']
+    assert info['nfev'] > 10
+    assert info['nfev'] > 1
+    assert info['time_cpu'] < 100
+    allclose_kw = dict(atol=kwargs.get('atol', 1e-8)*forgive, rtol=kwargs.get('rtol', 1e-8)*forgive)
+    assert np.allclose(yout, ref, **allclose_kw)
+    assert np.allclose(np.sum(yout, axis=1), sum(y0), **allclose_kw)
 
 
-def _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple=False, **kwargs):
+def _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple=False, forgive=1, **kwargs):
     trnsfsys = _get_transformed_partially_solved_system(NativeSys, multiple)
     y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
     ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
     xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='native', **kwargs)
+    allclose_kw = dict(atol=kwargs.get('atol', 1e-8)*forgive, rtol=kwargs.get('rtol', 1e-8)*forgive)
     for i, (y0, k) in enumerate(zip(y0s, ks)):
         ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
-        assert info[i]['success'] and info[i]['nfev'] > 10
-        assert info[i]['nfev'] > 1 and info[i]['time_cpu'] < 100
-        assert np.allclose(yout[i], ref) and np.allclose(np.sum(yout[i], axis=1), sum(y0))
+        assert info[i]['success']
+        assert info[i]['nfev'] > 10
+        assert info[i]['nfev'] > 1
+        assert info[i]['time_cpu'] < 100
+        assert np.allclose(yout[i], ref, **allclose_kw)
+        assert np.allclose(np.sum(yout[i], axis=1), sum(y0), **allclose_kw)
 
 
 def _test_multiple_adaptive(NativeSys, **kwargs):
