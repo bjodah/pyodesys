@@ -16,9 +16,6 @@ python setup.py sdist
 
 
 for PY in python2 python3; do
-    $PY -m pip install git+https://github.com/bjodah/pycvodes@dx0-array  # DO-NOT-MERGE!
-    $PY -m pip install git+https://github.com/bjodah/pyodeint@dx0-array  # DO-NOT-MERGE!
-    $PY -m pip install git+https://github.com/bjodah/pygslodeiv2@dx0-array  # DO-NOT-MERGE!
     $PY -m pip install --upgrade .[all]
 done
 

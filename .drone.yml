@@ -1,8 +1,6 @@
 build:
   image: bjodah/bjodahimg16dev:latest
   commands:
-    - python2 -m pip install --upgrade pip  # pip 8.1.1 has a bug
-    - python3 -m pip install --upgrade pip  # pip 8.1.1 has a bug
     - bash -c '[[ $(python setup.py --version) =~ ^[0-9]+.* ]]'
     - ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
