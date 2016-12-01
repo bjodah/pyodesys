@@ -128,7 +128,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          dx_max=None,
                          long int mxsteps=0,
                          str iter_type='undecided', int linear_solver=0, str method='BDF',
-                         bool with_jacobian=True, int autorestart=0):
+                         bool with_jacobian=True, int autorestart=0, bool return_on_error=False):
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
@@ -178,8 +178,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeSys](
-        systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data, <double *>yout.data,
-        mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver, autorestart)
+        systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data,
+        <double *>yout.data, mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian,
+        iter_type_from_name(_iter_t), linear_solver, autorestart, return_on_error)
 
     for idx in range(y0.shape[0]):
         root_indices.push_back(result[idx].first)

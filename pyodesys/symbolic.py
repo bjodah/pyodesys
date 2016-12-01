@@ -209,7 +209,7 @@ class SymbolicSys(ODESys):
     def from_other(cls, ori, **kwargs):  # provisional
         if ori.roots is not None:
             raise NotImplementedError('roots currently unsupported')
-        for k in ('first_step_expr', 'params', 'names', 'param_names'):
+        for k in ('first_step_expr', 'params', 'names', 'param_names', 'dep_by_name', 'par_by_name'):
             if k not in kwargs:
                 kwargs[k] = getattr(ori, k)
         if 'nonnegative' not in kwargs:
@@ -496,7 +496,7 @@ class TransformedSys(SymbolicSys):
         elif y.ndim == 2:
             return zip(*[self._forward_transform_xy(_x, _y, _p) for _x, _y, _p in zip(x, y, p)])
         else:
-            raise NotImplementedError("Don't know what to do with 3 dimensions.")
+            raise NotImplementedError("Don't know what to do with %d dimensions." % y.ndim)
 
 
 def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs):

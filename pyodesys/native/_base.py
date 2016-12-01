@@ -161,8 +161,9 @@ class _NativeSysBase(SymbolicSys):
     _native_name = None
 
     def __init__(self, *args, **kwargs):
+        namespace_override = kwargs.pop('namespace_override', {})
         super(_NativeSysBase, self).__init__(*args, **kwargs)
-        self._native = self._NativeCode(self)
+        self._native = self._NativeCode(self, namespace_override=namespace_override)
 
     def integrate(self, *args, **kwargs):
         integrator = kwargs.pop('integrator', 'native')

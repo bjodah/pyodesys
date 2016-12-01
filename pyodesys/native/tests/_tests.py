@@ -207,3 +207,22 @@ def _test_NativeSys__first_step_cb(NativeSys, forgive=20):
     allclose_kw = dict(atol=kwargs['atol']*forgive, rtol=kwargs['rtol']*forgive)
     assert info['success'] and info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
     assert np.allclose(yout, ref, **allclose_kw)
+
+
+def _test_NativeSys__first_step_cb_source_code(NativeSys, myconst, should_succeed, forgive=20, **kwargs):
+    dec3 = _get_decay3()
+    odesys = NativeSys.from_other(dec3, namespace_override={
+        'p_first_step': 'return good_const()*y[0];',
+        'p_anon': 'double good_const(){ return %.5g; }' % myconst
+    })
+    y0, k = [.7, 0, 0], [1e23, 2, 3.]
+    xout, yout, info = odesys.integrate(5, y0, k, integrator='native', **kwargs)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    allclose_kw = dict(atol=kwargs['atol']*forgive, rtol=kwargs['rtol']*forgive)
+    if should_succeed is None:
+        assert not np.allclose(yout, ref, **allclose_kw)
+    else:
+        assert info['success'] == should_succeed
+        info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
+        if should_succeed:
+            assert np.allclose(yout, ref, **allclose_kw)
