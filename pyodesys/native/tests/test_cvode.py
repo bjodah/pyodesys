@@ -95,8 +95,8 @@ def test_NativeSys_first_step_expr__decay():
 
 @requires('pycvodes')
 def test_NativeSys_first_step_expr__source_code():
-    _test_NativeSys__first_step_cb_source_code(NativeSys, 1e-30, True, return_on_error=True, atol=1e-8, rtol=1e-8)
-    _test_NativeSys__first_step_cb_source_code(NativeSys, 1e-10, False, return_on_error=True, atol=1e-8, rtol=1e-8)
+    _test_NativeSys__first_step_cb_source_code(NativeSys, -30, True, return_on_error=True, atol=1e-8, rtol=1e-8)
+    _test_NativeSys__first_step_cb_source_code(NativeSys, -10, False, return_on_error=True, atol=1e-8, rtol=1e-8)
 
 
 @requires('pycvodes')

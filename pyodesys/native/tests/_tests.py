@@ -209,12 +209,12 @@ def _test_NativeSys__first_step_cb(NativeSys, forgive=20):
     assert np.allclose(yout, ref, **allclose_kw)
 
 
-def _test_NativeSys__first_step_cb_source_code(NativeSys, myconst, should_succeed, forgive=20, **kwargs):
+def _test_NativeSys__first_step_cb_source_code(NativeSys, log10myconst, should_succeed, forgive=20, **kwargs):
     dec3 = _get_decay3()
     odesys = NativeSys.from_other(dec3, namespace_override={
         'p_first_step': 'return good_const()*y[0];',
-        'p_anon': 'double good_const(){ return %.5g; }' % myconst
-    })
+        'p_anon': 'double good_const(){ return std::pow(10, %.5g); }' % log10myconst
+    }, namespace_extend={'p_includes': ['<cmath>']})
     y0, k = [.7, 0, 0], [1e23, 2, 3.]
     xout, yout, info = odesys.integrate(5, y0, k, integrator='native', **kwargs)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T

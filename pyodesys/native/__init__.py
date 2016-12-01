@@ -10,3 +10,13 @@ may need to match the choice of BLAS/LAPACK implementation to link against.
 This can be modified by setting the environment variables ``PYODESYS_LBLAS`` and ``PYODESYS_LLAPACK``
 respectively.
 """
+
+from .cvode import NativeCvodeSys
+from .gsl import NativeGSLSys
+from .odeint import NativeOdeintSys
+
+native_sys = {
+    'cvode': NativeCvodeSys,
+    'gsl': NativeGSLSys,
+    'odeint': NativeOdeintSys,
+}

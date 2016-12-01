@@ -71,9 +71,11 @@ class _NativeCodeBase(Cpp_Code):
         'p_jacobian_set_to_zero_by_solver': False,
     }
     # `namespace_override` is set in init
+    # `namespace_extend` is set in init
 
     def __init__(self, odesys, *args, **kwargs):
         self.namespace_override = kwargs.pop('namespace_override', {})
+        self.namespace_extend = kwargs.pop('namespace_extend', {})
         self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
         self.so_file = '%s%s' % (self.wrapper_name, '.so')
@@ -152,6 +154,8 @@ class _NativeCodeBase(Cpp_Code):
         ns.update(self.namespace_default)
         ns.update(self.namespace)
         ns.update(self.namespace_override)
+        for k, v in self.namespace_extend.items():
+            ns[k].extend(v)
         return ns
 
 
@@ -162,8 +166,11 @@ class _NativeSysBase(SymbolicSys):
 
     def __init__(self, *args, **kwargs):
         namespace_override = kwargs.pop('namespace_override', {})
+        namespace_extend = kwargs.pop('namespace_extend', {})
         super(_NativeSysBase, self).__init__(*args, **kwargs)
-        self._native = self._NativeCode(self, namespace_override=namespace_override)
+        self._native = self._NativeCode(self,
+                                        namespace_override=namespace_override,
+                                        namespace_extend=namespace_extend)
 
     def integrate(self, *args, **kwargs):
         integrator = kwargs.pop('integrator', 'native')
