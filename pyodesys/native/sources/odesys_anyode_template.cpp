@@ -87,8 +87,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
 % endfor
 % endif
 
-double OdeSys::get_dx0(double t,
-                       const double * const y) {
+double OdeSys::get_dx0(double t, const double * const y) {
 % if p_first_step is None:
     AnyODE::ignore(t); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return 0.0;  // invokes the default behaviour of the chosen solver
@@ -98,6 +97,8 @@ double OdeSys::get_dx0(double t,
   % for cse_token, cse_expr in p_first_step['cses']:
     const double ${cse_token} = ${cse_expr};
   % endfor
+    ${'' if p_odesys.indep in p_odesys.first_step_expr.free_symbols else 'AnyODE::ignore(t);'}
+    ${'' if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else 'AnyODE::ignore(y);'}
     return ${p_first_step['expr']};
 % endif
 }

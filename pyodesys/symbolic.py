@@ -48,6 +48,12 @@ def _get_ny_nparams_from_kw(ny, nparams, kwargs):
 
     if ny is None:
         raise ValueError("Need ``ny`` or ``names`` together with ``dep_by_name==True``.")
+
+    if kwargs.get('names', None) is not None and kwargs.get('param_names', None) is not None:
+        all_names = set.union(set(kwargs['names']), set(kwargs['param_names']))
+        if len(all_names) < len(kwargs['names']) + len(kwargs['param_names']):
+            raise ValueError("Names of dependent variables cannot be used a parameter names")
+
     return ny, nparams
 
 
@@ -104,6 +110,8 @@ class SymbolicSys(ODESys):
         Independent variable (``None`` indicates autonomous system).
     params : iterable of symbols
         Problem parameters.
+    first_step_expr : expression
+        Closed form expression for how to compute the first step.
     roots : iterable of expressions or None
         Roots to report for during integration.
     be : module
@@ -115,6 +123,8 @@ class SymbolicSys(ODESys):
         Symbolic backend.
 
     """
+
+    _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name')
 
     def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, constraints=None, nonnegative=None, **kwargs):
@@ -132,8 +142,13 @@ class SymbolicSys(ODESys):
             self._nonnegative = nonnegative
         if constraints is not None:
             raise NotImplementedError("See gh-37")
-        if kwargs.get('names', None) is True:
-            kwargs['names'] = [y.name for y in self.dep]
+        _names = kwargs.get('names', None)
+        if _names is True:
+            kwargs['names'] = _names = [y.name for y in self.dep]
+        if self.indep is not None and _names is not None:
+            if self.indep.name in _names:
+                raise ValueError("Independent variable cannot share name with any dependent variable")
+
         # we need self.band before super().__init__
         self.band = kwargs.get('band', None)
         super(SymbolicSys, self).__init__(
@@ -144,6 +159,9 @@ class SymbolicSys(ODESys):
             self.get_roots_callback(),
             nroots=None if roots is None else len(roots),
             **kwargs)
+
+    def __getitem__(self, key):
+        return self.dep[self.names.index(key)]
 
     @classmethod
     def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None, **kwargs):
@@ -209,7 +227,7 @@ class SymbolicSys(ODESys):
     def from_other(cls, ori, **kwargs):  # provisional
         if ori.roots is not None:
             raise NotImplementedError('roots currently unsupported')
-        for k in ('first_step_expr', 'params', 'names', 'param_names', 'dep_by_name', 'par_by_name'):
+        for k in cls._attrs_to_copy + ('params',):
             if k not in kwargs:
                 kwargs[k] = getattr(ori, k)
         if 'nonnegative' not in kwargs:
@@ -267,6 +285,16 @@ class SymbolicSys(ODESys):
             return False
 
         return self._jac
+
+    def jacobian_singular(self):
+        """ Returns True if Jacobian is singular, else False. """
+        cses, (jac_in_cses,) = self.be.cse(self.get_jac())
+        try:
+            jac_in_cses.LUdecomposition()
+        except ValueError:
+            return True
+        else:
+            return False
 
     def get_dfdx(self):
         """ Calculates 2nd derivatives of ``self.exprs`` """
@@ -724,16 +752,21 @@ class PartiallySolvedSystem(SymbolicSys):
         self.analytic_factory = _ensure_4args(analytic_factory)
         if original_system.roots is not None:
             raise NotImplementedError('roots currently unsupported')
-        _Dummy = original_system.be.Dummy
+        _be = original_system.be
+        _Dummy = _be.Dummy
         self.init_indep = _Dummy()
         self.init_dep = [_Dummy() for _ in range(original_system.ny)]
 
         if 'pre_processors' in kwargs or 'post_processors' in kwargs:
             raise NotImplementedError("Cannot override pre-/postprocessors")
-        if 'backend' in kwargs and Backend(kwargs['backend']) != original_system.be:
+        if 'backend' in kwargs and Backend(kwargs['backend']) != _be:
             raise ValueError("Cannot mix backends.")
-        self.analytic_exprs = self.analytic_factory(
-            self.init_indep, self.init_dep, original_system.params, original_system.be)
+        _pars = original_system.params
+        if original_system.par_by_name:
+            _pars = dict(zip(original_system.param_names, _pars))
+
+        _dep0 = dict(zip(original_system.names, self.init_dep)) if original_system.dep_by_name else self.init_dep
+        self.analytic_exprs = self.analytic_factory(self.init_indep, _dep0, _pars, _be)
         new_dep = [dep for dep in original_system.dep if dep not in self.analytic_exprs]
         new_params = _append(original_system.params, (self.init_indep,), self.init_dep)
         self.analytic_cb = self._get_analytic_cb(
@@ -745,10 +778,9 @@ class PartiallySolvedSystem(SymbolicSys):
         new_exprs = [expr.subs(self.analytic_exprs) for idx, expr in
                      enumerate(original_system.exprs) if idx not in ori_analyt_idx_map]
         new_kw = kwargs.copy()
-        if 'name' not in new_kw and original_system.names is not None:
-            new_kw['names'] = original_system.names
-        if 'band' not in new_kw and original_system.band is not None:
-            new_kw['band'] = original_system.band
+        for attr in self._attrs_to_copy:
+            if attr not in new_kw and getattr(original_system, attr) is not None:
+                new_kw[attr] = getattr(original_system, attr)
 
         def partially_solved_pre_processor(x, y, p):
             x, y, p = map(np.asarray, (x, y, p))
@@ -779,7 +811,7 @@ class PartiallySolvedSystem(SymbolicSys):
 
         super(PartiallySolvedSystem, self).__init__(
             zip(new_dep, new_exprs), original_system.indep, new_params,
-            backend=original_system.be, **new_kw)
+            backend=_be, **new_kw)
 
     @staticmethod
     def _get_analytic_cb(ori_sys, analytic_exprs, new_dep, new_params):

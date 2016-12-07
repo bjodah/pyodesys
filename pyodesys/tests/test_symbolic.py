@@ -80,8 +80,14 @@ def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1, **
         [1e-12, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol,
         first_step=first_step, **kwargs)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
-    np.set_printoptions(linewidth=240)
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
+
+
+@requires('sym')
+def test_SymbolicSys__jacobian_singular():
+    k = (4, 3)
+    odesys = SymbolicSys.from_callback(decay_dydt_factory(k), len(k)+1)
+    assert odesys.jacobian_singular()
 
 
 @requires('sym', 'pycvodes')
@@ -212,14 +218,13 @@ def _test_mpmath():  # too slow
     x = sp.Symbol('x')
     symsys = SymbolicSys([(x, sp.exp(x))])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
-    # import pudb; pudb.set_trace()
     xout, yout, info = symsys.integrate(tout, [1], integrator='mpmath')
     e = math.e
     ref = -math.log(1/e - 0.1)
     assert abs(yout[-1, 0] - ref) < 4e-8
 
 
-def decay_dydt_factory(k):
+def decay_dydt_factory(k, names=None):
     # Generates a callback for evaluating a dydt-callback for
     # a chain of len(k) + 1 species with len(k) decays
     # with corresponding decay constants k
@@ -229,12 +234,20 @@ def decay_dydt_factory(k):
         exprs = []
         for idx in range(ny):
             expr = 0
+            curr_key = idx
+            prev_key = idx - 1
+            if names is not None:
+                curr_key = names[curr_key]
+                prev_key = names[prev_key]
             if idx < ny-1:
-                expr -= y[idx]*k[idx]
+                expr -= y[curr_key]*k[curr_key]
             if idx > 0:
-                expr += y[idx-1]*k[idx-1]
+                expr += y[prev_key]*k[prev_key]
             exprs.append(expr)
-        return exprs
+        if names is None:
+            return exprs
+        else:
+            return dict(zip(names, exprs))
 
     return dydt
 
@@ -896,3 +909,32 @@ def test_SymbolicSys__from_callback__first_step_expr__by_name():
     xout, yout, info = odesys.integrate(5, y0, p, **kwargs)
     ref = np.array(bateman_full([y0[k] for k in names], [p[k] for k in par_names], xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+
+
+@requires('sym', 'pyodeint')
+def test_PartiallySolvedSystem__by_name():
+    k = [138.4*24*3600]
+    names = 'Po-210 Pb-206'.split()
+    with pytest.raises(ValueError):
+        odesys = SymbolicSys.from_callback(decay_dydt_factory({'Po-210': k[0]}, names=names),
+                                           dep_by_name=True, par_by_name=True, names=names, param_names=names)
+    odesys = SymbolicSys.from_callback(decay_dydt_factory({'Po-210': k[0]}, names=names),
+                                       dep_by_name=True, names=names)
+
+    assert odesys.ny == 2
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be=None: {
+        odesys['Pb-206']: y0['Pb-206'] + y0['Po-210'] - odesys['Po-210']
+    })
+    assert partsys.ny == 1
+
+    duration = 7*k[0]
+    atol, rtol, forgive = 1e-9, 1e-9, 10
+    y0 = [1e-20]*(len(k)+1)
+    y0[0] = 1
+    for system in (odesys, partsys):
+        xout, yout, info = system.integrate(duration, y0, integrator='odeint', rtol=rtol, atol=atol)
+        ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
+        assert yout.shape[1] == 2
+        assert xout.shape[0] == yout.shape[0]
+        assert yout.ndim == 2 and xout.ndim == 1
