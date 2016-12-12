@@ -923,10 +923,12 @@ def test_PartiallySolvedSystem__by_name():
 
     assert odesys.ny == 2
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be=None: {
-        odesys['Pb-206']: y0['Pb-206'] + y0['Po-210'] - odesys['Po-210']
+        odesys['Pb-206']: y0[odesys['Pb-206']] + y0[odesys['Po-210']] - odesys['Po-210']
     })
+    assert partsys.free_names == ['Po-210']
     assert partsys.ny == 1
-
+    assert (partsys['Pb-206'] - partsys.init_dep[partsys.names.index('Pb-206')] -
+            partsys.init_dep[partsys.names.index('Po-210')] + odesys['Po-210']) == 0
     duration = 7*k[0]
     atol, rtol, forgive = 1e-9, 1e-9, 10
     y0 = [1e-20]*(len(k)+1)

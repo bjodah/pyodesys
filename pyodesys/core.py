@@ -513,7 +513,7 @@ class ODESys(object):
         return results
 
     def _integrate_gsl(self, *args, **kwargs):
-        """ Do not use directly (use ``integrate('gsl', ...)``).
+        """ Do not use directly (use ``integrate(..., integrator='gsl')``).
 
         Uses `GNU Scientific Library <http://www.gnu.org/software/gsl/>`_
         (via `pygslodeiv2 <https://pypi.python.org/pypi/pygslodeiv2>`_)
@@ -541,7 +541,7 @@ class ODESys(object):
                                *args, **kwargs)
 
     def _integrate_odeint(self, *args, **kwargs):
-        """ Do not use directly (use ``integrate('odeint', ...)``).
+        """ Do not use directly (use ``integrate(..., integrator='odeint')``).
 
         Uses `Boost.Numeric.Odeint <http://www.odeint.com>`_
         (via `pyodeint <https://pypi.python.org/pypi/pyodeint>`_) to integrate
@@ -555,7 +555,7 @@ class ODESys(object):
                                *args, **kwargs)
 
     def _integrate_cvode(self, *args, **kwargs):
-        """ Do not use directly (use ``integrate('cvode', ...)``).
+        """ Do not use directly (use ``integrate(..., integrator='cvode')``).
 
         Uses CVode from CVodes in
         `SUNDIALS <https://computation.llnl.gov/casc/sundials/>`_
@@ -584,6 +584,10 @@ class ODESys(object):
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
+        else:
+            if 'indices' not in kwargs and getattr(self, 'names', None) is not None:
+                kwargs['indices'] = [self.names.index(n) for n in kwargs['names']]
+                kwargs['names'] = self.names
         _internal = getattr(self, '_internal', [None]*3)
         return cb(_default(internal_xout, _internal[0]),
                   _default(internal_yout, _internal[1]),

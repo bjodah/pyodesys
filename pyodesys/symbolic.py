@@ -727,6 +727,13 @@ class PartiallySolvedSystem(SymbolicSys):
     \*\*kwargs : dict
         Keyword arguments passed onto :class:`SymbolicSys`.
 
+    Attributes
+    ----------
+    free_names : list of str
+    analytic_exprs : list of expressions
+    analytic_cb : callback
+    original_dep : dependent variable of original system
+
     Examples
     --------
     >>> odesys = SymbolicSys.from_callback(
@@ -765,15 +772,25 @@ class PartiallySolvedSystem(SymbolicSys):
         if original_system.par_by_name:
             _pars = dict(zip(original_system.param_names, _pars))
 
-        _dep0 = dict(zip(original_system.names, self.init_dep)) if original_system.dep_by_name else self.init_dep
+        self.original_dep = original_system.dep
+        _dep0 = dict(zip(self.original_dep, self.init_dep)) if original_system.dep_by_name else self.init_dep
         self.analytic_exprs = self.analytic_factory(self.init_indep, _dep0, _pars, _be)
-        new_dep = [dep for dep in original_system.dep if dep not in self.analytic_exprs]
+        if len(self.analytic_exprs) == 0:
+            raise ValueError("Failed to produce any analytic expressions.")
+        new_dep = []
+        free_names = []
+        for idx, dep in enumerate(self.original_dep):
+            if dep not in self.analytic_exprs:
+                new_dep.append(dep)
+                if original_system.names is not None:
+                    free_names.append(original_system.names[idx])
+        self.free_names = None if original_system.names is None else free_names
         new_params = _append(original_system.params, (self.init_indep,), self.init_dep)
         self.analytic_cb = self._get_analytic_cb(
             original_system, list(self.analytic_exprs.values()), new_dep, new_params)
-        ori_analyt_idx_map = OrderedDict([(original_system.dep.index(dep), idx)
+        ori_analyt_idx_map = OrderedDict([(self.original_dep.index(dep), idx)
                                           for idx, dep in enumerate(self.analytic_exprs)])
-        ori_remaining_idx_map = {original_system.dep.index(dep): idx for idx, dep in enumerate(new_dep)}
+        ori_remaining_idx_map = {self.original_dep.index(dep): idx for idx, dep in enumerate(new_dep)}
         nanalytic = len(self.analytic_exprs)
         new_exprs = [expr.subs(self.analytic_exprs) for idx, expr in
                      enumerate(original_system.exprs) if idx not in ori_analyt_idx_map]
@@ -817,3 +834,7 @@ class PartiallySolvedSystem(SymbolicSys):
     def _get_analytic_cb(ori_sys, analytic_exprs, new_dep, new_params):
         args = _concat(ori_sys.indep, new_dep, new_params)
         return _Wrapper(ori_sys.be.Lambdify(args, analytic_exprs), len(new_dep))
+
+    def __getitem__(self, key):
+        ori_dep = self.original_dep[self.names.index(key)]
+        return self.analytic_exprs.get(ori_dep, ori_dep)
