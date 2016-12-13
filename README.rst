@@ -33,10 +33,10 @@ between libraries.
 
 The numerical integration is perfomed using eiher:
 
-- `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html>`_
-- `pygslodeiv2 <https://github.com/bjodah/pygslodeiv2>`_
-- `pyodeint <https://github.com/bjodah/pyodeint>`_
-- `pycvodes <https://github.com/bjodah/pycvodes>`_
+    - `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html>`_
+    - `pygslodeiv2 <https://github.com/bjodah/pygslodeiv2>`_
+    - `pyodeint <https://github.com/bjodah/pyodeint>`_
+    - `pycvodes <https://github.com/bjodah/pycvodes>`_
 
 Note that implicit steppers which require a user supplied
 callback for calculating the jacobian is provided automatically by pyodesys.
@@ -123,5 +123,5 @@ Author
 ------
 Björn I. Dahlgren, contact:
 
-- gmail address: bjodah
-- kth.se address: bda
+    - gmail address: bjodah
+    - kth.se address: bda
