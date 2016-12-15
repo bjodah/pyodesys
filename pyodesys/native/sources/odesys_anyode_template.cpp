@@ -36,7 +36,7 @@ AnyODE::Status OdeSys::rhs(double t,
                            double * const __restrict__ f) {
     ${'AnyODE::ignore(t);' if p_odesys.autonomous_exprs else ''}
   % for cse_token, cse_expr in p_rhs['cses']:
-    const double ${cse_token} = ${cse_expr};
+    const auto ${cse_token} = ${cse_expr};
   % endfor
 
   % for i, expr in enumerate(p_rhs['exprs']):
@@ -65,7 +65,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
                                not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
 
   % for cse_token, cse_expr in p_jac['cses']:
-    const double ${cse_token} = ${cse_expr};
+    const auto ${cse_token} = ${cse_expr};
   % endfor
 
   % for i_major in range(p_odesys.ny):
@@ -111,7 +111,7 @@ AnyODE::Status OdeSys::roots(double t, const double * const y, double * const ou
     return AnyODE::Status::success;
 % else:
   % for cse_token, cse_expr in p_roots['cses']:
-    const double ${cse_token} = ${cse_expr};
+    const auto ${cse_token} = ${cse_expr};
   % endfor
 
   % for i, expr in enumerate(p_roots['exprs']):
