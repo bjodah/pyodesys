@@ -227,6 +227,7 @@ def _test_NativeSys__first_step_cb_source_code(NativeSys, log10myconst, should_s
         if should_succeed:
             assert np.allclose(yout, ref, **allclose_kw)
 
+
 def _test_NativeSys__roots(NativeSys):
     def f(t, y):
         return [y[0]]
