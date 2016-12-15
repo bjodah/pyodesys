@@ -164,13 +164,14 @@ class SymbolicSys(ODESys):
         return self.dep[self.names.index(key)]
 
     @classmethod
-    def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None, **kwargs):
+    def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None,
+                      roots_cb=None, **kwargs):
         """ Create an instance from a callback.
 
         Parameters
         ----------
         rhs : callbable
-            Signature ``rhs(x, y[:], p[:]) -> f[:]``.
+            Signature ``rhs(x, y[:], p[:], backend=math) -> f[:]``.
         ny : int
             Length of ``y`` in ``rhs``.
         nparams : int
@@ -182,6 +183,8 @@ class SymbolicSys(ODESys):
             its return value from dict to array.
         par_by_name : bool
             Make ``p`` passed to ``rhs`` a dict (keys from :attr:`param_names`).
+        roots_cb : callable
+            Callback with signature ``roots(x, y[:], p[:], backend=math) -> r[:]``.
         \*\*kwargs :
             Keyword arguments passed onto :class:`SymbolicSys`.
 
@@ -212,6 +215,17 @@ class SymbolicSys(ODESys):
             exprs = rhs(x, _y, _p, be)
         except TypeError:
             exprs = _ensure_4args(rhs)(x, _y, _p, be)
+        if roots_cb is not None:
+            if 'roots' in kwargs:
+                raise ValueError("Keyword argument ``roots`` already given.")
+
+            try:
+                roots = roots_cb(x, _y, _p, be)
+            except TypeError:
+                roots = _ensure_4args(roots_cb)(x, _y, _p, be)
+
+            kwargs['roots'] = roots
+
         if first_step_factory is not None:
             if 'first_step_exprs' in kwargs:
                 raise ValueError("Cannot override first_step_exprs.")

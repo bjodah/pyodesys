@@ -940,3 +940,18 @@ def test_PartiallySolvedSystem__by_name():
         assert yout.shape[1] == 2
         assert xout.shape[0] == yout.shape[0]
         assert yout.ndim == 2 and xout.ndim == 1
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys__roots():
+    def f(t, y):
+        return [y[0]]
+
+    def roots(t, y, p, backend):
+        return [y[0] - backend.exp(1)]
+    odesys = SymbolicSys.from_callback(f, roots_cb=roots)
+    kwargs = dict(dx0=1e-12, atol=1e-12, rtol=1e-12, method='adams',
+                  roots=roots)
+    xout, yout, info = integrate_adaptive(f, None, [1], 0, 2, **kwargs)
+    assert len(info['root_indices']) == 1
+    assert np.min(np.abs(xout - 1)) < 1e-11

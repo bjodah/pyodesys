@@ -28,6 +28,9 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
 }
+int OdeSys::get_nroots() const {
+    return ${p_odesys.nroots};
+}
 AnyODE::Status OdeSys::rhs(double t,
                            const double * const __restrict__ y,
                            double * const __restrict__ f) {
@@ -100,5 +103,21 @@ double OdeSys::get_dx0(double t, const double * const y) {
     ${'' if p_odesys.indep in p_odesys.first_step_expr.free_symbols else 'AnyODE::ignore(t);'}
     ${'' if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else 'AnyODE::ignore(y);'}
     return ${p_first_step['expr']};
+% endif
+}
+
+AnyODE::Status OdeSys::roots(double t, const double * const y, double * const out) {
+% if p_odesys.roots is None:
+    return AnyODE::Status::success;
+% else:
+  % for cse_token, cse_expr in p_roots['cses']:
+    const double ${cse_token} = ${cse_expr};
+  % endfor
+
+  % for i, expr in enumerate(p_roots['exprs']):
+    out[${i}] = ${expr};
+  % endfor
+    this->nrev++;
+    return AnyODE::Status::success;
 % endif
 }

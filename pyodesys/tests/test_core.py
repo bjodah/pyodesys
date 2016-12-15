@@ -303,3 +303,18 @@ def test_first_step_cb__gsl():
 @requires('pyodeint')
 def test_first_step_cb__odeint():
     _test_first_step_cb('odeint')
+
+
+@requires('pycvodes')
+def test_roots():
+    def f(t, y):
+        return [y[0]]
+
+    def roots(t, y, p, backend):
+        return [y[0] - backend.exp(1)]
+
+    kwargs = dict(dx0=1e-12, atol=1e-12, rtol=1e-12, method='adams', return_on_root=True)
+    odesys = ODESys(f, roots_cb=roots, nroots=1)
+    xout, yout, info = odesys.integrate(2, [1], **kwargs)
+    assert len(info['root_indices']) == 1
+    assert np.min(np.abs(xout - 1)) < 1e-11

@@ -226,3 +226,16 @@ def _test_NativeSys__first_step_cb_source_code(NativeSys, log10myconst, should_s
         info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
         if should_succeed:
             assert np.allclose(yout, ref, **allclose_kw)
+
+def _test_NativeSys__roots(NativeSys):
+    def f(t, y):
+        return [y[0]]
+
+    def roots(t, y, p, backend):
+        return [y[0] - backend.exp(1)]
+
+    odesys = NativeSys.from_callback(f, 1, 0, roots_cb=roots)
+    kwargs = dict(first_step=1e-12, atol=1e-12, rtol=1e-12, method='adams')
+    xout, yout, info = odesys.integrate(2, [1], **kwargs)
+    assert len(info['root_indices']) == 1
+    assert np.min(np.abs(xout - 1)) < 1e-11

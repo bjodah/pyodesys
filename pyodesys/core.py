@@ -128,15 +128,15 @@ class ODESys(object):
 
     """
 
-    def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots=None, nroots=None, band=None,
-                 names=None, param_names=None, description=None, dep_by_name=False, par_by_name=False,
-                 latex_names=None, latex_param_names=None, pre_processors=None, post_processors=None,
-                 append_iv=False, **kwargs):
+    def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
+                 band=None, names=None, param_names=None, description=None, dep_by_name=False,
+                 par_by_name=False, latex_names=None, latex_param_names=None, pre_processors=None,
+                 post_processors=None, append_iv=False, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
         self.first_step_cb = first_step_cb
-        self.roots_cb = roots
+        self.roots_cb = roots_cb
         self.nroots = nroots or 0
         if band is not None:
             if not band[0] >= 0 or not band[1] >= 0:

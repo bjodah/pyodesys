@@ -18,7 +18,7 @@ from .. import __version__
 try:
     import appdirs
 except ImportError:
-    chachedir = None
+    cachedir = None
 else:
     appauthor = "bjodah"
     appname = "python%d.%d-pyodesys-%s" % (sys.version_info[:2] + (__version__,))
@@ -70,10 +70,13 @@ class _NativeCodeBase(Cpp_Code):
         'p_support_recoverable_error': False,
         'p_jacobian_set_to_zero_by_solver': False,
     }
+    _support_roots = False
     # `namespace_override` is set in init
     # `namespace_extend` is set in init
 
     def __init__(self, odesys, *args, **kwargs):
+        if odesys.nroots > 0 and not self._support_roots:
+            raise ValueError("%s does not support nroots > 0" % self.__class__.__name__)
         self.namespace_override = kwargs.pop('namespace_override', {})
         self.namespace_extend = kwargs.pop('namespace_extend', {})
         self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
@@ -130,6 +133,9 @@ class _NativeCodeBase(Cpp_Code):
         if first_step is not None:
             first_step_cses, first_step_exprs = self.odesys.be.cse([first_step])
 
+        if self.odesys.roots is not None:
+            roots_cses, roots_exprs = self.odesys.be.cse(self.odesys.roots)
+
         ns = dict(
             _message_for_rendered=[
                 "-*- mode: read-only -*-",
@@ -149,6 +155,10 @@ class _NativeCodeBase(Cpp_Code):
             p_first_step=None if first_step is None else {
                 'cses': first_step_cses,
                 'expr': _ccode(first_step_exprs[0]),
+            },
+            p_roots=None if self.odesys.roots is None else {
+                'cses': [(symb.name, _ccode(expr)) for symb, expr in roots_cses],
+                'exprs': map(_ccode, roots_exprs)
             }
         )
         ns.update(self.namespace_default)

@@ -22,12 +22,14 @@ class NativeCvodeCode(_NativeCodeBase):
         'p_support_recoverable_error': True,
         'p_jacobian_set_to_zero_by_solver': True
     }
+    _support_roots = True
 
     def __init__(self, *args, **kwargs):
         self.compile_kwargs = copy.deepcopy(_compile_kwargs)
         self.compile_kwargs['include_dirs'].append(pycvodes.get_include())
         self.compile_kwargs['libraries'].extend(_config.env['SUNDIALS_LIBS'].split(','))
-        self.compile_kwargs['libraries'].extend(os.environ.get('PYODESYS_LAPACK', _config.env['LAPACK']).split(','))
+        self.compile_kwargs['libraries'].extend(os.environ.get(
+            'PYODESYS_LAPACK', _config.env['LAPACK']).split(','))
         super(NativeCvodeCode, self).__init__(*args, **kwargs)
 
 

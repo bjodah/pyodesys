@@ -12,7 +12,7 @@ from ._tests import (
     _test_PartiallySolved_symmetric_native,
     _test_PartiallySolved_symmetric_native_multi,
     _test_Decay_nonnegative, _test_NativeSys__first_step_cb,
-    _test_NativeSys__first_step_cb_source_code
+    _test_NativeSys__first_step_cb_source_code, _test_NativeSys__roots
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
@@ -105,3 +105,8 @@ def test_chained_multi_native__dx_max_scalar():
         NativeSys, logc=True, logt=True, reduced=0, zero_time=1e-10,
         zero_conc=1e-18, nonnegative=None, integrator='cvode', dx_max=1e10
     )
+
+
+@requires('pycvodes')
+def test_roots():
+    _test_NativeSys__roots(NativeSys)
