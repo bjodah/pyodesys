@@ -310,10 +310,11 @@ def test_roots():
     def f(t, y):
         return [y[0]]
 
-    def roots(t, y, p, backend):
+    def roots(t, y, p=(), backend=np):
         return [y[0] - backend.exp(1)]
 
-    kwargs = dict(dx0=1e-12, atol=1e-12, rtol=1e-12, method='adams', return_on_root=True)
+    kwargs = dict(dx0=1e-12, atol=1e-12, rtol=1e-12,
+                  integrator='cvode', method='adams', return_on_root=True)
     odesys = ODESys(f, roots_cb=roots, nroots=1)
     xout, yout, info = odesys.integrate(2, [1], **kwargs)
     assert len(info['root_indices']) == 1

@@ -949,9 +949,8 @@ def test_SymbolicSys__roots():
 
     def roots(t, y, p, backend):
         return [y[0] - backend.exp(1)]
-    odesys = SymbolicSys.from_callback(f, roots_cb=roots)
-    kwargs = dict(dx0=1e-12, atol=1e-12, rtol=1e-12, method='adams',
-                  roots=roots)
-    xout, yout, info = integrate_adaptive(f, None, [1], 0, 2, **kwargs)
+    odesys = SymbolicSys.from_callback(f, 1, roots_cb=roots)
+    kwargs = dict(dx0=1e-12, atol=1e-12, rtol=1e-12, method='adams', integrator='cvode')
+    xout, yout, info = odesys.integrate(2, [1], **kwargs)
     assert len(info['root_indices']) == 1
     assert np.min(np.abs(xout - 1)) < 1e-11
