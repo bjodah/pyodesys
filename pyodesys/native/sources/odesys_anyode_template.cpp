@@ -108,6 +108,7 @@ double OdeSys::get_dx0(double t, const double * const y) {
 
 AnyODE::Status OdeSys::roots(double t, const double * const y, double * const out) {
 % if p_odesys.roots is None:
+    AnyODE::ignore(t); AnyODE::ignore(y); AnyODE::ignore(out);
     return AnyODE::Status::success;
 % else:
   % for cse_token, cse_expr in p_roots['cses']:
