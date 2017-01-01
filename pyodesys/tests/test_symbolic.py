@@ -24,7 +24,7 @@ else:
 
 from .. import ODESys
 from ..core import integrate_chained
-from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem
+from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem, get_logexp
 from ..util import requires
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
@@ -35,10 +35,6 @@ def identity(x):
     return x
 
 idty2 = (identity, identity)
-
-
-def get_logexp():
-    return (sp.log, sp.exp)
 
 
 @requires('sym', 'scipy')
@@ -70,14 +66,14 @@ def decay_rhs(t, y, k):
     return dydt
 
 
-def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1, **kwargs):
+def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1, y_zero=1e-20, t_zero=1e-12, **kwargs):
     k = [7., 3, 2]
     ts = symmetricsys(dep_tr, indep_tr).from_callback(
         decay_rhs, len(k)+1, len(k))
-    y0 = [1e-20]*(len(k)+1)
+    y0 = [y_zero]*(len(k)+1)
     y0[0] = 1
     xout, yout, info = ts.integrate(
-        [1e-12, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol,
+        [t_zero, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol,
         first_step=first_step, **kwargs)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
@@ -98,6 +94,13 @@ def test_TransformedSys_liny_linx():
 @requires('sym', 'pycvodes')
 def test_TransformedSys_logy_logx():
     _test_TransformedSys(get_logexp(), get_logexp(), 1e-7, 1e-7, 1e-4, 150, nsteps=800)
+
+
+@requires('sym', 'pycvodes', 'sympy')
+def test_TransformedSys_logy_logx_scaled_shifted():
+    em16 = (sp.S.One*10)**-16
+    _test_TransformedSys(get_logexp(42, em16), get_logexp(42, em16), 1e-7, 1e-7, 1e-4,
+                         150, y_zero=0, t_zero=0, nsteps=800)
 
 
 @requires('sym', 'pycvodes')

@@ -124,7 +124,8 @@ class SymbolicSys(ODESys):
 
     """
 
-    _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name')
+    _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
+                      'latex_names', 'latex_param_names')
 
     def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, constraints=None, nonnegative=None, **kwargs):
@@ -257,7 +258,11 @@ class SymbolicSys(ODESys):
                 kwargs['post_processors'] = []
             kwargs['post_processors'] = ori.post_processors + kwargs['post_processors']
 
-        return cls(zip(ori.dep, ori.exprs), ori.indep, **kwargs)
+        instance = cls(zip(ori.dep, ori.exprs), ori.indep, **kwargs)
+        for attr in ori._attrs_to_copy:
+            if attr not in cls._attrs_to_copy:
+                setattr(instance, attr, getattr(ori, attr))
+        return instance
 
     @property
     def ny(self):
@@ -768,6 +773,8 @@ class PartiallySolvedSystem(SymbolicSys):
 
     """
 
+    _attrs_to_copy = SymbolicSys._attrs_to_copy + ('free_names', 'free_latex_names', 'original_dep')
+
     def __init__(self, original_system, analytic_factory, **kwargs):
         self._ori_sys = original_system
         self.analytic_factory = _ensure_4args(analytic_factory)
@@ -787,30 +794,36 @@ class PartiallySolvedSystem(SymbolicSys):
             _pars = dict(zip(original_system.param_names, _pars))
 
         self.original_dep = original_system.dep
-        _dep0 = dict(zip(self.original_dep, self.init_dep)) if original_system.dep_by_name else self.init_dep
+        _dep0 = (dict(zip(self.original_dep, self.init_dep)) if original_system.dep_by_name
+                 else self.init_dep)
         self.analytic_exprs = self.analytic_factory(self.init_indep, _dep0, _pars, _be)
         if len(self.analytic_exprs) == 0:
             raise ValueError("Failed to produce any analytic expressions.")
         new_dep = []
         free_names = []
+        free_latex_names = []
         for idx, dep in enumerate(self.original_dep):
             if dep not in self.analytic_exprs:
                 new_dep.append(dep)
                 if original_system.names is not None:
                     free_names.append(original_system.names[idx])
+                if original_system.latex_names is not None:
+                    free_latex_names.append(original_system.latex_names[idx])
         self.free_names = None if original_system.names is None else free_names
+        self.free_latex_names = None if original_system.latex_names is None else free_latex_names
         new_params = _append(original_system.params, (self.init_indep,), self.init_dep)
         self.analytic_cb = self._get_analytic_cb(
             original_system, list(self.analytic_exprs.values()), new_dep, new_params)
-        ori_analyt_idx_map = OrderedDict([(self.original_dep.index(dep), idx)
-                                          for idx, dep in enumerate(self.analytic_exprs)])
-        ori_remaining_idx_map = {self.original_dep.index(dep): idx for idx, dep in enumerate(new_dep)}
+        self.ori_analyt_idx_map = OrderedDict([(self.original_dep.index(dep), idx)
+                                               for idx, dep in enumerate(self.analytic_exprs)])
+        self.ori_remaining_idx_map = {self.original_dep.index(dep): idx for
+                                      idx, dep in enumerate(new_dep)}
         nanalytic = len(self.analytic_exprs)
         new_exprs = [expr.subs(self.analytic_exprs) for idx, expr in
-                     enumerate(original_system.exprs) if idx not in ori_analyt_idx_map]
+                     enumerate(original_system.exprs) if idx not in self.ori_analyt_idx_map]
         new_kw = kwargs.copy()
         for attr in self._attrs_to_copy:
-            if attr not in new_kw and getattr(original_system, attr) is not None:
+            if attr not in new_kw and getattr(original_system, attr, None) is not None:
                 new_kw[attr] = getattr(original_system, attr)
 
         def partially_solved_pre_processor(x, y, p):
@@ -818,7 +831,7 @@ class PartiallySolvedSystem(SymbolicSys):
             if y.ndim == 2:
                 return zip(*[partially_solved_pre_processor(_x, _y, _p)
                              for _x, _y, _p in zip(x, y, p)])
-            return (x, _skip(ori_analyt_idx_map, y), _append(p, [x[0]], y))
+            return (x, _skip(self.ori_analyt_idx_map, y), _append(p, [x[0]], y))
 
         def partially_solved_post_processor(x, y, p):
             try:
@@ -831,10 +844,10 @@ class PartiallySolvedSystem(SymbolicSys):
             new_y = np.empty(y.shape[:-1] + (y.shape[-1]+nanalytic,))
             analyt_y = self.analytic_cb(x, y, p)
             for idx in range(original_system.ny):
-                if idx in ori_analyt_idx_map:
-                    new_y[..., idx] = analyt_y[..., ori_analyt_idx_map[idx]]
+                if idx in self.ori_analyt_idx_map:
+                    new_y[..., idx] = analyt_y[..., self.ori_analyt_idx_map[idx]]
                 else:
-                    new_y[..., idx] = y[..., ori_remaining_idx_map[idx]]
+                    new_y[..., idx] = y[..., self.ori_remaining_idx_map[idx]]
             return x, new_y, p[:-(1+original_system.ny)]
 
         new_kw['pre_processors'] = original_system.pre_processors + [partially_solved_pre_processor]
@@ -852,3 +865,26 @@ class PartiallySolvedSystem(SymbolicSys):
     def __getitem__(self, key):
         ori_dep = self.original_dep[self.names.index(key)]
         return self.analytic_exprs.get(ori_dep, ori_dep)
+
+
+def get_logexp(a=1, b=0, backend=None):
+    """ Utility function for use with :func:symmetricsys
+
+    Creates a pair of callbacks for logarithmic transformation
+    (including scaling and shifting): ``u = ln(a*x + b)``.
+
+    Parameters
+    ----------
+    a : number
+        Scaling
+    b : number
+        Shift
+
+    Returns
+    -------
+    Pair of callbacks
+    """
+    if backend is None:
+        import sympy as backend
+    return (lambda x: backend.log(a*x + b),
+            lambda x: (backend.exp(x) - b)/a)
