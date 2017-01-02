@@ -658,6 +658,59 @@ def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
         assert np.allclose(yout[i], ref) and np.allclose(np.sum(yout[i], axis=1), sum(y0))
 
 
+def _get_nonlin(**kwargs):
+    return SymbolicSys.from_callback(
+        lambda x, y, p: [
+            -p[0]*y[0]*y[1] + p[1]*y[2],
+            -p[0]*y[0]*y[1] + p[1]*y[2],
+            p[0]*y[0]*y[1] - p[1]*y[2]
+        ], 3, 2, **kwargs)
+
+
+def _get_nonlin_part_system():
+    odesys = _get_nonlin()
+    return PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
+        odesys.dep[0]: y0[0] + y0[2] - odesys.dep[2]
+    })
+
+
+def _ref_nonlin(y0, k, t):
+    X, Y, Z = y0[2], max(y0[:2]), min(y0[:2])
+    kf, kb = k
+    x0 = Y*kf
+    x1 = Z*kf
+    x2 = 2*X*kf
+    x3 = -kb - x0 - x1
+    x4 = -x2 + x3
+    x5 = np.sqrt(-4*kf*(X**2*kf + X*x0 + X*x1 + Z*x0) + x4**2)
+    x6 = kb + x0 + x1 + x5
+    x7 = (x3 + x5)*np.exp(-t*x5)
+    x8 = x3 - x5
+    return (x4*x8 + x5*x8 + x7*(x2 + x6))/(2*kf*(x6 + x7))
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem__symmetricsys__nonlinear(integrator):
+    partsys = _get_nonlin_part_system()
+    logexp = get_logexp(7, partsys.indep**0/10**7)
+    trnsfsys = symmetricsys(logexp, logexp).from_other(partsys)
+    y0 = [3., 2., 1.]
+    k = [9.351, 2.532]
+    tend = 1.7
+    atol, rtol = 1e-12, 1e-13
+    for odesys, forgive in [(partsys, 21), (trnsfsys, 298)]:
+        xout, yout, info = odesys.integrate(tend, y0, k, integrator=integrator,
+                                            first_step=1e-14, atol=atol, rtol=rtol,
+                                            nsteps=1000)
+        assert info['success']
+        yref = np.empty_like(yout)
+        yref[:, 2] = _ref_nonlin(y0, k, xout - xout[0])
+        yref[:, 0] = y0[0] + y0[2] - yref[:, 2]
+        yref[:, 1] = y0[1] + y0[2] - yref[:, 2]
+        assert np.allclose(yout, yref, atol=forgive*atol, rtol=forgive*rtol)
+
+
 @requires('sym', 'scipy')
 def test_SymbolicSys_from_other():
     scaled = ScaledSys.from_callback(lambda x, y: [y[0]*y[0]], 1,

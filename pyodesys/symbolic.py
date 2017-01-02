@@ -868,7 +868,7 @@ class PartiallySolvedSystem(SymbolicSys):
 
 
 def get_logexp(a=1, b=0, backend=None):
-    """ Utility function for use with :func:symmetricsys
+    """ Utility function for use with :func:symmetricsys.
 
     Creates a pair of callbacks for logarithmic transformation
     (including scaling and shifting): ``u = ln(a*x + b)``.
@@ -876,13 +876,14 @@ def get_logexp(a=1, b=0, backend=None):
     Parameters
     ----------
     a : number
-        Scaling
+        Scaling.
     b : number
-        Shift
+        Shift.
 
     Returns
     -------
-    Pair of callbacks
+    Pair of callbacks.
+
     """
     if backend is None:
         import sympy as backend
