@@ -123,11 +123,30 @@ class _NativeCodeBase(Cpp_Code):
         def _ccode(expr):
             return self.odesys.be.ccode(expr.xreplace(subsd))
 
-        rhs_cses, rhs_exprs = self.odesys.be.cse(self.odesys.exprs)
         jac = self.odesys.get_jac()
+        if jac is False:
+            all_exprs = self.odesys.exprs
+        else:
+            jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
+            all_exprs = self.odesys.exprs + tuple(jac_dfdx)
+
+        def common_cse_symbols():
+            idx = 0
+            while True:
+                yield self.odesys.be.Symbol('m_p_cse[%d]' % idx)
+                idx += 1
+
+        try:
+            common_cses, common_exprs = self.odesys.be.cse(
+                all_exprs, symbols=common_cse_symbols(),
+                ignore=(self.odesys.indep,) + self.odesys.dep)
+        except TypeError:  # old version of SymPy does not support ``ignore``
+            common_cses, common_exprs = [], all_exprs
+
+        rhs_cses, rhs_exprs = self.odesys.be.cse(common_exprs[:len(self.odesys.exprs)])
+
         if jac is not False:
-            jac_cses, jac_exprs = self.odesys.be.cse(list(reduce(
-                add, jac.tolist() + self.odesys.get_dfdx().tolist())))
+            jac_cses, jac_exprs = self.odesys.be.cse(common_exprs[len(self.odesys.exprs):])
 
         first_step = self.odesys.first_step_expr
         if first_step is not None:
@@ -142,6 +161,9 @@ class _NativeCodeBase(Cpp_Code):
                 "This file was generated using pyodesys-%s" % __version__
             ],
             p_odesys=self.odesys,
+            p_common={
+                'cses': [(symb.name, _ccode(expr)) for symb, expr in common_cses]
+            },
             p_rhs={
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in rhs_cses],
                 'exprs': map(_ccode, rhs_exprs)

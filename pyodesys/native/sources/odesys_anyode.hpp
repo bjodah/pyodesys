@@ -4,6 +4,7 @@
 namespace odesys_anyode {
     struct OdeSys : public AnyODE::OdeSysBase {
         std::vector<double> m_p;
+        std::vector<double> m_p_cse;
         std::vector<double> m_atol;
         double m_rtol;
         int nrev=0;  // number of calls to roots

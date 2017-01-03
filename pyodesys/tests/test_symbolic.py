@@ -43,6 +43,7 @@ def test_SymbolicSys():
     odesys = SymbolicSys.from_callback(lambda x, y, p, be: [-y[0], y[0]], 2,
                                        names=['foo', 'bar'])
     assert odesys.autonomous_interface is True
+    assert isinstance(odesys.exprs, tuple)
     with pytest.raises(ValueError):
         odesys.integrate(1, [0])
 

@@ -24,6 +24,10 @@ using odesys_anyode::OdeSys;
 OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol) :
     m_atol(atol), m_rtol(rtol) {
     m_p.assign(params, params + ${len(p_odesys.params)});
+    m_p_cse.resize(${len(p_common['cses'])});
+  % for idx, (cse_token, cse_expr) in enumerate(p_common['cses']):
+    ${cse_token} = ${cse_expr}; <% assert cse_token == 'm_p_cse[{0}]'.format(idx) %>
+  % endfor
 }
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
