@@ -22,9 +22,8 @@ namespace {  // anonymous namespace for user-defined helper functions
 using odesys_anyode::OdeSys;
 
 OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol) :
-    m_atol(atol), m_rtol(rtol) {
+    m_p_cse(${len(p_common['cses'])}), m_atol(atol), m_rtol(rtol) {
     m_p.assign(params, params + ${len(p_odesys.params)});
-    m_p_cse.resize(${len(p_common['cses'])});
   % for idx, (cse_token, cse_expr) in enumerate(p_common['cses']):
     ${cse_token} = ${cse_expr}; <% assert cse_token == 'm_p_cse[{0}]'.format(idx) %>
   % endfor
@@ -74,12 +73,11 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
 
   % for i_major in range(p_odesys.ny):
    % for i_minor in range(p_odesys.ny):
-    <%
+<%
       curr_expr = p_jac['exprs'][i_minor, i_major] if order == 'cmaj' else p_jac['exprs'][i_major, i_minor]
       if curr_expr == '0' and p_jacobian_set_to_zero_by_solver:
           continue
-    %>
-    jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
+%>  jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
    % endfor
 
   % endfor
