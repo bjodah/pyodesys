@@ -1,5 +1,5 @@
-// -*- coding: utf-8 -*-
 // ${'\n// '.join(_message_for_rendered)}
+// -*- coding: utf-8 -*-
 <%doc>
 This is file is a mako-formatted template
 </%doc>
@@ -7,9 +7,10 @@ This is file is a mako-formatted template
 // Names of dependent variables: ${p_odesys.names}
 // Names of parameters: ${p_odesys.param_names}
 
+#include <algorithm>
+#include <limits>
 #include <math.h>
 #include <vector>
-
 %for inc in p_includes:
 #include ${inc}
 %endfor
@@ -22,10 +23,15 @@ namespace {  // anonymous namespace for user-defined helper functions
 using odesys_anyode::OdeSys;
 
 OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol) :
-    m_p_cse(${len(p_common['cses'])}), m_atol(atol), m_rtol(rtol) {
+    m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol) {
     m_p.assign(params, params + ${len(p_odesys.params)});
-  % for idx, (cse_token, cse_expr) in enumerate(p_common['cses']):
-    ${cse_token} = ${cse_expr}; <% assert cse_token == 'm_p_cse[{0}]'.format(idx) %>
+    <% idx = 0 %>
+  % for cse_token, cse_expr in p_common['cses']:
+   %if cse_token.startswith('m_p_cse'):
+    ${cse_token} = ${cse_expr}; <% assert cse_token == 'm_p_cse[{0}]'.format(idx); idx += 1 %>
+   %else:
+    const auto ${cse_token} = ${cse_expr};
+   %endif
   % endfor
 }
 int OdeSys::get_ny() const {
@@ -77,7 +83,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
       curr_expr = p_jac['exprs'][i_minor, i_major] if order == 'cmaj' else p_jac['exprs'][i_major, i_minor]
       if curr_expr == '0' and p_jacobian_set_to_zero_by_solver:
           continue
-%>  jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
+%>    jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
    % endfor
 
   % endfor
@@ -91,6 +97,32 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
 }
 % endfor
 % endif
+
+double OdeSys::max_euler_step(double t, const double * const y){
+% if p_max_euler_step is False:
+    AnyODE::ignore(t); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
+    return 0.0;  // invokes the default behaviour of the chosen solver
+% elif p_max_euler_step is True:
+    auto bounds = upper_conc_bounds(y);
+    auto fvec = std::vector<double>(${p_odesys.ny});
+    auto hvec = std::vector<double>(${p_odesys.ny});
+    rhs(t, y, &fvec[0]);
+    for (int idx=0; idx<${p_odesys.ny}; ++idx){
+        if (fvec[idx] == 0) {
+            hvec[idx] = std::numeric_limits<double>::infinity();
+        } else if (fvec[idx] > 0) {
+            hvec[idx] = (m_upper_bounds[idx] - y[idx])/fvec[idx];
+        } else { // fvec[idx] < 0
+            hvec[idx] = (m_lower_bounds[idx] - y[idx])/fvec[idx];
+        }
+    }
+    return *std::min_element(std::begin(hvec), std::end(hvec));
+% elif isinstance(p_max_euler_step, str):
+    ${p_max_euler_step}
+% else:
+      <% raise NotImplementedError() %>
+% endif
+}
 
 double OdeSys::get_dx0(double t, const double * const y) {
 % if p_first_step is None:

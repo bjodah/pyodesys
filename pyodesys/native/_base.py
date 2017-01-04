@@ -138,10 +138,19 @@ class _NativeCodeBase(Cpp_Code):
 
         try:
             common_cses, common_exprs = self.odesys.be.cse(
-                all_exprs, symbols=common_cse_symbols(),
-                ignore=(self.odesys.indep,) + self.odesys.dep)
+                all_exprs, ignore=(self.odesys.indep,) + self.odesys.dep)
         except TypeError:  # old version of SymPy does not support ``ignore``
             common_cses, common_exprs = [], all_exprs
+        common_cse_subs = {}
+        comm_cse_symbs = common_cse_symbols()
+        for symb, subexpr in common_cses:
+            for expr in common_exprs:
+                if symb in expr.free_symbols:
+                    common_cse_subs[symb] = next(comm_cse_symbs)
+                    break
+        common_cses = [(x.xreplace(common_cse_subs), expr.xreplace(common_cse_subs))
+                       for x, expr in common_cses]
+        common_exprs = [expr.xreplace(common_cse_subs) for expr in common_exprs]
 
         rhs_cses, rhs_exprs = self.odesys.be.cse(common_exprs[:len(self.odesys.exprs)])
 
@@ -162,7 +171,8 @@ class _NativeCodeBase(Cpp_Code):
             ],
             p_odesys=self.odesys,
             p_common={
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in common_cses]
+                'cses': [(symb.name, _ccode(expr)) for symb, expr in common_cses],
+                'nsubs': len(common_cse_subs)
             },
             p_rhs={
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in rhs_cses],
@@ -181,7 +191,8 @@ class _NativeCodeBase(Cpp_Code):
             p_roots=None if self.odesys.roots is None else {
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in roots_cses],
                 'exprs': map(_ccode, roots_exprs)
-            }
+            },
+            p_max_euler_step=False
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)
