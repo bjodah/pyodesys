@@ -255,4 +255,5 @@ def _test_NativeSys__get_dx_max_source_code(NativeSys, forgive=20, **kwargs):
     assert info['success']
     assert info['nfev'] > 10
     if 'n_steps' in info:
-        assert 750 < info['n_steps'] < 1000
+        print(info['n_steps'])
+        assert 750 < info['n_steps'] <= 1000

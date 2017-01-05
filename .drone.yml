@@ -2,6 +2,8 @@ build:
   image: bjodah/bjodahimg16dev:latest
   commands:
     - bash -c '[[ $(python setup.py --version) =~ ^[0-9]+.* ]]'
+    - python2 -m pip install git+https://github.com/bjodah/pycvodes.git@get_dx_max  # DO-NOT-MERGE!
+    - python3 -m pip install git+https://github.com/bjodah/pycvodes.git@get_dx_max  # DO-NOT-MERGE!
     - ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
     - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
