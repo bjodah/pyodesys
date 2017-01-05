@@ -1,11 +1,11 @@
 #ifdef ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37
 
-#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 6
+#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 7
 #error "Multiple anyode.hpp files included with version mismatch"
 #endif
 
 #else
-#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 6
+#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 7
 
 
 #include <string>
@@ -22,6 +22,7 @@ namespace AnyODE {
         std::unordered_map<std::string, int> last_integration_info;
         std::unordered_map<std::string, double> last_integration_info_dbl;
         double default_dx0 = 0.0;  // *may* be used by `get_dx0`, 0 signifies solver default
+        bool use_get_dx_max = false;  // whether get_dx_max should be called
         virtual ~OdeSysBase() {}
         virtual int get_ny() const = 0;
         virtual int get_mlower() const { return -1; } // -1 denotes "not banded"
@@ -31,7 +32,9 @@ namespace AnyODE {
                                const double * const /* y */) {
             return default_dx0;
         }
-
+        virtual double get_dx_max(double /* t */, const double * const /* y */) {
+            return 0.0;
+        }
         virtual Status rhs(double t, const double * const y, double * const f) = 0;
         virtual Status roots(double xval, const double * const y, double * const out) {
             ignore(xval); ignore(y); ignore(out);

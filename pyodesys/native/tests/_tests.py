@@ -240,3 +240,19 @@ def _test_NativeSys__roots(NativeSys):
     xout, yout, info = odesys.integrate(2, [1], **kwargs)
     assert len(info['root_indices']) == 1
     assert np.min(np.abs(xout - 1)) < 1e-11
+
+
+def _test_NativeSys__get_dx_max_source_code(NativeSys, forgive=20, **kwargs):
+    dec3 = _get_decay3()
+    odesys = NativeSys.from_other(dec3, namespace_override={
+        'p_get_dx_max': 'AnyODE::ignore(y); return 1e-4*x + 1e-3;',
+    })
+    y0, k = [.7, 0, 0], [7., 2, 3.]
+    xout, yout, info = odesys.integrate(1, y0, k, integrator='native', **kwargs)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    allclose_kw = dict(atol=kwargs['atol']*forgive, rtol=kwargs['rtol']*forgive)
+    assert np.allclose(yout, ref, **allclose_kw)
+    assert info['success']
+    assert info['nfev'] > 10
+    if 'n_steps' in info:
+        assert 750 < info['n_steps'] < 1000

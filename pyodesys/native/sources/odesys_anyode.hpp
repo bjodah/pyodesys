@@ -14,22 +14,22 @@ namespace odesys_anyode {
         int get_ny() const override;
         int get_nroots() const override;
         double get_dx0(double, const double * const) override;
-        double max_euler_step(double, const double * const);
-        AnyODE::Status rhs(double t,
+        double get_dx_max(double, const double * const) override;
+        AnyODE::Status rhs(double x,
                            const double * const __restrict__ y,
                            double * const __restrict__ f) override;
-        AnyODE::Status dense_jac_cmaj(double t,
+        AnyODE::Status dense_jac_cmaj(double x,
                                       const double * const __restrict__ y,
                                       const double * const __restrict__ fy,
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt=nullptr) override;
-        AnyODE::Status dense_jac_rmaj(double t,
+        AnyODE::Status dense_jac_rmaj(double x,
                                       const double * const __restrict__ y,
                                       const double * const __restrict__ fy,
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt=nullptr) override;
-        AnyODE::Status roots(double t, const double * const y, double * const out) override;
+        AnyODE::Status roots(double x, const double * const y, double * const out) override;
     };
 }

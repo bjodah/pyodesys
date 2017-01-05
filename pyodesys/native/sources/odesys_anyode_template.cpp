@@ -33,6 +33,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
     const auto ${cse_token} = ${cse_expr};
    %endif
   % endfor
+    use_get_dx_max = ${'true' if p_get_dx_max else 'false'};
 }
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
@@ -40,10 +41,10 @@ int OdeSys::get_ny() const {
 int OdeSys::get_nroots() const {
     return ${p_odesys.nroots};
 }
-AnyODE::Status OdeSys::rhs(double t,
+AnyODE::Status OdeSys::rhs(double x,
                            const double * const __restrict__ y,
                            double * const __restrict__ f) {
-    ${'AnyODE::ignore(t);' if p_odesys.autonomous_exprs else ''}
+    ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
   % for cse_token, cse_expr in p_rhs['cses']:
     const auto ${cse_token} = ${cse_expr};
   % endfor
@@ -61,7 +62,7 @@ AnyODE::Status OdeSys::rhs(double t,
 % if p_jac is not None:
 % for order in ('cmaj', 'rmaj'):
 
-AnyODE::Status OdeSys::dense_jac_${order}(double t,
+AnyODE::Status OdeSys::dense_jac_${order}(double x,
                                       const double * const __restrict__ y,
                                       const double * const __restrict__ fy,
                                       double * const __restrict__ jac,
@@ -69,7 +70,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
                                       double * const __restrict__ dfdt) {
     // The AnyODE::ignore(...) calls below are used to generate code free from false compiler warnings.
     AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
-    ${'AnyODE::ignore(t);' if p_odesys.autonomous_exprs else ''}
+    ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
     ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
 
@@ -98,15 +99,30 @@ AnyODE::Status OdeSys::dense_jac_${order}(double t,
 % endfor
 % endif
 
-double OdeSys::max_euler_step(double t, const double * const y){
-% if p_max_euler_step is False:
-    AnyODE::ignore(t); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
+double OdeSys::get_dx0(double x, const double * const y) {
+% if p_first_step is None:
+    AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return 0.0;  // invokes the default behaviour of the chosen solver
-% elif p_max_euler_step is True:
-    auto bounds = upper_conc_bounds(y);
+% elif isinstance(p_first_step, str):
+    ${p_first_step}
+% else:
+  % for cse_token, cse_expr in p_first_step['cses']:
+    const double ${cse_token} = ${cse_expr};
+  % endfor
+    ${'' if p_odesys.indep in p_odesys.first_step_expr.free_symbols else 'AnyODE::ignore(x);'}
+    ${'' if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else 'AnyODE::ignore(y);'}
+    return ${p_first_step['expr']};
+% endif
+}
+
+double OdeSys::get_dx_max(double x, const double * const y) {
+% if p_get_dx_max is False:
+    AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
+    return 0.0;  // invokes the default behaviour of the chosen solver
+% elif p_get_dx_max is True:
     auto fvec = std::vector<double>(${p_odesys.ny});
     auto hvec = std::vector<double>(${p_odesys.ny});
-    rhs(t, y, &fvec[0]);
+    rhs(x, y, &fvec[0]);
     for (int idx=0; idx<${p_odesys.ny}; ++idx){
         if (fvec[idx] == 0) {
             hvec[idx] = std::numeric_limits<double>::infinity();
@@ -117,32 +133,16 @@ double OdeSys::max_euler_step(double t, const double * const y){
         }
     }
     return *std::min_element(std::begin(hvec), std::end(hvec));
-% elif isinstance(p_max_euler_step, str):
-    ${p_max_euler_step}
+% elif isinstance(p_get_dx_max, str):
+    ${p_get_dx_max}
 % else:
-      <% raise NotImplementedError() %>
+    <% raise NotImplementedError("Don't know what to do with: {}".format(p_get_dx_max)) %>
 % endif
 }
 
-double OdeSys::get_dx0(double t, const double * const y) {
-% if p_first_step is None:
-    AnyODE::ignore(t); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
-    return 0.0;  // invokes the default behaviour of the chosen solver
-% elif isinstance(p_first_step, str):
-    ${p_first_step}
-% else:
-  % for cse_token, cse_expr in p_first_step['cses']:
-    const double ${cse_token} = ${cse_expr};
-  % endfor
-    ${'' if p_odesys.indep in p_odesys.first_step_expr.free_symbols else 'AnyODE::ignore(t);'}
-    ${'' if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else 'AnyODE::ignore(y);'}
-    return ${p_first_step['expr']};
-% endif
-}
-
-AnyODE::Status OdeSys::roots(double t, const double * const y, double * const out) {
+AnyODE::Status OdeSys::roots(double x, const double * const y, double * const out) {
 % if p_odesys.roots is None:
-    AnyODE::ignore(t); AnyODE::ignore(y); AnyODE::ignore(out);
+    AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
     return AnyODE::Status::success;
 % else:
   % for cse_token, cse_expr in p_roots['cses']:

@@ -116,7 +116,7 @@ class _NativeCodeBase(Cpp_Code):
 
         subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for
                  idx, k in enumerate(self.odesys.dep)}
-        subsd[self.odesys.indep] = self.odesys.be.Symbol('t')
+        subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
         subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
                       idx, k in enumerate(self.odesys.params)})
 
@@ -192,7 +192,7 @@ class _NativeCodeBase(Cpp_Code):
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in roots_cses],
                 'exprs': map(_ccode, roots_exprs)
             },
-            p_max_euler_step=False
+            p_get_dx_max=False
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)

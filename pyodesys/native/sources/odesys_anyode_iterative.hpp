@@ -14,6 +14,7 @@ namespace odesys_anyode {
         int get_ny() const override;
         int get_nroots() const override;
         double get_dx0(double, const double * const) override;
+        double get_dx_max(double, const double * const) override;
         double max_euler_step(double, const double * const);
         AnyODE::Status rhs(double t,
                            const double * const __restrict__ y,
