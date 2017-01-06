@@ -118,7 +118,7 @@ double OdeSys::get_dx0(double x, const double * const y) {
 double OdeSys::get_dx_max(double x, const double * const y) {
 % if p_get_dx_max is False:
     AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
-    return 0.0;  // invokes the default behaviour of the chosen solver
+    return INFINITY;
 % elif p_get_dx_max is True:
     auto fvec = std::vector<double>(${p_odesys.ny});
     auto hvec = std::vector<double>(${p_odesys.ny});
@@ -127,9 +127,9 @@ double OdeSys::get_dx_max(double x, const double * const y) {
         if (fvec[idx] == 0) {
             hvec[idx] = std::numeric_limits<double>::infinity();
         } else if (fvec[idx] > 0) {
-            hvec[idx] = (m_upper_bounds[idx] - y[idx])/fvec[idx];
+            hvec[idx] = std::abs(m_upper_bounds[idx] - y[idx])/fvec[idx];
         } else { // fvec[idx] < 0
-            hvec[idx] = (m_lower_bounds[idx] - y[idx])/fvec[idx];
+            hvec[idx] = std::abs((m_lower_bounds[idx] - y[idx])/fvec[idx]);
         }
     }
     return *std::min_element(std::begin(hvec), std::end(hvec));
