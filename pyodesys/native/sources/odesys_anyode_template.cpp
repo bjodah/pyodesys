@@ -16,12 +16,12 @@ This is file is a mako-formatted template
 #include ${inc}
 %endfor
 
-%if p_anon is not None:
 namespace {  // anonymous namespace for user-defined helper functions
     std::vector<std::string> p_odesys_names ${'' if p_odesys.names is None else '= {"%s"}' % '", "'.join(p_odesys.names)};
+%if p_anon is not None:
     ${p_anon}
-}
 %endif
+}
 using odesys_anyode::OdeSys;
 
 OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol,
