@@ -248,7 +248,8 @@ def _test_NativeSys__get_dx_max_source_code(NativeSys, forgive=20, **kwargs):
         'p_get_dx_max': 'AnyODE::ignore(y); return 1e-4*x + 1e-3;',
     })
     y0, k = [.7, 0, 0], [7., 2, 3.]
-    xout, yout, info = odesys.integrate(1, y0, k, integrator='native', **kwargs)
+    xout, yout, info = odesys.integrate(1, y0, k, integrator='native',
+                                        get_dx_max_factor=1.0, **kwargs)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     allclose_kw = dict(atol=kwargs['atol']*forgive, rtol=kwargs['rtol']*forgive)
     assert np.allclose(yout, ref, **allclose_kw)

@@ -8,6 +8,7 @@ This is file is a mako-formatted template
 // Names of parameters: ${p_odesys.param_names}
 
 #include <algorithm>
+#include <iostream>
 #include <limits>
 #include <math.h>
 #include <vector>
@@ -17,13 +18,16 @@ This is file is a mako-formatted template
 
 %if p_anon is not None:
 namespace {  // anonymous namespace for user-defined helper functions
+    std::vector<std::string> p_odesys_names ${'' if p_odesys.names is None else '= {"%s"}' % '", "'.join(p_odesys.names)};
     ${p_anon}
 }
 %endif
 using odesys_anyode::OdeSys;
 
-OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol) :
-    m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol) {
+OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol,
+               double get_dx_max_factor, bool error_outside_bounds) :
+    m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor),
+    m_error_outside_bounds(error_outside_bounds) {
     m_p.assign(params, params + ${len(p_odesys.params)});
     <% idx = 0 %>
   % for cse_token, cse_expr in p_common['cses']:
@@ -33,7 +37,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
     const auto ${cse_token} = ${cse_expr};
    %endif
   % endfor
-    use_get_dx_max = ${'true' if p_get_dx_max else 'false'};
+    use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${'true' if p_get_dx_max else 'false'} : false;
 }
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
@@ -53,6 +57,30 @@ AnyODE::Status OdeSys::rhs(double x,
     f[${i}] = ${expr};
   % endfor
     this->nfev++;
+  % if p_support_recoverable_error:
+    if (m_error_outside_bounds){
+        if (m_lower_bounds.size() > 0) {
+            for (int i=0; i < ${p_odesys.ny}; ++i) {
+                if (y[i] < m_lower_bounds[i]) {
+                    std::cerr << "Lower bound (" << m_lower_bounds[0] << ") for "
+                              << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
+                              << " exceeded (" << y[i] << ") at x="<< x << "\n";
+                    return AnyODE::Status::recoverable_error;
+                }
+            }
+        }
+        if (m_upper_bounds.size() > 0) {
+            for (int i=0; i < ${p_odesys.ny}; ++i) {
+                if (y[i] > m_upper_bounds[i]) {
+                    std::cerr << "Upper bound (" << m_upper_bounds[0] << ") for "
+                              << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
+                              << " exceeded (" << y[i] << ") at x="<< x << "\n";
+                    return AnyODE::Status::recoverable_error;
+                }
+            }
+        }
+    }
+  % endif
   % if getattr(p_odesys, '_nonnegative', False) and p_support_recoverable_error:
     for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
   % endif
@@ -132,7 +160,13 @@ double OdeSys::get_dx_max(double x, const double * const y) {
             hvec[idx] = std::abs((m_lower_bounds[idx] - y[idx])/fvec[idx]);
         }
     }
-    return *std::min_element(std::begin(hvec), std::end(hvec));
+    const auto result = *std::min_element(std::begin(hvec), std::end(hvec));
+    if (m_get_dx_max_factor == 0.0)
+        return result;
+    else if (m_get_dx_max_factor < 0.0)
+        return -m_get_dx_max_factor*result;
+    else
+        return m_get_dx_max_factor*result;
 % elif isinstance(p_get_dx_max, str):
     ${p_get_dx_max}
 % else:
