@@ -23,7 +23,7 @@ def _test_chained_multi_native(NativeSys, integrator='cvode', **kwargs):
     _yref_1e11 = (0.2083340149701255e-7, 0.8333360770334713e-13, 0.9999999791665050)
 
     lin_s = SymbolicSys.from_callback(get_ode_exprs(logc=False, logt=False)[0], ny, nk,
-                                      nonnegative=nonnegative)
+                                      lower_bounds=[0]*ny if nonnegative else None)
     logexp = (sp.log, sp.exp)
 
     if reduced:

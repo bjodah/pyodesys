@@ -45,7 +45,7 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
 
     if symbolic:
         _s = SymbolicSys.from_callback(get_ode_exprs(logc=False, logt=False)[0], ny, nk,
-                                       nonnegative=nonnegative)
+                                       lower_bounds=[0]*ny if nonnegative else None)
         logexp = (sympy.log, sympy.exp)
 
         if reduced:

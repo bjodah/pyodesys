@@ -9,8 +9,10 @@ from ._tests import (
     _test_multiple_predefined, _test_multiple_adaptive_chained,
     _test_PartiallySolved_symmetric_native,
     _test_PartiallySolved_symmetric_native_multi,
-    _test_Decay_nonnegative, _test_NativeSys__first_step_cb
+    _test_Decay_nonnegative, _test_NativeSys__first_step_cb,
+    _test_NativeSys__get_dx_max_source_code
 )
+from ._test_robertson_native import _test_chained_multi_native
 from ..odeint import NativeOdeintSys as NativeSys
 
 
@@ -68,3 +70,16 @@ def test_Decay_nonnegative():
 @requires('pyodeint')
 def test_NativeSys_first_step_expr__decay():
     _test_NativeSys__first_step_cb(NativeSys)
+
+
+@requires('pyodeint')
+def test_chained_multi_native__dx_max_scalar():
+    _test_chained_multi_native(
+        NativeSys, logc=True, logt=True, reduced=0, zero_time=1e-10,
+        zero_conc=1e-18, nonnegative=None, integrator='odeint', dx_max=1e10
+    )
+
+
+@requires('pyodeint')
+def test_NativeSys_get_dx_max_source_code():
+    _test_NativeSys__get_dx_max_source_code(NativeSys, atol=1e-8, rtol=1e-8, nsteps=1000)

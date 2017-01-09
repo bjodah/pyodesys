@@ -96,8 +96,7 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
 
 
 def _test_Decay_nonnegative(NativeSys):
-    odesys = NativeSys.from_other(_get_decay3(nonnegative=True))
-    assert odesys._nonnegative is True
+    odesys = NativeSys.from_other(_get_decay3(lower_bounds=[0]*3))
     y0, k = [3., 2., 1.], [3.5, 2.5, 0]
     xout, yout, info = odesys.integrate([1e-10, 1], y0, k, integrator='native')
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T

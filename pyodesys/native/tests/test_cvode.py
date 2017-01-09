@@ -98,16 +98,16 @@ def test_NativeSys_first_step_expr__source_code():
 
 
 @requires('pycvodes')
+def test_roots():
+    _test_NativeSys__roots(NativeSys)
+
+
+@requires('pycvodes')
 def test_chained_multi_native__dx_max_scalar():
     _test_chained_multi_native(
         NativeSys, logc=True, logt=True, reduced=0, zero_time=1e-10,
         zero_conc=1e-18, nonnegative=None, integrator='cvode', dx_max=1e10
     )
-
-
-@requires('pycvodes')
-def test_roots():
-    _test_NativeSys__roots(NativeSys)
 
 
 @requires('pycvodes')

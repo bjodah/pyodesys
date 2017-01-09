@@ -90,12 +90,12 @@ class SymbolicSys(ODESys):
     backend : str or sym.Backend
         See documentation of `sym.Backend \
 <https://pythonhosted.org/sym/sym.html#sym.backend.Backend>`_.
-    constraints : iterable of relationals
-        Conditionals needed to be fulfilled upon solver call to rhs function.
-        If the stepper is evaluating values not fulfilling the constraints,
-        :class:`RecoverableError` is raised.
-    nonnegative : bool
-        Convenience option setting the constraint: [y > 0 for y in self.dep]
+    lower_bounds : array_like
+        Convenience option setting magnitude constraint. (requires integrator with
+        support for recoverable errors)
+    upper_bounds : array_like
+        Convenience option setting magnitude constraint. (requires integrator with
+        support for recoverable errors)
     \*\*kwargs:
         See :py:class:`ODESys`
 
@@ -128,7 +128,7 @@ class SymbolicSys(ODESys):
                       'latex_names', 'latex_param_names')
 
     def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True, first_step_expr=None,
-                 roots=None, backend=None, constraints=None, nonnegative=None, **kwargs):
+                 roots=None, backend=None, lower_bounds=None, upper_bounds=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         self.params = params
@@ -137,12 +137,8 @@ class SymbolicSys(ODESys):
         self.first_step_expr = first_step_expr
         self.roots = roots
         self.be = Backend(backend)
-        if nonnegative is not None:
-            if constraints is not None:
-                raise ValueError("Cannot give both nonnegative and constraints")
-            self._nonnegative = nonnegative
-        if constraints is not None:
-            raise NotImplementedError("See gh-37")
+        self.lower_bounds = lower_bounds
+        self.upper_bounds = upper_bounds
         _names = kwargs.get('names', None)
         if _names is True:
             kwargs['names'] = _names = [y.name for y in self.dep]
@@ -245,8 +241,10 @@ class SymbolicSys(ODESys):
         for k in cls._attrs_to_copy + ('params',):
             if k not in kwargs:
                 kwargs[k] = getattr(ori, k)
-        if 'nonnegative' not in kwargs:
-            kwargs['nonnegative'] = getattr(ori, '_nonnegative', None)
+        if 'lower_bounds' not in kwargs and getattr(ori, 'lower_bounds'):
+            kwargs['lower_bounds'] = ori.lower_bounds
+        if 'upper_bounds' not in kwargs and getattr(ori, 'upper_bounds'):
+            kwargs['upper_bounds'] = ori.upper_bounds
 
         if len(ori.pre_processors) > 0:
             if 'pre_processors' not in kwargs:
@@ -334,12 +332,18 @@ class SymbolicSys(ODESys):
     def get_f_ty_callback(self):
         """ Generates a callback for evaluating ``self.exprs``. """
         cb = self._callback_factory(self.exprs)
-        if getattr(self, '_nonnegative', False):
-            def _nonnegative_wrapper(t, y, p=(), be=None):
-                if np.any(y < 0):
-                    raise RecoverableError
+        lb = getattr(self, 'lower_bounds', None)
+        ub = getattr(self, 'upper_bounds', None)
+        if lb is not None or ub is not None:
+            def _bounds_wrapper(t, y, p=(), be=None):
+                if lb is not None:
+                    if np.any(y < lb):
+                        raise RecoverableError
+                if ub is not None:
+                    if np.any(y > ub):
+                        raise RecoverableError
                 return cb(t, y, p, be)
-            return _nonnegative_wrapper
+            return _bounds_wrapper
         else:
             return cb
 
@@ -825,6 +829,12 @@ class PartiallySolvedSystem(SymbolicSys):
         for attr in self._attrs_to_copy:
             if attr not in new_kw and getattr(original_system, attr, None) is not None:
                 new_kw[attr] = getattr(original_system, attr)
+
+        if 'lower_bounds' not in new_kw and getattr(original_system, 'lower_bounds', None) is not None:
+            new_kw['lower_bounds'] = _skip(self.ori_analyt_idx_map, original_system.lower_bounds)
+
+        if 'upper_bounds' not in new_kw and getattr(original_system, 'upper_bounds', None) is not None:
+            new_kw['upper_bounds'] = _skip(self.ori_analyt_idx_map, original_system.upper_bounds)
 
         def partially_solved_pre_processor(x, y, p):
             x, y, p = map(np.asarray, (x, y, p))

@@ -2,6 +2,7 @@ build:
   image: bjodah/bjodahimg16dev:latest
   commands:
     - bash -c '[[ $(python setup.py --version) =~ ^[0-9]+.* ]]'
+    - export CPLUS_INCLUDE_PATH=/opt/boost_1_63_0
     - ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
     - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys

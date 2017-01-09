@@ -552,7 +552,7 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem(integrator):
-    odesys = _get_decay3(nonnegative=True)
+    odesys = _get_decay3(lower_bounds=[0, 0, 0])
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be: {
         odesys.dep[0]: y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
     })
@@ -583,7 +583,7 @@ def test_PartiallySolvedSystem__using_y(integrator):
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem_multiple_subs(integrator):
-    odesys = _get_decay3(nonnegative=True)
+    odesys = _get_decay3(lower_bounds=[0, 0, 0])
 
     def substitutions(x0, y0, p0, be):
         analytic0 = y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
@@ -602,7 +602,7 @@ def test_PartiallySolvedSystem_multiple_subs(integrator):
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
-    odesys = _get_decay3(nonnegative=True)
+    odesys = _get_decay3(lower_bounds=[0, 0, 0])
 
     def substitutions(x0, y0, p0, be):
         analytic0 = y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
