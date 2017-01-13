@@ -89,7 +89,7 @@ class SymbolicSys(ODESys):
         (currently available through cvode).
     backend : str or sym.Backend
         See documentation of `sym.Backend \
-<https://pythonhosted.org/sym/sym.html#sym.backend.Backend>`_.
+        <http://bjodah.github.io/sym/latest/sym.html#module-sym.backend>`_.
     lower_bounds : array_like
         Convenience option setting magnitude constraint. (requires integrator with
         support for recoverable errors)
