@@ -18,7 +18,7 @@ import numpy as np
 
 from .util import _ensure_4args, _default
 from .plotting import plot_result, plot_phase_plane
-
+from .results import Result
 
 class RecoverableError(Exception):
     pass
@@ -329,7 +329,7 @@ class ODESys(object):
             _yout = nfo[0]['internal_yout']
             self._internal = _xout.copy(), _yout.copy(), intern_p
             nfo = nfo[0]
-        return self.post_process(_xout, _yout, intern_p)[:2] + (nfo,)
+        return Result(*(self.post_process(_xout, _yout, intern_p)[:2] + (nfo, self)))
 
     def _integrate_scipy(self, intern_xout, intern_y0, intern_p,
                          atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,

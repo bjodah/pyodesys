@@ -54,7 +54,10 @@ def get_equations(m_val, g_val, l_val):
 
     KM = KanesMethod(N, q_ind=[q1, q2], u_ind=[u1, u2], kd_eqs=kd)
 
-    (fr, frstar) = KM.kanes_equations(FL, BL)
+    try:
+        (fr, frstar) = KM.kanes_equations(bodies=BL, loads=FL)
+    except TypeError:
+        (fr, frstar) = KM.kanes_equations(FL, BL)
     kdd = KM.kindiffdict()
     mm = KM.mass_matrix_full
     fo = KM.forcing_full
@@ -72,7 +75,7 @@ def main(m=1, g=9.81, l=1, q1=.1, q2=.2, u1=0, u2=0, tend=10., nt=200,
          dpi=100, kwargs="", verbose=False):
     assert nt > 1
     kwargs = dict(eval(kwargs) if kwargs else {})
-    odesys = SymbolicSys(get_equations(m, g, l))
+    odesys = SymbolicSys(get_equations(m, g, l), params=())
     tout = np.linspace(0, tend, nt)
     y0 = [q1, q2, u1, u2]
     xout, yout, info = odesys.integrate(
