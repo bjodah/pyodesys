@@ -127,10 +127,12 @@ class SymbolicSys(ODESys):
     _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
                       'latex_names', 'latex_param_names')
 
-    def __init__(self, dep_exprs, indep=None, params=(), jac=True, dfdx=True, first_step_expr=None,
+    def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
+        if params is None:
+            params = tuple(filter(lambda x: x not in self.dep, set.union(*[expr.free_symbols for expr in self.exprs])))
         self.params = params
         self._jac = jac
         self._dfdx = dfdx
@@ -159,6 +161,13 @@ class SymbolicSys(ODESys):
 
     def __getitem__(self, key):
         return self.dep[self.names.index(key)]
+
+    def pre_process(self, xout, y0, params=()):
+        if not self.dep_by_name and isinstance(y0, dict):
+            y0 = [y0[symb] for symb in self.dep]
+        if not self.par_by_name and isinstance(params, dict):
+            params = [params[symb] for symb in self.params]
+        return super(SymbolicSys, self).pre_process(xout, y0, params)
 
     @classmethod
     def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None,

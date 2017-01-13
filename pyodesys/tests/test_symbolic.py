@@ -1011,3 +1011,18 @@ def test_SymbolicSys__roots():
     xout, yout, info = odesys.integrate(2, [1], **kwargs)
     assert len(info['root_indices']) == 1
     assert np.min(np.abs(xout - 1)) < 1e-11
+
+
+@requires('sym', 'pyodeint')
+@pytest.mark.parametrize('method', ['bs', 'rosenbrock4'])
+def test_SymbolicSys__reference_parameters_using_symbols(method):
+    be = sym.Backend('sympy')
+    x, p = map(be.Symbol, 'x p'.split())
+    symsys = SymbolicSys([(x, -p*x)])
+    tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
+    for y_symb in [False, True]:
+        for p_symb in [False, True]:
+            xout, yout, info = symsys.integrate(
+                tout, {x: 2} if y_symb else [2], {p: 3} if p_symb else [3],
+                method=method, integrator='odeint', atol=1e-12, rtol=1e-12)
+            assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
