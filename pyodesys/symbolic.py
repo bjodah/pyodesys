@@ -96,6 +96,10 @@ class SymbolicSys(ODESys):
     upper_bounds : array_like
         Convenience option setting magnitude constraint. (requires integrator with
         support for recoverable errors)
+    linear_invariants : Matrix
+        Matrix specifing linear combinations of dependent variables that
+    nonlinear_invariants : iterable of expressions
+        Iterable collection of expressions of nonlinear invariants.
     \*\*kwargs:
         See :py:class:`ODESys`
 
@@ -128,7 +132,9 @@ class SymbolicSys(ODESys):
                       'latex_names', 'latex_param_names')
 
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
-                 roots=None, backend=None, lower_bounds=None, upper_bounds=None, **kwargs):
+                 roots=None, backend=None, lower_bounds=None, upper_bounds=None,
+                 linear_invariants=None, nonlinear_invariants=None,
+                 linear_invariant_names=None, nonlinear_invariant_names=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         if params is None:
@@ -141,6 +147,21 @@ class SymbolicSys(ODESys):
         self.be = Backend(backend)
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
+        if linear_invariants is not None:
+            if len(linear_invariants.shape) != 2 or linear_invariants.shape[1] != self.ny:
+                raise ValueError("Incorrect shape of linear_invariants Matrix: %s" % str(linear_invariants.shape))
+        self.linear_invariants = linear_invariants
+        self.nonlinear_invariants = nonlinear_invariants
+        if linear_invariant_names is not None:
+            if len(linear_invariant_names) != linear_invariants.shape[0]:
+                raise ValueError("Incorrect length of linear_invariant_names: %d (expected %d)" % (
+                    len(linear_invariant_names), linear_invariants.shape[0]))
+        self.linear_invariant_names = linear_invariant_names
+        if nonlinear_invariant_names is not None:
+            if len(nonlinear_invariant_names) != len(nonlinear_invariants):
+                raise ValueError("Incorrect length of nonlinear_invariant_names: %d (expected %d)" % (
+                    len(nonlinear_invariant_names), len(nonlinear_invariants)))
+        self.nonlinear_invariant_names = nonlinear_invariant_names
         _names = kwargs.get('names', None)
         if _names is True:
             kwargs['names'] = _names = [y.name for y in self.dep]

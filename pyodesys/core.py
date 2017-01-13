@@ -20,6 +20,7 @@ from .util import _ensure_4args, _default
 from .plotting import plot_result, plot_phase_plane
 from .results import Result
 
+
 class RecoverableError(Exception):
     pass
 
@@ -384,8 +385,7 @@ class ODESys(object):
 
             r = ode(rhs, jac=jac if with_jacobian else None)
             if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
-                raise ValueError("lband and uband set locally (set `band` at"
-                                 " initialization instead)")
+                raise ValueError("lband and uband set locally (set `band` at initialization instead)")
             if self.band is not None:
                 kwargs['lband'], kwargs['uband'] = self.band
             r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
