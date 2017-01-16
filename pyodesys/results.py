@@ -73,7 +73,6 @@ class Result(object):
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
 
-
     def _plot(self, cb, internal_xout=None, internal_yout=None, internal_params=None, **kwargs):
         kwargs = kwargs.copy()
         if 'x' in kwargs or 'y' in kwargs or 'params' in kwargs:

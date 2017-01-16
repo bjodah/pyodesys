@@ -330,8 +330,8 @@ class ODESys(object):
         else:
             _xout = nfo[0]['internal_xout']
             _yout = nfo[0]['internal_yout']
-            _params = nfo[0]['internal_params']
-            self._internal = _xout.copy(), _yout.copy(), intern_p
+            _params = intern_p  # nfo[0]['internal_params']
+            self._internal = _xout.copy(), _yout.copy(), _params.copy()
             nfo = nfo[0]
         return Result(*(self.post_process(_xout, _yout, _params) + (nfo, self)))
 
@@ -513,7 +513,7 @@ class ODESys(object):
 
             info['internal_xout'] = _xout
             info['internal_yout'] = yout
-            info['internal_params'] = intern_p
+            info['internal_params'] = _p
             results.append(info)
         return results
 

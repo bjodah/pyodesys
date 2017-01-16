@@ -966,8 +966,8 @@ class PartiallySolvedSystem(SymbolicSys):
                      ci in range(A.cols) if ci != tgt])/A[ri, tgt] for ri, tgt in row_tgt
             }
 
-        new_lin_invar = [row for ri, row in A.tolist() if ri not in zip(*row_tgt)[0]]
-        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar)
+        new_lin_invar = [row for ri, row in enumerate(A.tolist()) if ri not in list(zip(*row_tgt))[0]]
+        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar or None)
 
     @staticmethod
     def _get_analytic_cb(ori_sys, analytic_exprs, new_dep, new_params):

@@ -248,6 +248,7 @@ class _NativeSysBase(SymbolicSys):
         for idx in range(len(info)):
             info[idx]['internal_xout'] = intern_xout[idx]
             info[idx]['internal_yout'] = yout[idx]
+            info[idx]['internal_params'] = intern_p[idx, ...]
             info[idx]['success'] = intern_x[idx, -1] == intern_xout[idx][-1]
             if 'nfev' not in info[idx] and 'n_rhs_evals' in info[idx]:
                 info[idx]['nfev'] = info[idx]['n_rhs_evals']
