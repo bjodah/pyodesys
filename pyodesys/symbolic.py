@@ -148,6 +148,7 @@ class SymbolicSys(ODESys):
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
         if linear_invariants is not None:
+            linear_invariants = self.be.Matrix(linear_invariants)
             if len(linear_invariants.shape) != 2 or linear_invariants.shape[1] != self.ny:
                 raise ValueError("Incorrect shape of linear_invariants Matrix: %s" % str(linear_invariants.shape))
         self.linear_invariants = linear_invariants
@@ -179,6 +180,13 @@ class SymbolicSys(ODESys):
             self.get_roots_callback(),
             nroots=None if roots is None else len(roots),
             **kwargs)
+
+    def all_invariants(self):
+        return (([] if self.linear_invariants is None else (self.linear_invariants * self.dep).tolist()) +
+                ([] if self.nonlinear_invariants is None else self.nonlinear_invariants))
+
+    def all_invariant_names(self):
+        return (self.linear_invariant_names or []) + (self.nonlinear_invariant_names or [])
 
     def __getitem__(self, key):
         return self.dep[self.names.index(key)]
@@ -401,6 +409,12 @@ class SymbolicSys(ODESys):
         if self.roots is None:
             return None
         return self._callback_factory(self.roots)
+
+    def get_invariants_callback(self):
+        invar = self.all_invariants()
+        if len(invar) == 0:
+            return None
+        return self._callback_factory(invar)
 
     # Not working yet:
     def _integrate_mpmath(self, xout, y0, params=()):
@@ -812,23 +826,24 @@ class PartiallySolvedSystem(SymbolicSys):
     def __init__(self, original_system, analytic_factory, **kwargs):
         self._ori_sys = original_system
         self.analytic_factory = _ensure_4args(analytic_factory)
-        if original_system.roots is not None:
+        if self._ori_sys.roots is not None:
             raise NotImplementedError('roots currently unsupported')
-        _be = original_system.be
+        _be = self._ori_sys.be
         _Dummy = _be.Dummy
-        self.init_indep = _Dummy()
-        self.init_dep = [_Dummy() for _ in range(original_system.ny)]
+        self.init_indep = _Dummy('init_indep')
+        self.init_dep = [_Dummy('init_%s' % (idx if self._ori_sys.names is None else self._ori_sys.names[idx]))
+                         for idx in range(self._ori_sys.ny)]
 
         if 'pre_processors' in kwargs or 'post_processors' in kwargs:
             raise NotImplementedError("Cannot override pre-/postprocessors")
         if 'backend' in kwargs and Backend(kwargs['backend']) != _be:
             raise ValueError("Cannot mix backends.")
-        _pars = original_system.params
-        if original_system.par_by_name:
-            _pars = dict(zip(original_system.param_names, _pars))
+        _pars = self._ori_sys.params
+        if self._ori_sys.par_by_name:
+            _pars = dict(zip(self._ori_sys.param_names, _pars))
 
-        self.original_dep = original_system.dep
-        _dep0 = (dict(zip(self.original_dep, self.init_dep)) if original_system.dep_by_name
+        self.original_dep = self._ori_sys.dep
+        _dep0 = (dict(zip(self.original_dep, self.init_dep)) if self._ori_sys.dep_by_name
                  else self.init_dep)
         self.analytic_exprs = self.analytic_factory(self.init_indep, _dep0, _pars, _be)
         if len(self.analytic_exprs) == 0:
@@ -839,32 +854,32 @@ class PartiallySolvedSystem(SymbolicSys):
         for idx, dep in enumerate(self.original_dep):
             if dep not in self.analytic_exprs:
                 new_dep.append(dep)
-                if original_system.names is not None:
-                    free_names.append(original_system.names[idx])
-                if original_system.latex_names is not None:
-                    free_latex_names.append(original_system.latex_names[idx])
-        self.free_names = None if original_system.names is None else free_names
-        self.free_latex_names = None if original_system.latex_names is None else free_latex_names
-        new_params = _append(original_system.params, (self.init_indep,), self.init_dep)
+                if self._ori_sys.names is not None:
+                    free_names.append(self._ori_sys.names[idx])
+                if self._ori_sys.latex_names is not None:
+                    free_latex_names.append(self._ori_sys.latex_names[idx])
+        self.free_names = None if self._ori_sys.names is None else free_names
+        self.free_latex_names = None if self._ori_sys.latex_names is None else free_latex_names
+        new_params = _append(self._ori_sys.params, (self.init_indep,), self.init_dep)
         self.analytic_cb = self._get_analytic_cb(
-            original_system, list(self.analytic_exprs.values()), new_dep, new_params)
+            self._ori_sys, list(self.analytic_exprs.values()), new_dep, new_params)
         self.ori_analyt_idx_map = OrderedDict([(self.original_dep.index(dep), idx)
                                                for idx, dep in enumerate(self.analytic_exprs)])
         self.ori_remaining_idx_map = {self.original_dep.index(dep): idx for
                                       idx, dep in enumerate(new_dep)}
         nanalytic = len(self.analytic_exprs)
         new_exprs = [expr.subs(self.analytic_exprs) for idx, expr in
-                     enumerate(original_system.exprs) if idx not in self.ori_analyt_idx_map]
+                     enumerate(self._ori_sys.exprs) if idx not in self.ori_analyt_idx_map]
         new_kw = kwargs.copy()
         for attr in self._attrs_to_copy:
-            if attr not in new_kw and getattr(original_system, attr, None) is not None:
-                new_kw[attr] = getattr(original_system, attr)
+            if attr not in new_kw and getattr(self._ori_sys, attr, None) is not None:
+                new_kw[attr] = getattr(self._ori_sys, attr)
 
-        if 'lower_bounds' not in new_kw and getattr(original_system, 'lower_bounds', None) is not None:
-            new_kw['lower_bounds'] = _skip(self.ori_analyt_idx_map, original_system.lower_bounds)
+        if 'lower_bounds' not in new_kw and getattr(self._ori_sys, 'lower_bounds', None) is not None:
+            new_kw['lower_bounds'] = _skip(self.ori_analyt_idx_map, self._ori_sys.lower_bounds)
 
-        if 'upper_bounds' not in new_kw and getattr(original_system, 'upper_bounds', None) is not None:
-            new_kw['upper_bounds'] = _skip(self.ori_analyt_idx_map, original_system.upper_bounds)
+        if 'upper_bounds' not in new_kw and getattr(self._ori_sys, 'upper_bounds', None) is not None:
+            new_kw['upper_bounds'] = _skip(self.ori_analyt_idx_map, self._ori_sys.upper_bounds)
 
         def partially_solved_pre_processor(x, y, p):
             x, y, p = map(np.asarray, (x, y, p))
@@ -883,19 +898,76 @@ class PartiallySolvedSystem(SymbolicSys):
                              for _x, _y, _p in zip(x, y, p)])
             new_y = np.empty(y.shape[:-1] + (y.shape[-1]+nanalytic,))
             analyt_y = self.analytic_cb(x, y, p)
-            for idx in range(original_system.ny):
+            for idx in range(self._ori_sys.ny):
                 if idx in self.ori_analyt_idx_map:
                     new_y[..., idx] = analyt_y[..., self.ori_analyt_idx_map[idx]]
                 else:
                     new_y[..., idx] = y[..., self.ori_remaining_idx_map[idx]]
-            return x, new_y, p[:-(1+original_system.ny)]
+            return x, new_y, p[:-(1+self._ori_sys.ny)]
 
-        new_kw['pre_processors'] = original_system.pre_processors + [partially_solved_pre_processor]
-        new_kw['post_processors'] = [partially_solved_post_processor] + original_system.post_processors
+        new_kw['pre_processors'] = self._ori_sys.pre_processors + [partially_solved_pre_processor]
+        new_kw['post_processors'] = [partially_solved_post_processor] + self._ori_sys.post_processors
 
         super(PartiallySolvedSystem, self).__init__(
-            zip(new_dep, new_exprs), original_system.indep, new_params,
+            zip(new_dep, new_exprs), self._ori_sys.indep, new_params,
             backend=_be, **new_kw)
+
+    @classmethod
+    def from_linear_invariants(cls, ori_sys, preferred=None):
+        """ Reformulates the ODE system in fewer variables.
+
+        Given linear invariant equations one can always reduce the number
+        of dependent variables in the system by the rank of the matrix describing
+        this linear system.
+
+        Parameters
+        ----------
+        ori_sys : :class:`SymbolicSys` instance
+        preferred : iterable of preferred dependent variables
+            Due to numerical rounding it is preferable to choose the variables
+            which are expected to be of the largest magnitude during integration.
+        """
+        _be = ori_sys.be
+        A = _be.Matrix(ori_sys.linear_invariants)
+        rA, pivots = A.rref()
+        if len(pivots) < A.shape[0]:
+            # If the linear system contains rows which a linearly dependent these could be removed.
+            # The criterion for removal could be dictated by a user provided callback.
+            #
+            # An alternative would be to write the matrix in reduced row echelon form, however,
+            # this would cause the invariants to become linear combinations of each other and
+            # their intuitive meaning (original principles they were formulated from) will be lost.
+            # Hence that is not the default behaviour. However, the user may choose to rewrite the
+            # equations in reduced row echelon form if they choose to before calling this method.
+            raise NotImplementedError("Linear invariants contain linear dependencies.")
+        per_row_cols = [(ri, [ci for ci in range(A.cols) if A[ri, ci] != 0]) for ri in range(A.rows)]
+        if preferred is None:
+            preferred = ori_sys.names[:A.rows] if ori_sys.dep_by_name else list(range(A.rows))
+        targets = [
+            ori_sys.names.index(dep) if ori_sys.dep_by_name else (
+                dep if isinstance(dep, int) else ori_sys.dep.index(dep))
+            for dep in preferred]
+        row_tgt = []
+        for ri, colids in sorted(per_row_cols, key=lambda k: len(k[1])):
+            for tgt in targets:
+                if tgt in colids:
+                    row_tgt.append((ri, tgt))
+                    targets.remove(tgt)
+                    break
+            if len(targets) == 0:
+                break
+        else:
+            raise ValueError("Could not find a solutions for: %s" % targets)
+
+        def analytic_factory(x0, y0, p0, be):
+            return {
+                ori_sys.dep[tgt]: y0[ori_sys.dep[tgt] if ori_sys.dep_by_name else tgt] - sum(
+                    [A[ri, ci]*(ori_sys.dep[ci] - y0[ori_sys.dep[ci] if ori_sys.dep_by_name else ci]) for
+                     ci in range(A.cols) if ci != tgt])/A[ri, tgt] for ri, tgt in row_tgt
+            }
+
+        new_lin_invar = [row for ri, row in A.tolist() if ri not in zip(*row_tgt)[0]]
+        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar)
 
     @staticmethod
     def _get_analytic_cb(ori_sys, analytic_exprs, new_dep, new_params):

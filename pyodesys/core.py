@@ -322,15 +322,18 @@ class ODESys(object):
             if nfo[0]['mode'] == 'predefined':
                 _xout = np.array([d['internal_xout'] for d in nfo])
                 _yout = np.array([d['internal_yout'] for d in nfo])
+                _params = np.array([d['internal_params'] for d in nfo])
             else:
                 _xout = [d['internal_xout'] for d in nfo]
                 _yout = [d['internal_yout'] for d in nfo]
+                _params = [d['internal_params'] for d in nfo]
         else:
             _xout = nfo[0]['internal_xout']
             _yout = nfo[0]['internal_yout']
+            _params = nfo[0]['internal_params']
             self._internal = _xout.copy(), _yout.copy(), intern_p
             nfo = nfo[0]
-        return Result(*(self.post_process(_xout, _yout, intern_p)[:2] + (nfo, self)))
+        return Result(*(self.post_process(_xout, _yout, _params) + (nfo, self)))
 
     def _integrate_scipy(self, intern_xout, intern_y0, intern_p,
                          atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
@@ -431,6 +434,7 @@ class ODESys(object):
             info = {
                 'internal_xout': _xout,
                 'internal_yout': _yout,
+                'internal_params': intern_p,
                 'success': r.successful(),
                 'nfev': rhs.ncall,
                 'name': name,
@@ -509,6 +513,7 @@ class ODESys(object):
 
             info['internal_xout'] = _xout
             info['internal_yout'] = yout
+            info['internal_params'] = intern_p
             results.append(info)
         return results
 
@@ -596,6 +601,7 @@ class ODESys(object):
     def plot_result(self, **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
+        This method will be deprecated. Please use :meth:`Result.plot`.
         See :func:`pyodesys.plotting.plot_result`
         """
         return self._plot(plot_result, **kwargs)
@@ -603,6 +609,7 @@ class ODESys(object):
     def plot_phase_plane(self, indices=None, **kwargs):
         """ Plots a phase portrait from last integration.
 
+        This method will be deprecated. Please use :meth:`Result.plot_phase_plane`.
         See :func:`pyodesys.plotting.plot_phase_plane`
         """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
@@ -613,8 +620,9 @@ class ODESys(object):
         return svd(J, compute_uv=False)
 
     def stiffness(self, xyp=None, eigenvals_cb=None):
-        """ Running stiffness ratio from last integration.
+        """ [DEPRECATED] Use :meth:`Result.stiffness`, stiffness ration
 
+        Running stiffness ratio from last integration.
         Calculate sittness ratio, i.e. the ratio between the largest and
         smallest absolute eigenvalue of the jacobian matrix. The user may
         supply their own routine for calculating the eigenvalues, or they

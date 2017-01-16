@@ -970,7 +970,7 @@ def test_SymbolicSys__from_callback__first_step_expr__by_name():
 
 @requires('sym', 'pyodeint')
 def test_PartiallySolvedSystem__by_name():
-    k = [138.4*24*3600]
+    k = [math.log(2)/(138.4*24*3600)]
     names = 'Po-210 Pb-206'.split()
     with pytest.raises(ValueError):
         odesys = SymbolicSys.from_callback(decay_dydt_factory({'Po-210': k[0]}, names=names),
@@ -1026,3 +1026,56 @@ def test_SymbolicSys__reference_parameters_using_symbols(method):
                 tout, {x: 2} if y_symb else [2], {p: 3} if p_symb else [3],
                 method=method, integrator='odeint', atol=1e-12, rtol=1e-12)
             assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
+
+
+@requires('sym', 'pycvodes')
+def test_PartiallySolvedSystem__from_linear_invariants():
+    atol, rtol, forgive = 1e-11, 1e-11, 20
+    k = [7., 3, 2]
+    ss = SymbolicSys.from_callback(decay_rhs, len(k)+1, len(k), linear_invariants=[[1]*(len(k)+1)])
+    y0 = [0]*(len(k)+1)
+    y0[0] = 1
+
+    def check_formulation(odesys):
+        xout, yout, info = odesys.integrate(
+            [0, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol)
+        ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
+
+    check_formulation(ss)
+
+    ps = PartiallySolvedSystem.from_linear_invariants(ss)
+    assert ps.ny == ss.ny - 1
+    check_formulation(ps)
+
+
+@requires('sym', 'pyodeint')
+def test_PartiallySolvedSystem__by_name__from_linear_invariants():
+    k = [math.log(2)/(138.4*24*3600)]
+    names = 'Po-210 Pb-206'.split()
+    odesys = SymbolicSys.from_callback(
+        decay_dydt_factory({'Po-210': k[0]}, names=names),
+        dep_by_name=True, names=names, linear_invariants=[[1, 1]])
+    assert odesys.ny == 2
+    partsys1 = PartiallySolvedSystem.from_linear_invariants(odesys)
+    partsys2 = PartiallySolvedSystem.from_linear_invariants(odesys, ['Pb-206'])
+    partsys3 = PartiallySolvedSystem.from_linear_invariants(odesys, ['Po-210'])
+
+    assert partsys1.free_names in (['Po-210'], ['Pb-206'])
+    assert partsys2.free_names == ['Po-210']
+    assert partsys3.free_names == ['Pb-206']
+    assert partsys1.ny == partsys2.ny == partsys3.ny == 1
+
+    assert (partsys2['Pb-206'] - partsys2.init_dep[partsys2.names.index('Pb-206')] -
+            partsys2.init_dep[partsys2.names.index('Po-210')] + odesys['Po-210']) == 0
+    duration = 7*k[0]
+    atol, rtol, forgive = 1e-9, 1e-9, 10
+    y0 = [1e-20]*(len(k)+1)
+    y0[0] = 1
+    for system in (odesys, partsys1, partsys2, partsys3):
+        xout, yout, info = system.integrate(duration, y0, integrator='odeint', rtol=rtol, atol=atol)
+        ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
+        assert yout.shape[1] == 2
+        assert xout.shape[0] == yout.shape[0]
+        assert yout.ndim == 2 and xout.ndim == 1
