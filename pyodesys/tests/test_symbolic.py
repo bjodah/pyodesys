@@ -363,7 +363,7 @@ def test_scipy(name, forgive):
 # (dopri5, .2), (bs, .03) <-- works in boost 1.59
 @requires('sym', 'pyodeint')
 @pytest.mark.parametrize('method,forgive', zip(
-    'rosenbrock4'.split(), (.2,)))
+    'rosenbrock4 dopri5 bs'.split(), (.2, .2, .04)))
 def test_odeint(method, forgive):
     n, p, a = 13, 1, 13
     atol, rtol = 1e-10, 1e-10

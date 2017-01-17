@@ -170,12 +170,26 @@ class ODESys(object):
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s" % str(kwargs))
 
+    @staticmethod
+    def _array_from_dict(d, keys):
+        vals = [d[k] for k in keys]
+        lens = [len(v) for v in vals if hasattr(v, '__len__')]
+        if len(lens) == 0:
+            return np.array(vals).T
+        else:
+            if not all(l == lens[0] for l in lens):
+                raise ValueError("Mixed lenghts in dictionary.")
+            out = np.empty((lens[0], len(vals)))
+            for idx, v in enumerate(vals):
+                out[:, idx] = v
+            return out
+
     def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
         if self.dep_by_name and isinstance(y0, dict):
-            y0 = [y0[k] for k in self.names]
+            y0 = self._array_from_dict(y0, self.names)
         if self.par_by_name and isinstance(params, dict):
-            params = [params[k] for k in self.param_names]
+            params = self._array_from_dict(params, self.param_names)
 
         try:
             nx = len(xout)
@@ -301,11 +315,25 @@ class ODESys(object):
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
 
+        if intern_y0.ndim == 1 and intern_p.ndim == 2:
+            # repeat y based on p
+            intern_y0 = np.tile(intern_y0, (intern_p.shape[0], 1))
+        elif intern_y0.ndim == 2 and intern_p.ndim == 1:
+            # repeat p based on p
+            intern_p = np.tile(intern_p, (intern_y0.shape[0], 1))
+
+        if intern_x.ndim == 1 and intern_y0.ndim == 2:
+            # repeat x based on y
+            intern_x = np.tile(intern_x, (intern_y0.shape[0], 1))
+
         ndims = (intern_x.ndim, intern_y0.ndim, intern_p.ndim)
         if ndims == (1, 1, 1):
             twodim = False
         elif ndims == (2, 2, 2):
             twodim = True
+            if not intern_x.shape[0] == intern_y0.shape[0] == intern_p.shape[0]:
+                raise ValueError("Inconsistent shape[0] in x, y, p: (%d, %d, %d)" % (
+                    intern_x.shape[0], intern_y0.shape[0], intern_p.shape[0]))
         else:
             raise ValueError("Mixed number of dimensions")
 

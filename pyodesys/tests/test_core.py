@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+import math
+from collections import OrderedDict
+
 import pytest
 import numpy as np
+from scipy.special import binom
 from .. import ODESys, OdeSys  # OdeSys deprecated
 from ..core import integrate_chained
 from ..util import requires
@@ -269,6 +273,75 @@ def test_integarte_multiple_adaptive__pyodeint():
 def test_integarte_multiple_adaptive__pygslodeiv2():
     _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, sine_dfdt),
                                       integrator='gsl', method='bsimp')
+
+
+def decay_factory(ny):
+
+    def f(t, y, p):
+        return [(y[i-1]*p[i-1] if i > 0 else 0) - (y[i]*p[i] if i < ny else 0) for i in range(ny)]
+
+    def j(t, y, p):
+        return [
+            [(p[ci] if ci == ri - 1 else 0) - (p[ci] if ci == ri else 0) for ci in range(ny)]
+            for ri in range(ny)
+        ]
+
+    def dfdt(t, y, p):
+        return [0]*ny
+
+    return f, j, dfdt
+
+
+@requires('pyodeint', 'scipy')
+def test_par_by_name__multi():
+    for ny in range(6, 8):
+        p_max = 3
+        a = 0.42  # > 0
+        params = OrderedDict([
+            (chr(ord('a')+idx), [
+                (idx + 1 + p)*math.log(a + 1) for p in range(p_max + 1)
+            ]) for idx in range(ny)
+        ])
+        ref = np.array([[binom(p + idx, p)*(a/(a+1))**idx/(a+1)**(p+1) for idx in range(ny)]
+                        for p in range(p_max + 1)])
+        odesys = ODESys(*decay_factory(ny), param_names=params.keys(), par_by_name=True)
+        result = odesys.integrate(np.linspace(0, 1), [1] + [0]*(ny-1), params,
+                                  integrator='odeint', method='rosenbrock4')
+        assert all(nfo['success'] for nfo in result.info)
+        assert result.xout.shape[-1] == 50
+        assert np.allclose(result.yout[:, -1, :], ref)
+
+
+@requires('pygslodeiv2')
+def test_par_by_name__multi__single_varied():
+    ny = 3
+    odesys1 = ODESys(*decay_factory(ny), param_names='a b c'.split(), par_by_name=True)
+    params1 = {'a': 2, 'b': (3, 4, 5, 6, 7), 'c': 0}
+    init1 = [42, 0, 0]
+    result1 = odesys1.integrate(2.1, init1, params1, integrator='gsl')
+    for idx1 in range(len(params1['b'])):
+        ref_a1 = init1[0]*np.exp(-params1['a']*result1.xout[idx1])
+        ref_b1 = init1[0]*params1['a']*(
+            np.exp(-params1['a']*result1.xout[idx1]) -
+            np.exp(-params1['b'][idx1]*result1.xout[idx1]))/(params1['b'][idx1] - params1['a'])
+        ref_c1 = init1[0] - ref_a1 - ref_b1
+        assert np.allclose(result1.yout[idx1][:, 0], ref_a1)
+        assert np.allclose(result1.yout[idx1][:, 1], ref_b1)
+        assert np.allclose(result1.yout[idx1][:, 2], ref_c1)
+
+    odesys2 = ODESys(*decay_factory(ny), names='a b c'.split(), dep_by_name=True)
+    init2 = {'a': (7, 13, 19, 23, 42, 101), 'b': 0, 'c': 0}
+    params2 = [11.7, 12.3, 0]
+    result2 = odesys2.integrate(3.4, init2, params2, integrator='gsl')
+    for idx2 in range(len(init2['a'])):
+        ref_a2 = init2['a'][idx2]*np.exp(-params2[0]*result2.xout[idx2])
+        ref_b2 = init2['a'][idx2]*params2[0]*(
+            np.exp(-params2[0]*result2.xout[idx2]) -
+            np.exp(-params2[1]*result2.xout[idx2]))/(params2[1] - params2[0])
+        ref_c2 = init2['a'][idx2] - ref_a2 - ref_b2
+        assert np.allclose(result2.yout[idx2][:, 0], ref_a2)
+        assert np.allclose(result2.yout[idx2][:, 1], ref_b2)
+        assert np.allclose(result2.yout[idx2][:, 2], ref_c2)
 
 
 @requires('scipy')
