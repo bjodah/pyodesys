@@ -1105,3 +1105,15 @@ def test_PartiallySolvedSystem__by_name__from_linear_invariants():
         assert yout.shape[1] == 2
         assert xout.shape[0] == yout.shape[0]
         assert yout.ndim == 2 and xout.ndim == 1
+
+
+@requires('sym')
+def test_SymbolicSys__indep_in_exprs():
+    def dydt(t, y, p):
+        return [t*p[0]*y[0]]
+    be = sym.Backend('sympy')
+    t, y, p = map(be.Symbol, 't y p'.split())
+    odesys = SymbolicSys([(y, dydt(t, [y], [p])[0])], t)
+    fout = odesys.f_cb(2, [3], [4])
+    assert len(fout) == 1
+    assert abs(fout[0] - 2*3*4) < 1e-14

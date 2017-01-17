@@ -138,7 +138,7 @@ class SymbolicSys(ODESys):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         if params is None:
-            params = tuple(filter(lambda x: x not in self.dep, set.union(*[expr.free_symbols for expr in self.exprs])))
+            params = tuple(filter(lambda x: x not in self.dep + (self.indep,), set.union(*[expr.free_symbols for expr in self.exprs])))
         self.params = params
         self._jac = jac
         self._dfdx = dfdx
