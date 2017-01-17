@@ -111,6 +111,27 @@ If the expression contains transcendental functions you will need to provide a `
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/lnx.png
 
+If already have symbolic expressions created using e.g. SymPy you can create your system from those:
+
+.. code:: python
+
+   >>> import numpy as np
+   >>> import matplotlib.pyplot as plt
+   >>> import sympy as sp
+   >>> from pyodesys.symbolic import SymbolicSys
+   >>> t, u, v, k  = sp.symbols('t u v k')
+   >>> dudt = v
+   >>> dvdt = -k*u  # differential equations for a harmonic oscillator
+   >>> odesys = SymbolicSys([(u, dudt), (v, dvdt)], t, [k])
+   >>> result = odesys.integrate(7, {u: 2, v: 0}, {k: 3}, integrator='gsl', method='rk8pd', atol=1e-11, rtol=1e-12)
+   >>> _ = plt.subplot(1, 2, 1)
+   >>> _ = result.plot()
+   >>> _ = plt.subplot(1, 2, 2)
+   >>> _ = plt.plot(result.xout, 2*np.cos(result.xout*3**0.5) - result.yout[:, 0])
+   >>> plt.show()  # doctest: +SKIP
+
+.. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/harmonic.png
+
 for more examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered jupyter notebooks here:
 `<http://hera.physchem.kth.se/~pyodesys/branches/master/examples>`_
 

@@ -246,12 +246,18 @@ class SymbolicSys(ODESys):
         p = be.real_symarray('p', nparams)
         _y = dict(zip(kwargs['names'], y)) if kwargs.get('dep_by_name', False) else y
         _p = dict(zip(kwargs['param_names'], p)) if kwargs.get('par_by_name', False) else p
+
         try:
             exprs = rhs(x, _y, _p, be)
         except TypeError:
             exprs = _ensure_4args(rhs)(x, _y, _p, be)
-        if len(exprs) != ny:
-            raise ValueError("Callback returned unexpected (%d) number of expressions: %d" % (ny, len(exprs)))
+
+        try:
+            if len(exprs) != ny:
+                raise ValueError("Callback returned unexpected (%d) number of expressions: %d" % (ny, len(exprs)))
+        except TypeError:
+            raise ValueError("Callback did not return an array_like of expressions: %s" % str(exprs))
+
         if roots_cb is not None:
             if 'roots' in kwargs:
                 raise ValueError("Keyword argument ``roots`` already given.")
@@ -272,7 +278,7 @@ class SymbolicSys(ODESys):
                 kwargs['first_step_expr'] = _ensure_4args(first_step_factory)(x, _y, _p, be)
         if kwargs.get('dep_by_name', False):
             exprs = [exprs[k] for k in kwargs['names']]
-        return cls(zip(y, exprs), x, p or None, backend=be, **kwargs)
+        return cls(zip(y, exprs), x, None if len(p) == 0 else p, backend=be, **kwargs)
 
     @classmethod
     def from_other(cls, ori, **kwargs):  # provisional
