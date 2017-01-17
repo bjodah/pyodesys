@@ -55,6 +55,12 @@ def test_SymbolicSys():
         assert np.allclose(yout[:, 0], 2*np.exp(-xout))
         assert np.allclose(yout[:, 1], 3 + 2*(1 - np.exp(-xout)))
 
+    with pytest.raises(ValueError):
+        SymbolicSys.from_callback(lambda x, y, p, be: None, 2, names=['foo', 'bar'])
+
+    with pytest.raises(ValueError):
+        SymbolicSys.from_callback(lambda x, y, p, be: [], 2, names=['foo', 'bar'])
+
 
 def decay_rhs(t, y, k):
     ny = len(y)
@@ -1025,6 +1031,24 @@ def test_SymbolicSys__reference_parameters_using_symbols(method):
             xout, yout, info = symsys.integrate(
                 tout, {x: 2} if y_symb else [2], {p: 3} if p_symb else [3],
                 method=method, integrator='odeint', atol=1e-12, rtol=1e-12)
+            assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
+
+
+@requires('sym', 'pygslodeiv2')
+@pytest.mark.parametrize('method', ['rkck', 'rk4imp'])
+def test_SymbolicSys__reference_parameters_using_symbols_from_callback(method):
+    be = sym.Backend('sympy')
+    k = be.Symbol('p')
+    def dydt(t, y):       # external symbolic parameter 'k', should be allowed
+        return [-k*y[0]]  # even though reminiscent of global variables.
+    symsys = SymbolicSys.from_callback(dydt, 1, backend=be)
+    tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
+    for y_symb in [False, True]:
+        for p_symb in [False, True]:
+            xout, yout, info = symsys.integrate(
+                tout, {symsys.dep[0]: 2} if y_symb else [2], {k: 3} if p_symb else [3],
+                method=method, integrator='gsl', atol=1e-12, rtol=1e-12)
+            assert xout.size > 4
             assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
 
 

@@ -250,6 +250,8 @@ class SymbolicSys(ODESys):
             exprs = rhs(x, _y, _p, be)
         except TypeError:
             exprs = _ensure_4args(rhs)(x, _y, _p, be)
+        if len(exprs) != ny:
+            raise ValueError("Callback returned unexpected (%d) number of expressions: %d" % (ny, len(exprs)))
         if roots_cb is not None:
             if 'roots' in kwargs:
                 raise ValueError("Keyword argument ``roots`` already given.")
@@ -270,7 +272,7 @@ class SymbolicSys(ODESys):
                 kwargs['first_step_expr'] = _ensure_4args(first_step_factory)(x, _y, _p, be)
         if kwargs.get('dep_by_name', False):
             exprs = [exprs[k] for k in kwargs['names']]
-        return cls(zip(y, exprs), x, p, backend=be, **kwargs)
+        return cls(zip(y, exprs), x, p or None, backend=be, **kwargs)
 
     @classmethod
     def from_other(cls, ori, **kwargs):  # provisional
