@@ -205,7 +205,7 @@ def sine_dfdt(t, y, p):
 @requires('scipy')
 def test_par_by_name():
     odesys = ODESys(sine, sine_jac, param_names=['k'], par_by_name=True)
-    A, k = 2, 3
+    A, k = 2, np.array(3)  # np.array(3) does not support len()
     xout, yout, info = odesys.integrate(np.linspace(0, 1), [0, A*k], {'k': k})
     assert info['success']
     assert xout.size > 7
@@ -392,3 +392,23 @@ def test_roots():
     xout, yout, info = odesys.integrate(2, [1], **kwargs)
     assert len(info['root_indices']) == 1
     assert np.min(np.abs(xout - 1)) < 1e-11
+
+
+@requires('quantities')
+def test_quantities_param():
+    import quantities as pq
+
+    def pp(x, y, p):
+        return x, y, [p[0].rescale(1/pq.s).magnitude]
+
+    odesys = ODESys(sine, sine_jac, param_names=['k'], par_by_name=True, pre_processors=[pp])
+    A, k = 2, 3
+    xout, yout, info = odesys.integrate(np.linspace(0, 1), [0, A*k], {'k': k/pq.second})
+    assert info['success']
+    assert xout.size > 7
+    ref = [
+        A*np.sin(k*(xout - xout[0])),
+        A*np.cos(k*(xout - xout[0]))*k
+    ]
+    assert np.allclose(yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
+    assert np.allclose(yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)

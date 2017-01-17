@@ -110,6 +110,7 @@ class ODESys(object):
     latex_param_names : iterable of str
     pre_processors : iterable of callbacks
     post_processors : iterable of callbacks
+    early_pre_processors : iterable of callbacks
     append_iv : bool
     autonomous_interface : bool or None
         Indicates whether the system appears autonomous upon call to
@@ -132,7 +133,8 @@ class ODESys(object):
     def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
                  band=None, names=None, param_names=None, description=None, dep_by_name=False,
                  par_by_name=False, latex_names=None, latex_param_names=None, pre_processors=None,
-                 post_processors=None, append_iv=False, **kwargs):
+                 post_processors=None, append_iv=False, early_pre_processors=None,
+                 autonomous_interface=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -152,8 +154,8 @@ class ODESys(object):
         self.latex_param_names = latex_param_names
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
+        self.early_pre_processors = early_pre_processors or []  # for e.g. dedimensionalization
         self.append_iv = append_iv
-        autonomous_interface = kwargs.pop('autonomous_interface', None)
         if hasattr(self, 'autonomous_interface'):
             if autonomous_interface is not None and autonomous_interface != self.autonomous_interface:
                 raise ValueError("Got conflicting autonomous_interface infomation.")
@@ -173,23 +175,31 @@ class ODESys(object):
     @staticmethod
     def _array_from_dict(d, keys):
         vals = [d[k] for k in keys]
-        lens = [len(v) for v in vals if hasattr(v, '__len__')]
+        lens = [len(v) for v in vals if hasattr(v, '__len__') and getattr(v, 'ndim', 1) > 0]
         if len(lens) == 0:
-            return np.array(vals).T
+            return vals, True
         else:
             if not all(l == lens[0] for l in lens):
                 raise ValueError("Mixed lenghts in dictionary.")
             out = np.empty((lens[0], len(vals)))
             for idx, v in enumerate(vals):
                 out[:, idx] = v
-            return out
+            return out, False
 
     def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
+        for pre_processor in self.early_pre_processors:
+            xout, y0, params = pre_processor(xout, y0, params)
+
         if self.dep_by_name and isinstance(y0, dict):
-            y0 = self._array_from_dict(y0, self.names)
+            y0, tp_y0 = self._array_from_dict(y0, self.names)
+        else:
+            tp_y0 = False  # `quantities`-array-work-around (losing units if merely glanced at..)
+
         if self.par_by_name and isinstance(params, dict):
-            params = self._array_from_dict(params, self.param_names)
+            params, tp_p = self._array_from_dict(params, self.param_names)
+        else:
+            tp_p = False
 
         try:
             nx = len(xout)
@@ -200,7 +210,8 @@ class ODESys(object):
 
         for pre_processor in self.pre_processors:
             xout, y0, params = pre_processor(xout, y0, params)
-        return np.atleast_1d(xout), np.atleast_1d(y0), np.atleast_1d(params)
+        _x, _y, _p = np.atleast_1d(xout), np.atleast_1d(y0), np.atleast_1d(params)
+        return _x, _y.T if tp_y0 else _y, _p.T if tp_p else _p
 
     def post_process(self, xout, yout, params):
         """ Transforms internal values to output, used internally. """
@@ -258,8 +269,9 @@ class ODESys(object):
         return yout, info
 
     def integrate(self, x, y0, params=(), **kwargs):
-        """
-        Integrate the system of ordinary differential equations.
+        """ Integrate the system of ordinary differential equations.
+
+        Solves the initial value problem (IVP).
 
         Parameters
         ----------

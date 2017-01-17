@@ -193,11 +193,11 @@ class SymbolicSys(ODESys):
         return self.dep[self.names.index(key)]
 
     def pre_process(self, xout, y0, params=()):
-        if isinstance(y0, dict) and not self.dep_by_name:  # or (self.names is None or len(self.names) == 0)):
-            y0 = [y0[symb] for symb in self.dep]
+        if isinstance(y0, dict) and not self.dep_by_name:
+            y0 = [y0[symb] for symb in self.dep]  # assume "dep by symbol"
         if isinstance(params, dict) and (
                 not self.par_by_name or (self.param_names is None or len(self.param_names) == 0)):
-            params = [params[symb] for symb in self.params]
+            params = [params[symb] for symb in self.params]  # assume "par by symbol"
         return super(SymbolicSys, self).pre_process(xout, y0, params)
 
     @classmethod
