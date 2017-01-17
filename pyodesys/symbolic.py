@@ -138,7 +138,8 @@ class SymbolicSys(ODESys):
         self.dep, self.exprs = zip(*dep_exprs)
         self.indep = indep
         if params is None:
-            params = tuple(filter(lambda x: x not in self.dep + (self.indep,), set.union(*[expr.free_symbols for expr in self.exprs])))
+            params = tuple(filter(lambda x: x not in self.dep + (self.indep,),
+                                  set.union(*[expr.free_symbols for expr in self.exprs])))
         self.params = params
         self._jac = jac
         self._dfdx = dfdx
@@ -192,9 +193,10 @@ class SymbolicSys(ODESys):
         return self.dep[self.names.index(key)]
 
     def pre_process(self, xout, y0, params=()):
-        if not self.dep_by_name and isinstance(y0, dict):
+        if isinstance(y0, dict) and not self.dep_by_name:  # or (self.names is None or len(self.names) == 0)):
             y0 = [y0[symb] for symb in self.dep]
-        if not self.par_by_name and isinstance(params, dict):
+        if isinstance(params, dict) and (
+                not self.par_by_name or (self.param_names is None or len(self.param_names) == 0)):
             params = [params[symb] for symb in self.params]
         return super(SymbolicSys, self).pre_process(xout, y0, params)
 

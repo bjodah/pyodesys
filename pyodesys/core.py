@@ -309,7 +309,7 @@ class ODESys(object):
         else:
             raise ValueError("Mixed number of dimensions")
 
-        args = map(np.atleast_2d, (intern_x, intern_y0, intern_p))
+        args = tuple(map(np.atleast_2d, (intern_x, intern_y0, intern_p)))
 
         if isinstance(integrator, str):
             nfo = getattr(self, '_integrate_' + integrator)(*args, **kwargs)

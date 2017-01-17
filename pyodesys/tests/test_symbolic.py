@@ -1043,15 +1043,17 @@ def test_SymbolicSys__reference_parameters_using_symbols_from_callback(method):
     def dydt(t, y):       # external symbolic parameter 'k', should be allowed
         return [-k*y[0]]  # even though reminiscent of global variables.
 
-    symsys = SymbolicSys.from_callback(dydt, 1, backend=be)
+    odesys1 = SymbolicSys.from_callback(dydt, 1, backend=be)
+    odesys2 = SymbolicSys.from_callback(dydt, 1, backend=be, par_by_name=True, param_names=[])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
-    for y_symb in [False, True]:
-        for p_symb in [False, True]:
-            xout, yout, info = symsys.integrate(
-                tout, {symsys.dep[0]: 2} if y_symb else [2], {k: 3} if p_symb else [3],
-                method=method, integrator='gsl', atol=1e-12, rtol=1e-12)
-            assert xout.size > 4
-            assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
+    for symsys in (odesys1, odesys2):
+        for y_symb in [False, True]:
+            for p_symb in [False, True]:
+                xout, yout, info = symsys.integrate(
+                    tout, {symsys.dep[0]: 2} if y_symb else [2], {k: 3} if p_symb else [3],
+                    method=method, integrator='gsl', atol=1e-12, rtol=1e-12)
+                assert xout.size > 4
+                assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
 
 
 @requires('sym', 'pycvodes')
