@@ -257,3 +257,29 @@ def _test_NativeSys__get_dx_max_source_code(NativeSys, forgive=20, **kwargs):
     if 'n_steps' in info:
         print(info['n_steps'])
         assert 750 < info['n_steps'] <= 1000
+
+
+def _test_NativeSys__band(NativeSys):
+    tend, k, y0 = 2, [4, 3], (5, 4, 2)
+    y = sp.symarray('y', len(k)+1)
+    dydt = decay_dydt_factory(k)
+    f = dydt(0, y)
+    odesys = NativeSys(zip(y, f), band=(1, 0))
+    xout, yout, info = odesys.integrate(tend, y0, integrator='native')
+    ref = np.array(bateman_full(y0, k+[0], xout-xout[0], exp=np.exp)).T
+    assert np.allclose(yout, ref)
+
+
+def _test_NativeSys__dep_by_name__single_varied(NativeSys):
+    tend, kf, y0 = 2, [4, 3], {'a': (5, 3, 7, 9, 1, 6, 11), 'b': 4, 'c': 2}
+    y = sp.symarray('y', len(kf)+1)
+    dydt = decay_dydt_factory(kf)
+    f = dydt(0, y)
+    odesys = NativeSys(zip(y, f), names='a b c'.split(), dep_by_name=True)
+    xout, yout, info = odesys.integrate(tend, y0, integrator='native')
+    for idx in range(len(y0['a'])):
+        assert info[idx]['success']
+        assert xout[idx].size == yout[idx].shape[0] and yout[idx].shape[1] == 3
+        ref = np.array(bateman_full([y0[k][idx] if k == 'a' else y0[k] for k in odesys.names],
+                                    kf+[0], xout[idx]-xout[idx][0], exp=np.exp)).T
+        assert np.allclose(yout[idx], ref)

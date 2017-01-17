@@ -10,7 +10,8 @@ from ._tests import (
     _test_multiple_adaptive, _test_multiple_predefined, _test_multiple_adaptive_chained,
     _test_PartiallySolved_symmetric_native, _test_PartiallySolved_symmetric_native_multi,
     _test_Decay_nonnegative, _test_NativeSys__first_step_cb, _test_NativeSys__first_step_cb_source_code,
-    _test_NativeSys__roots, _test_NativeSys__get_dx_max_source_code
+    _test_NativeSys__roots, _test_NativeSys__get_dx_max_source_code, _test_NativeSys__band,
+    _test_NativeSys__dep_by_name__single_varied
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
@@ -113,3 +114,14 @@ def test_chained_multi_native__dx_max_scalar():
 @requires('pycvodes')
 def test_NativeSys_get_dx_max_source_code():
     _test_NativeSys__get_dx_max_source_code(NativeSys, atol=1e-8, rtol=1e-8, nsteps=1000)
+
+
+@requires('pycvodes')
+@pytest.mark.xfail  # not yet implemented
+def test_NativeSys__band():
+    _test_NativeSys__band(NativeSys)
+
+
+@requires('pycvodes')
+def test_NativeSys__dep_by_name__single_varied():
+    _test_NativeSys__dep_by_name__single_varied(NativeSys)

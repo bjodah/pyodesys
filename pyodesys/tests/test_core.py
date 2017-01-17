@@ -6,7 +6,6 @@ from collections import OrderedDict
 
 import pytest
 import numpy as np
-from scipy.special import binom
 from .. import ODESys, OdeSys  # OdeSys deprecated
 from ..core import integrate_chained
 from ..util import requires
@@ -294,6 +293,7 @@ def decay_factory(ny):
 
 @requires('pyodeint', 'scipy')
 def test_par_by_name__multi():
+    from scipy.special import binom
     for ny in range(6, 8):
         p_max = 3
         a = 0.42  # > 0
