@@ -81,12 +81,16 @@ class Result(object):
         if 'post_processors' not in kwargs:
             kwargs['post_processors'] = self.odesys.post_processors
 
-        if 'names' not in kwargs:
-            kwargs['names'] = getattr(self.odesys, 'names', None)
-        else:
+        if 'names' in kwargs:
             if 'indices' not in kwargs and getattr(self.odesys, 'names', None) is not None:
                 kwargs['indices'] = [self.odesys.names.index(n) for n in kwargs['names']]
                 kwargs['names'] = self.odesys.names
+        else:
+            kwargs['names'] = getattr(self.odesys, 'names', None)
+
+        if 'latex_names' not in kwargs:
+            kwargs['latex_names'] = getattr(self.odesys, 'latex_names', None)
+
         return cb(self._internal('xout', internal_xout),
                   self._internal('yout', internal_yout),
                   self._internal('params', internal_params), **kwargs)
