@@ -24,6 +24,20 @@ def test_run_integration():
     assert info['success'] is True
 
 
+@requires('sym', 'sympy', 'pycvodes')
+def test_run_integration__atol_dict():
+    xout, yout, info = run_integration(
+        integrator='cvode', atol={'A': 1e-10, 'B': 1e-11, 'C': 1e-6}, nsteps=1500)
+    assert info['success'] is True
+
+
+@requires('sym', 'sympy', 'pycvodes')
+def test_run_integration__atol_list():
+    xout, yout, info = run_integration(
+        integrator='cvode', atol=[1e-10, 1e-11, 1e-6], nsteps=1500)
+    assert info['success'] is True
+
+
 def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
               logt=False, zero_conc=0, zero_time=0, nonnegative=None,
               atol=1e-14, rtol=1e-10, integrator='cvode', nsteps=6000, **kwargs):
@@ -37,15 +51,15 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
     kw.update(kwargs)
 
     atol_forgive = {
-        0: 5,
+        0: 6,
         1: 15000,
         2: 7,
         3: 4
     }
-
+    names = 'A B C'.split()
     if symbolic:
         _s = SymbolicSys.from_callback(get_ode_exprs(logc=False, logt=False)[0], ny, nk,
-                                       lower_bounds=[0]*ny if nonnegative else None)
+                                       lower_bounds=[0]*ny if nonnegative else None, names=names)
         logexp = (sympy.log, sympy.exp)
 
         if reduced:
@@ -66,8 +80,9 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
             ny -= 1
             k += y0
             y0 = [y0[idx] for idx in range(3) if idx != reduced - 1]
+            names.pop(reduced - 1)
 
-        s = ODESys(f, j, autonomous_interface=not logt)
+        s = ODESys(f, j, autonomous_interface=not logt, names=names)
 
         if logc:
             y0 = np.log(y0)

@@ -990,6 +990,21 @@ class PartiallySolvedSystem(SymbolicSys):
         ori_dep = self.original_dep[self.names.index(key)]
         return self.analytic_exprs.get(ori_dep, ori_dep)
 
+    def integrate(self, *args, **kwargs):
+        if 'atol' in kwargs:
+            atol = kwargs.pop('atol')
+            if isinstance(atol, dict):
+                atol = [atol[k] for k in self.free_names]
+            else:
+                try:
+                    len(atol)
+                except TypeError:
+                    pass
+                else:
+                    atol = [atol[idx] for idx in _skip(self.ori_analyt_idx_map, atol)]
+            kwargs['atol'] = atol
+        return super(PartiallySolvedSystem, self).integrate(*args, **kwargs)
+
 
 def get_logexp(a=1, b=0, backend=None):
     """ Utility function for use with :func:symmetricsys.

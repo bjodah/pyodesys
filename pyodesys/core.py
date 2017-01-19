@@ -323,6 +323,8 @@ class ODESys(object):
         if hasattr(self, 'ny'):
             if intern_y0.shape[-1] != self.ny:
                 raise ValueError("Incorrect shape of intern_y0")
+        if isinstance(kwargs.get('atol', None), dict):
+            kwargs['atol'] = [kwargs['atol'][k] for k in self.names]
         integrator = kwargs.pop('integrator', None)
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')

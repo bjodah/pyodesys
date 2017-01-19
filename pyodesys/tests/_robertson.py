@@ -204,13 +204,16 @@ def run_integration(inits=(1, 0, 0), rates=(0.04, 1e4, 3e7), t0=1e-10,
     else:
         tout = np.logspace(np.log10(t0), np.log10(tend), nt)
 
+    names = 'A B C'.split()
+    if reduced > 0:
+        names.pop(reduced - 1)
     odesys = ScaledSys.from_callback(
         get_ode_exprs(logc, logt, reduced)[0],
         2 if reduced else 3, 3, dep_scaling=dep_scaling,
         indep_scaling=indep_scaling,
         exprs_process_cb=(lambda exprs: [
             sp.powsimp(expr.expand(), force=True) for expr in exprs])
-        if powsimp else None)
+        if powsimp else None, names=names)
 
     indices = {0: (0, 1, 2), 1: (1, 2), 2: (0, 2), 3: (0, 1)}[reduced]
     inits = np.array([inits[idx] for idx in indices], dtype=np.float64)
@@ -233,6 +236,3 @@ def plot(xout, yout, info):
     for idx in range(yout.shape[1]):
         plt.loglog(xout, yout[:, idx], label='ABC'[idx])
     plt.legend()
-    info.pop('internal_xout')
-    info.pop('internal_yout')
-    print(info)
