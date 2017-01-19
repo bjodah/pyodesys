@@ -6,7 +6,7 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
 
-def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
+def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None, ax=None,
                 ls=('-', '--', ':', '-.'),
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
@@ -33,6 +33,7 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
         If None, use ``matplotlib.pyplot.plot``.
     plot_kwargs_cb : callback(int) -> dict
         Keyword arguments for plot for each index (0:len(y)-1).
+    ax : Axes
     ls : iterable
         Linestyles to cycle through (only used if plot and plot_kwargs_cb
         are both None).
@@ -58,7 +59,10 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
     import matplotlib.pyplot as plt
 
     if plot is None:
-        from matplotlib.pyplot import plot
+        if ax is None:
+            from matplotlib.pyplot import plot
+        else:
+            plot = ax.plot
     if plot_kwargs_cb is None:
         def plot_kwargs_cb(idx, lines=False, markers=False, labels=None):
             kwargs = {'c': c[idx % len(c)]}
@@ -150,9 +154,9 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None,
         return x_post2, y_post2
 
     if xscale is not None:
-        plt.gca().set_xscale(xscale)
+        (ax or plt.gca()).set_xscale(xscale)
     if yscale is not None:
-        plt.gca().set_yscale(yscale)
+        (ax or plt.gca()).set_yscale(yscale)
     return x_post, y_post
 
 

@@ -129,7 +129,7 @@ class SymbolicSys(ODESys):
     """
 
     _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
-                      'latex_names', 'latex_param_names')
+                      'latex_names', 'latex_param_names', 'description')
 
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
@@ -923,7 +923,7 @@ class PartiallySolvedSystem(SymbolicSys):
             backend=_be, **new_kw)
 
     @classmethod
-    def from_linear_invariants(cls, ori_sys, preferred=None):
+    def from_linear_invariants(cls, ori_sys, preferred=None, **kwargs):
         """ Reformulates the ODE system in fewer variables.
 
         Given linear invariant equations one can always reduce the number
@@ -936,6 +936,8 @@ class PartiallySolvedSystem(SymbolicSys):
         preferred : iterable of preferred dependent variables
             Due to numerical rounding it is preferable to choose the variables
             which are expected to be of the largest magnitude during integration.
+        \*\*kwargs :
+            Keyword arguments passed on to constructor.
         """
         _be = ori_sys.be
         A = _be.Matrix(ori_sys.linear_invariants)
@@ -977,7 +979,7 @@ class PartiallySolvedSystem(SymbolicSys):
             }
 
         new_lin_invar = [row for ri, row in enumerate(A.tolist()) if ri not in list(zip(*row_tgt))[0]]
-        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar or None)
+        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar or None, **kwargs)
 
     @staticmethod
     def _get_analytic_cb(ori_sys, analytic_exprs, new_dep, new_params):
