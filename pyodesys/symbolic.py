@@ -1006,7 +1006,7 @@ class PartiallySolvedSystem(SymbolicSys):
         return super(PartiallySolvedSystem, self).integrate(*args, **kwargs)
 
 
-def get_logexp(a=1, b=0, backend=None):
+def get_logexp(a=1, b=0, a2=None, b2=None, backend=None):
     """ Utility function for use with :func:symmetricsys.
 
     Creates a pair of callbacks for logarithmic transformation
@@ -1024,6 +1024,10 @@ def get_logexp(a=1, b=0, backend=None):
     Pair of callbacks.
 
     """
+    if a2 is None:
+        a2 = a
+    if b2 is None:
+        b2 = b
     if backend is None:
         import sympy as backend
     return (lambda x: backend.log(a*x + b),

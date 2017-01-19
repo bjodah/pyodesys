@@ -200,3 +200,57 @@ def plot_phase_plane(x, y, params=(), indices=None, post_processors=(),
         x, y, params = post_processor(x, y, params)
 
     plot(y[:, indices[0]], y[:, indices[1]], **kwargs)
+
+
+def right_hand_ylabels(ax, labels):
+    ax2 = ax.twinx()
+    ylim = ax.get_ylim()
+    yspan = ylim[1]-ylim[0]
+    ax2.set_ylim(ylim)
+    yticks = [ylim[0] + (idx + 0.5)*yspan/len(labels) for idx in range(len(labels))]
+    ax2.tick_params(length=0)
+    ax2.set_yticks(yticks)
+    ax2.set_yticklabels(labels)
+
+
+def info_vlines(ax, xout, info, vline_keys=(
+        'steps', 'rhs_xvals', 'jac_xvals', 'fe_underflow',
+        'fe_overflow', 'fe_invalid', 'fe_divbyzero'), vline_colors=('maroon', 'purple'),
+                post_proc=None, alpha=None, fpes=None):
+    import matplotlib.transforms as tf
+    trans = tf.blended_transform_factory(ax.transData, ax.transAxes)
+    nvk = len(vline_keys)
+    for idx, key in enumerate(vline_keys):
+        if key == 'steps':
+            vlines = xout
+        elif key.startswith('fe_'):
+            if fpes is None:
+                raise ValueError("Need fpes when vline_keys contain fe_*")
+            vlines = xout[info['fpes'] & fpes[key.upper()] > 0]
+        else:
+            vlines = post_proc(info[key]) if post_proc is not None else info[key]
+        if alpha is None:
+            if len(vlines) < 100:
+                every = 1
+                alpha = 0.40
+            elif len(vlines) < 300:
+                every = 2
+                alpha = 0.35
+            elif len(vlines) < 900:
+                every = 4
+                alpha = 0.30
+            elif len(vlines) < 2700:
+                every = 8
+                alpha = 0.25
+            elif len(vlines) < 8100:
+                every = 16
+                alpha = 0.20
+            elif len(vlines) < 24300:
+                every = 32
+                alpha = 0.15
+            elif len(vlines) < 72900:
+                every = 64
+                alpha = 0.10
+        ax.vlines(vlines[::every], idx/nvk + 0.002, (idx+1)/nvk - 0.002, colors=vline_colors[idx % len(vline_colors)],
+                  alpha=alpha, transform=trans)
+    right_hand_ylabels(ax, [k[3] if k.startswith('fe_') else k[0] for k in vline_keys])

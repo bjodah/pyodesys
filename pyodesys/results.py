@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-from .plotting import plot_result, plot_phase_plane
+from .plotting import plot_result, plot_phase_plane, info_vlines
 
 
 class Result(object):
@@ -97,16 +97,23 @@ class Result(object):
                   self._internal('yout', internal_yout),
                   self._internal('params', internal_params), **kwargs)
 
-    def plot(self, **kwargs):
+    def plot(self, info_vlines_kw=None, **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
         Parameters
         ----------
+        info_vlines_kw : dict
+            Keyword arguments passed to :func:`.plotting.info_vlines`,
+            an empty dict will be used if `True`. Need to pass `ax` when given.
         indices : iterable of int
         names : iterable of str
         \*\*kwargs:
             See :func:`pyodesys.plotting.plot_result`
         """
+        if info_vlines_kw is not None:
+            if info_vlines_kw is True:
+                info_vlines_kw = {}
+            info_vlines(kwargs['ax'], self.xout, self.info, **info_vlines_kw)
         return self._plot(plot_result, **kwargs)
 
     def plot_phase_plane(self, indices=None, **kwargs):

@@ -23,9 +23,13 @@ from odesys_util cimport adaptive_return
 
 cdef dict _as_dict(unordered_map[string, int] nfo,
                    unordered_map[string, double] nfo_dbl,
+                   unordered_map[string, vector[double]] nfo_vecdbl,
+                   unordered_map[string, vector[int]] nfo_vecint,
                    root_indices, root_out=None, mode=None):
     dct = {str(k.decode('utf-8')): v for k, v in dict(nfo).items()}
     dct.update({str(k.decode('utf-8')): v for k, v in dict(nfo_dbl).items()})
+    dct.update({str(k.decode('utf-8')): np.array(v, dtype=np.float64) for k, v in dict(nfo_vecdbl).items()})
+    dct.update({str(k.decode('utf-8')): np.array(v, dtype=int) for k, v in dict(nfo_vecint).items()})
     dct['root_indices'] = root_indices
     if root_out is not None:
         dct['root_out'] = root_out
@@ -45,6 +49,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        long int mxsteps=0,
                        str iter_type='undecided', int linear_solver=0, str method='BDF',
                        bool with_jacobian=True, int autorestart=0, bool return_on_error=False,
+                       bool record_rhs_xvals=False, bool record_jac_xvals=False,
+                       bool record_order=False, bool record_fpe=False,
                        double get_dx_max_factor=-1.0, bool error_outside_bounds=False):
     cdef:
         vector[OdeSys *] systems
@@ -94,6 +100,11 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
                                      atol, rtol, get_dx_max_factor, error_outside_bounds))
+        systems[idx].record_rhs_xvals = record_rhs_xvals
+        systems[idx].record_jac_xvals = record_jac_xvals
+        systems[idx].record_order = record_order
+        systems[idx].record_fpe = record_fpe
+
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data,
@@ -111,6 +122,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         root_indices.push_back(result[idx].second)
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
+                             systems[idx].last_integration_info_vecdbl,
+                             systems[idx].last_integration_info_vecint,
                              root_indices[idx], root_out=None, mode='adaptive'))
         del systems[idx]
 
@@ -130,6 +143,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          long int mxsteps=0,
                          str iter_type='undecided', int linear_solver=0, str method='BDF',
                          bool with_jacobian=True, int autorestart=0, bool return_on_error=False,
+                         bool record_rhs_xvals=False, bool record_jac_xvals=False,
+                         bool record_order=False, bool record_fpe=False,
                          double get_dx_max_factor=0.0, bool error_outside_bounds=False):
     cdef:
         vector[OdeSys *] systems
@@ -180,6 +195,11 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
                                      atol, rtol, get_dx_max_factor, error_outside_bounds))
+        systems[idx].record_rhs_xvals = record_rhs_xvals
+        systems[idx].record_jac_xvals = record_jac_xvals
+        systems[idx].record_order = record_order
+        systems[idx].record_fpe = record_fpe
+
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeSys](
@@ -192,6 +212,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         root_out.push_back(result[idx].second)
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
+                             systems[idx].last_integration_info_vecdbl,
+                             systems[idx].last_integration_info_vecint,
                              root_indices, root_out, mode='predefined'))
         del systems[idx]
 

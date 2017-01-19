@@ -20,21 +20,21 @@ _yref_1e11 = (0.2083340149701255e-7, 0.8333360770334713e-13, 0.9999999791665050)
 
 @requires('sym', 'sympy', 'pyodeint')
 def test_run_integration():
-    xout, yout, info = run_integration(integrator='odeint')
+    xout, yout, info = run_integration(integrator='odeint')[:3]
     assert info['success'] is True
 
 
 @requires('sym', 'sympy', 'pycvodes')
 def test_run_integration__atol_dict():
     xout, yout, info = run_integration(
-        integrator='cvode', atol={'A': 1e-10, 'B': 1e-11, 'C': 1e-6}, nsteps=1500)
+        integrator='cvode', atol={'A': 1e-10, 'B': 1e-11, 'C': 1e-6}, nsteps=1500)[:3]
     assert info['success'] is True
 
 
 @requires('sym', 'sympy', 'pycvodes')
 def test_run_integration__atol_list():
     xout, yout, info = run_integration(
-        integrator='cvode', atol=[1e-10, 1e-11, 1e-6], nsteps=1500)
+        integrator='cvode', atol=[1e-10, 1e-11, 1e-6], nsteps=1500)[:3]
     assert info['success'] is True
 
 
