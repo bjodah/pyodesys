@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+from datetime import datetime as dt
 from functools import reduce
 import logging
 from operator import add
@@ -138,7 +139,8 @@ class _NativeCodeBase(Cpp_Code):
 
         try:
             common_cses, common_exprs = self.odesys.be.cse(
-                all_exprs, ignore=(self.odesys.indep,) + self.odesys.dep)
+                all_exprs, symbols=self.odesys.be('cse'),
+                ignore=(self.odesys.indep,) + self.odesys.dep)
         except TypeError:  # old version of SymPy does not support ``ignore``
             common_cses, common_exprs = [], all_exprs
         common_cse_subs = {}
@@ -152,22 +154,25 @@ class _NativeCodeBase(Cpp_Code):
                        for x, expr in common_cses]
         common_exprs = [expr.xreplace(common_cse_subs) for expr in common_exprs]
 
-        rhs_cses, rhs_exprs = self.odesys.be.cse(common_exprs[:len(self.odesys.exprs)])
+        rhs_cses, rhs_exprs = self.odesys.be.cse(common_exprs[:len(self.odesys.exprs)],
+                                                 symbols=self.odesys.be.numbered_symbols('cse'))
 
         if jac is not False:
-            jac_cses, jac_exprs = self.odesys.be.cse(common_exprs[len(self.odesys.exprs):])
+            jac_cses, jac_exprs = self.odesys.be.cse(common_exprs[len(self.odesys.exprs):],
+                                                     symbols=self.odesys.be.numbered_symbols('cse'))
 
         first_step = self.odesys.first_step_expr
         if first_step is not None:
-            first_step_cses, first_step_exprs = self.odesys.be.cse([first_step])
+            first_step_cses, first_step_exprs = self.odesys.be.cse(
+                [first_step], symbols=self.odesys.be.numbered_symbols('cse'))
 
         if self.odesys.roots is not None:
-            roots_cses, roots_exprs = self.odesys.be.cse(self.odesys.roots)
+            roots_cses, roots_exprs = self.odesys.be.cse(self.odesys.roots, symbols=self.odesys.be.numbered_symbols('cse'))
 
         ns = dict(
             _message_for_rendered=[
                 "-*- mode: read-only -*-",
-                "This file was generated using pyodesys-%s" % __version__
+                "This file was generated using pyodesys-%s at %s" % (__version__, dt.now().isoformat())
             ],
             p_odesys=self.odesys,
             p_common={

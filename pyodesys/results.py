@@ -5,6 +5,11 @@ import numpy as np
 
 from .plotting import plot_result, plot_phase_plane, info_vlines
 
+try:
+    from scipy.interpolate import CubicSpline
+except ImportError:
+    CubicSpline = None
+
 
 class Result(object):
 
@@ -29,6 +34,28 @@ class Result(object):
             raise StopIteration
         else:
             raise KeyError("Invalid key: %s (for backward compatibility reasons)." % str(key))
+
+    def at(self, x):
+        """ Returns interpolated result at a given time and an interpolation error-estimate """
+        if x == self.xout[0]:
+            res = self.yout[..., 0, :]
+            err = res*0
+        elif x == self.xout[-1]:
+            res = self.yout[..., -1, :]
+            err = res*0
+        else:
+            idx = np.argmax(self.xout > x)
+            if idx == 0:
+                raise ValueError("x outside bounds")
+            xspan = self.xout[idx] - self.xout[idx - 1]
+            dydx = self.yout[idx] - self.yout[idx - 1]
+            res_1d = self.yout[idx - 1] + xspan*dydx
+            idx_l = min(0, idx - 2)
+            idx_u = max(self.xout.size, idx_l + 4)
+            slc = slice(idx_l, idx_u)
+            res_cub = CubicSpline(self.xout[slc], self.yout[..., slc, :], axis=-1)(x)
+            err = np.abs(res_cub - res1d)
+            return res_cub, err
 
     def _internal(self, key, override=None):
         if override is None:
@@ -114,6 +141,8 @@ class Result(object):
             if info_vlines_kw is True:
                 info_vlines_kw = {}
             info_vlines(kwargs['ax'], self.xout, self.info, **info_vlines_kw)
+            self._plot(plot_result, plot_kwargs_cb=lambda *args, **kwargs:
+                       dict(c='w', ls='-', linewidth=7, alpha=.4), **kwargs)
         return self._plot(plot_result, **kwargs)
 
     def plot_phase_plane(self, indices=None, **kwargs):
