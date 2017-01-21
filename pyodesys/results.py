@@ -35,6 +35,17 @@ class Result(object):
         else:
             raise KeyError("Invalid key: %s (for backward compatibility reasons)." % str(key))
 
+    def between(self, lower, upper, xdata=None, ydata=None):
+        """ Get results inside span for independent variable """
+        if xdata is None:
+            xdata = self.xout
+        if ydata is None:
+            ydata = self.yout
+        select_u = xdata < upper
+        xtmp, ytmp = xdata[..., select_u], ydata[..., select_u, :]
+        select_l = xtmp > lower
+        return xtmp[..., select_l], ytmp[..., select_l, :]
+
     def at(self, x):
         """ Returns interpolated result at a given time and an interpolation error-estimate """
         if x == self.xout[0]:
@@ -124,7 +135,7 @@ class Result(object):
                   self._internal('yout', internal_yout),
                   self._internal('params', internal_params), **kwargs)
 
-    def plot(self, info_vlines_kw=None, **kwargs):
+    def plot(self, info_vlines_kw=None, between=None, **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
         Parameters
@@ -133,10 +144,16 @@ class Result(object):
             Keyword arguments passed to :func:`.plotting.info_vlines`,
             an empty dict will be used if `True`. Need to pass `ax` when given.
         indices : iterable of int
+        between : length 2 tuple
         names : iterable of str
         \*\*kwargs:
             See :func:`pyodesys.plotting.plot_result`
         """
+        if between is not None:
+            if 'internal_xout' in kwargs or 'internal_yout' in kwargs:
+                raise ValueError("internal_xout/internal_yout & between given.")
+            kwargs['internal_xout'], kwargs['internal_yout'] = self.between(
+                *between, xdata=self._internal('xout'), ydata=self._internal('yout'))
         if info_vlines_kw is not None:
             if info_vlines_kw is True:
                 info_vlines_kw = {}
