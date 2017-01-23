@@ -44,24 +44,29 @@ class Result(object):
         select_l = xtmp > lower
         return xtmp[..., select_l], ytmp[..., select_l, :]
 
-    def at(self, x, use_deriv=False):
+    def at(self, x, use_deriv=False, xdata=None, ydata=None):
         """ Returns interpolated result at a given time and an interpolation error-estimate """
-        if x == self.xout[0]:
-            res = self.yout[0, :]
+        if xdata is None:
+            xdata = self.xout
+        if ydata is None:
+            ydata = self.yout
+
+        if x == xdata[0]:
+            res = ydata[0, :]
             err = res*0
-        elif x == self.xout[-1]:
-            res = self.yout[-1, :]
+        elif x == xdata[-1]:
+            res = ydata[-1, :]
             err = res*0
         else:
-            idx = np.argmax(self.xout > x)
+            idx = np.argmax(xdata > x)
             if idx == 0:
                 raise ValueError("x outside bounds")
-            idx_l = min(0, idx - 2)
-            idx_u = max(self.xout.size, idx_l + 4)
+            idx_l = max(0, idx - 2)
+            idx_u = min(xdata.size, idx_l + 4)
             slc = slice(idx_l, idx_u)
-            res_cub = CubicSpline(self.xout[slc], self.yout[slc, :])(x)
-            x0, x1 = self.xout[idx - 1], self.xout[idx]
-            y0, y1 = self.yout[idx - 1, :], self.yout[idx, :]
+            res_cub = CubicSpline(xdata[slc], ydata[slc, :])(x)
+            x0, x1 = xdata[idx - 1], xdata[idx]
+            y0, y1 = ydata[idx - 1, :], ydata[idx, :]
             xspan, yspan = x1 - x0, y1 - y0
             avgx, avgy = .5*(x0 + x1), .5*(y0 + y1)
             if use_deriv:
