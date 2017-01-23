@@ -72,7 +72,7 @@ class Result(object):
             if use_deriv:
                 # y = a + b*x + c*x**2 + d*x**3
                 # dydx = b + 2*c*x + 3*d*x**2
-                y0p, y1p = [self.odesys.f_cb(x, y, self.params)*xspan for y in (y0, y1)]
+                y0p, y1p = [np.asarray(self.odesys.f_cb(x, y, self.params))*xspan for y in (y0, y1)]
                 lsx = (x - x0)/xspan
                 d = y0p + y1p + 2*y0 - 2*y1
                 c = -2*y0p - y1p - 3*y0 + 3*y1

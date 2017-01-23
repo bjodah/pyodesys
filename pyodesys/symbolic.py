@@ -710,6 +710,7 @@ class ScaledSys(TransformedSys):
 
     def __init__(self, dep_exprs, indep=None, dep_scaling=1, indep_scaling=1,
                  params=(), **kwargs):
+        dep_exprs = list(dep_exprs)
         dep, exprs = list(zip(*dep_exprs))
         try:
             n = len(dep_scaling)

@@ -279,17 +279,27 @@ def test_SymbolicSys__from_callback_bateman(band):
     assert np.allclose(yout, ref, rtol=rtol, atol=atol)
 
 
-@requires('sym', 'scipy')
-@pytest.mark.parametrize('band', [(1, 0), None])
-def test_SymbolicSys_bateman(band):
+def _test_bateman(SymbSys, **kwargs):
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
     dydt = decay_dydt_factory(k)
     f = dydt(0, y)
-    odesys = SymbolicSys(zip(y, f), band=band)
+    odesys = SymbSys(zip(y, f), **kwargs)
     xout, yout, info = odesys.integrate(tend, y0, integrator='scipy')
     ref = np.array(bateman_full(y0, k+[0], xout-xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref)
+
+
+@requires('sym', 'scipy')
+@pytest.mark.parametrize('band', [(1, 0), None])
+def test_SymbolicSys_bateman(band):
+    _test_bateman(SymbolicSys, band=band)
+
+
+@requires('sym', 'scipy')
+@pytest.mark.parametrize('band', [(1, 0), None])
+def test_ScaledSys_bateman(band):
+    _test_bateman(ScaledSys, band=band, dep_scaling=1e3)
 
 
 # Longer chains with careful choice of parameters
