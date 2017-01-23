@@ -221,3 +221,42 @@ class requires(object):
         if self.incomp:
             r += " Incomp versions: %s." % ', '.join(self.incomp)
         return pytest.mark.skipif(self.missing or self.incomp, reason=r)(cb)
+
+
+class MissingImport(object):
+
+    def __init__(self, modname):
+        self._modname = modname
+
+    def __getattribute__(self, attr):
+        if attr == '_modname':
+            return object.__getattribute__(self, attr)
+        else:
+            raise ImportError("Failed to import %s" % self._modname)
+
+    def __call__(self, *args, **kwargs):
+        raise ImportError("Failed to import %s" % self._modname)
+
+
+def import_(modname, *args):
+    if len(args) == 0:
+        try:
+            return __import__(modname)
+        except ImportError:
+            return MissingImport(modname)
+
+    mods = []
+    for arg in args:
+        mi = MissingImport(modname + '.' + arg)
+        try:
+            mod = __import__(modname, globals(), locals(), [arg])
+        except ImportError:
+            mods.append(mi)
+        else:
+            try:
+                attr = getattr(mod, arg)
+            except AttributeError:
+                mods.append(mi)
+            else:
+                mods.append(attr)
+    return mods if len(args) > 1 else mods[0]
