@@ -4,11 +4,9 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
 from .plotting import plot_result, plot_phase_plane, info_vlines
+from .util import import_
 
-try:
-    from scipy.interpolate import CubicSpline
-except ImportError:
-    CubicSpline = None
+CubicSpline = import_('scipy.interpolate', 'CubicSpline')
 
 
 class Result(object):
@@ -46,27 +44,41 @@ class Result(object):
         select_l = xtmp > lower
         return xtmp[..., select_l], ytmp[..., select_l, :]
 
-    def at(self, x):
+    def at(self, x, use_deriv=False):
         """ Returns interpolated result at a given time and an interpolation error-estimate """
         if x == self.xout[0]:
-            res = self.yout[..., 0, :]
+            res = self.yout[0, :]
             err = res*0
         elif x == self.xout[-1]:
-            res = self.yout[..., -1, :]
+            res = self.yout[-1, :]
             err = res*0
         else:
             idx = np.argmax(self.xout > x)
             if idx == 0:
                 raise ValueError("x outside bounds")
-            xspan = self.xout[idx] - self.xout[idx - 1]
-            dydx = self.yout[idx] - self.yout[idx - 1]
-            res_1d = self.yout[idx - 1] + xspan*dydx
             idx_l = min(0, idx - 2)
             idx_u = max(self.xout.size, idx_l + 4)
             slc = slice(idx_l, idx_u)
-            res_cub = CubicSpline(self.xout[slc], self.yout[..., slc, :], axis=-1)(x)
-            err = np.abs(res_cub - res1d)
-            return res_cub, err
+            res_cub = CubicSpline(self.xout[slc], self.yout[slc, :])(x)
+            x0, x1 = self.xout[idx - 1], self.xout[idx]
+            y0, y1 = self.yout[idx - 1, :], self.yout[idx, :]
+            xspan, yspan = x1 - x0, y1 - y0
+            avgx, avgy = .5*(x0 + x1), .5*(y0 + y1)
+            if use_deriv:
+                # y = a + b*x + c*x**2 + d*x**3
+                # dydx = b + 2*c*x + 3*d*x**2
+                y0p, y1p = [self.odesys.f_cb(x, y, self.params)*xspan for y in (y0, y1)]
+                lsx = (x - x0)/xspan
+                d = y0p + y1p + 2*y0 - 2*y1
+                c = -2*y0p - y1p - 3*y0 + 3*y1
+                b, a = y0p, y0
+                res_poly = a + b*lsx + c*lsx**2 + d*lsx**3
+                res, err = res_poly, np.abs(res_poly - res_cub)
+            else:
+                res_lin = avgy + yspan/xspan*(x - avgx)
+                res, err = res_cub, np.abs(res_cub - res_lin)
+
+        return res, err
 
     def _internal(self, key, override=None):
         if override is None:
