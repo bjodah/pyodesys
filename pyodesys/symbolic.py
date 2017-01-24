@@ -129,7 +129,8 @@ class SymbolicSys(ODESys):
     """
 
     _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
-                      'latex_names', 'latex_param_names', 'description')
+                      'latex_names', 'latex_param_names', 'description', 'linear_invariants',
+                      'linear_invariant_names')
 
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
@@ -288,7 +289,9 @@ class SymbolicSys(ODESys):
             raise NotImplementedError('roots currently unsupported')
         for k in cls._attrs_to_copy + ('params',):
             if k not in kwargs:
-                kwargs[k] = getattr(ori, k)
+                val = getattr(ori, k)
+                if val is not None:
+                    kwargs[k] = val
         if 'lower_bounds' not in kwargs and getattr(ori, 'lower_bounds'):
             kwargs['lower_bounds'] = ori.lower_bounds
         if 'upper_bounds' not in kwargs and getattr(ori, 'upper_bounds'):
@@ -498,6 +501,8 @@ class TransformedSys(SymbolicSys):
     def __init__(self, dep_exprs, indep=None, dep_transf=None,
                  indep_transf=None, params=(), exprs_process_cb=None,
                  check_transforms=True, **kwargs):
+        if kwargs.get('nonlinear_invariants', None) is not None:
+            raise NotImplementedError("support for non-linear invariants not yet implemented.")
         dep, exprs = zip(*dep_exprs)
         if dep_transf is not None:
             self.dep_fw, self.dep_bw = zip(*dep_transf)
@@ -720,7 +725,7 @@ class ScaledSys(TransformedSys):
         transf_dep_cbs = [self._scale_fw_bw(s) for s in dep_scaling]
         transf_indep_cbs = self._scale_fw_bw(indep_scaling)
         super(ScaledSys, self).__init__(
-            dep_exprs, indep,
+            dep_exprs, indep, params=params,
             dep_transf=[(transf_cb[0](depi),
                          transf_cb[1](depi)) for transf_cb, depi
                         in zip(transf_dep_cbs, dep)],
@@ -979,8 +984,11 @@ class PartiallySolvedSystem(SymbolicSys):
                      ci in range(A.cols) if ci != tgt])/A[ri, tgt] for ri, tgt in row_tgt
             }
 
+        ori_li_nms = ori_sys.linear_invariant_names or []
         new_lin_invar = [row for ri, row in enumerate(A.tolist()) if ri not in list(zip(*row_tgt))[0]]
-        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar or None, **kwargs)
+        new_lin_i_nms = [nam for ri, nam in enumerate(ori_li_nms) if ri not in list(zip(*row_tgt))[0]]
+        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar or None,
+                   linear_invariant_names=new_lin_i_nms or None, **kwargs)
 
     @staticmethod
     def _get_analytic_cb(ori_sys, analytic_exprs, new_dep, new_params):

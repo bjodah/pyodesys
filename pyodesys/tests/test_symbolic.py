@@ -1067,16 +1067,24 @@ def test_SymbolicSys__reference_parameters_using_symbols_from_callback(method):
 
 
 @requires('sym', 'pycvodes')
-def test_PartiallySolvedSystem__from_linear_invariants():
+@pytest.mark.parametrize('scaled', [False, True])
+def test_PartiallySolvedSystem__from_linear_invariants(scaled):
     atol, rtol, forgive = 1e-11, 1e-11, 20
     k = [7., 3, 2]
-    ss = SymbolicSys.from_callback(decay_rhs, len(k)+1, len(k), linear_invariants=[[1]*(len(k)+1)])
+    _ss = SymbolicSys.from_callback(decay_rhs, len(k)+1, len(k),
+                                    linear_invariants=[[1]*(len(k)+1)],
+                                    linear_invariant_names=['tot_amount'])
+    if scaled:
+        ss = ScaledSys.from_other(_ss, dep_scaling=1e3)
+    else:
+        ss = _ss
+
     y0 = [0]*(len(k)+1)
     y0[0] = 1
 
     def check_formulation(odesys):
         xout, yout, info = odesys.integrate(
-            [0, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol)
+            [0, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol, nsteps=800)
         ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
         assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
