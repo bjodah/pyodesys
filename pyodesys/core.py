@@ -315,11 +315,13 @@ class ODESys(object):
             yout : array of the dependent variable(s) for the different values of x
             info : dict ('nfev' is guaranteed to be a key)
         """
-        intern_x, intern_y0, intern_p = self.pre_process(x, y0, params)
-        intern_x = intern_x.squeeze()
-        intern_y0 = np.atleast_1d(intern_y0)
+        _intern_x, _intern_y0, _intern_p = self.pre_process(x, y0, params)
+        intern_x = _intern_x.squeeze()
+        intern_y0 = np.atleast_1d(_intern_y0)
         if self.append_iv:
-            intern_p = np.concatenate((intern_p, intern_y0), axis=-1)
+            intern_p = np.concatenate((_intern_p, intern_y0), axis=-1)
+        else:
+            intern_p = _intern_p
         if hasattr(self, 'ny'):
             if intern_y0.shape[-1] != self.ny:
                 raise ValueError("Incorrect shape of intern_y0")

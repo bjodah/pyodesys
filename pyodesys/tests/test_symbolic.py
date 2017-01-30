@@ -1137,3 +1137,22 @@ def test_SymbolicSys__indep_in_exprs():
     fout = odesys.f_cb(2, [3], [4])
     assert len(fout) == 1
     assert abs(fout[0] - 2*3*4) < 1e-14
+
+
+@requires('sym', 'pycvodes')
+def test_PartiallySolvedSystem__roots():
+    t, x, y, z, p, q = sp.symbols('t x y z, p, q')
+    systems = [SymbolicSys({x: -p*x, y: p*x - q*y, z: q*y}, t, roots=roots)
+               for roots in ([x - y], [x - z], [y - z])]
+    _p, _q, tend = 7, 3, 0.7
+    ref = [0.11299628093544488, 0.20674119231833346, 0.3541828705348678]  # see .ipynb
+
+    def check(odesys, idx):
+        res = odesys.integrate(tend, {x: 1, y: 0, z: 0}, {p: _p, q: _q},
+                               integrator='cvode', return_on_root=True)
+        assert abs(res.xout[-1] - ref[idx]) < 1e-7
+
+    for idx, odesys in enumerate(systems):
+        check(odesys, idx)
+        psys = PartiallySolvedSystem(odesys, lambda t0, (x0, y0, z0), par0: {x: x0*sp.exp(-p*(t-t0))})
+        check(psys, idx)

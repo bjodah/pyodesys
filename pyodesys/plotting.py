@@ -169,21 +169,21 @@ def plot_phase_plane(x, y, params=(), indices=None, post_processors=(),
     Parameters
     ----------
     x: array_like
-        Values of the independent variable
+        Values of the independent variable.
     y: array_like
-        Values of the dependent variables
+        Values of the dependent variables.
     params: array_like
-        parameters
+        Parameters.
     indices: pair of integers (default: None)
-        what dependent variable to plot for (None => (0, 1))
+        What dependent variable to plot for (None => (0, 1)).
     post_processors: iterable of callbles
-        see :class:ODESystem
+        See :class:`ODESystem`.
     plot: callable (default: None)
-        Uses matplotlib.pyplot.plot if None
+        Uses ``matplotlib.pyplot.plot`` if ``None``
     names: iterable of strings
-        labels for x and y axis
+        Labels for x and y axis.
     \*\*kwargs:
-        keyword arguemtns passed to ``plot()``
+        Keyword arguemtns passed to ``plot()``.
 
     """
     if indices is None:

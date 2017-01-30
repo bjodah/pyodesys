@@ -136,7 +136,7 @@ class SymbolicSys(ODESys):
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
                  linear_invariants=None, nonlinear_invariants=None,
                  linear_invariant_names=None, nonlinear_invariant_names=None, **kwargs):
-        self.dep, self.exprs = zip(*dep_exprs)
+        self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
         if params is None:
             params = tuple(filter(lambda x: x not in self.dep + (self.indep,),
@@ -171,6 +171,10 @@ class SymbolicSys(ODESys):
         if self.indep is not None and _names is not None:
             if self.indep.name in _names:
                 raise ValueError("Independent variable cannot share name with any dependent variable")
+
+        _param_names = kwargs.get('param_names', None)
+        if _param_names is True:
+            kwargs['param_names'] = [p.name for p in self.params]
 
         # we need self.band before super().__init__
         self.band = kwargs.get('band', None)
@@ -842,8 +846,7 @@ class PartiallySolvedSystem(SymbolicSys):
     def __init__(self, original_system, analytic_factory, **kwargs):
         self._ori_sys = original_system
         self.analytic_factory = _ensure_4args(analytic_factory)
-        if self._ori_sys.roots is not None:
-            raise NotImplementedError('roots currently unsupported')
+        roots = kwargs.pop('roots', self._ori_sys.roots)
         _be = self._ori_sys.be
         _Dummy = _be.Dummy
         self.init_indep = _Dummy('init_indep')
@@ -883,9 +886,9 @@ class PartiallySolvedSystem(SymbolicSys):
                                                for idx, dep in enumerate(self.analytic_exprs)])
         self.ori_remaining_idx_map = {self.original_dep.index(dep): idx for
                                       idx, dep in enumerate(new_dep)}
-        nanalytic = len(self.analytic_exprs)
         new_exprs = [expr.subs(self.analytic_exprs) for idx, expr in
                      enumerate(self._ori_sys.exprs) if idx not in self.ori_analyt_idx_map]
+        new_roots = None if roots is None else [expr.subs(self.analytic_exprs) for expr in roots]
         new_kw = kwargs.copy()
         for attr in self._attrs_to_copy:
             if attr not in new_kw and getattr(self._ori_sys, attr, None) is not None:
@@ -897,36 +900,33 @@ class PartiallySolvedSystem(SymbolicSys):
         if 'upper_bounds' not in new_kw and getattr(self._ori_sys, 'upper_bounds', None) is not None:
             new_kw['upper_bounds'] = _skip(self.ori_analyt_idx_map, self._ori_sys.upper_bounds)
 
-        def partially_solved_pre_processor(x, y, p):
-            x, y, p = map(np.asarray, (x, y, p))
-            if y.ndim == 2:
-                return zip(*[partially_solved_pre_processor(_x, _y, _p)
-                             for _x, _y, _p in zip(x, y, p)])
-            return (x, _skip(self.ori_analyt_idx_map, y), _append(p, [x[0]], y))
-
-        def partially_solved_post_processor(x, y, p):
-            try:
-                y[0][0, 0]
-            except:
-                pass
-            else:
-                return zip(*[partially_solved_post_processor(_x, _y, _p)
-                             for _x, _y, _p in zip(x, y, p)])
-            new_y = np.empty(y.shape[:-1] + (y.shape[-1]+nanalytic,))
-            analyt_y = self.analytic_cb(x, y, p)
-            for idx in range(self._ori_sys.ny):
-                if idx in self.ori_analyt_idx_map:
-                    new_y[..., idx] = analyt_y[..., self.ori_analyt_idx_map[idx]]
-                else:
-                    new_y[..., idx] = y[..., self.ori_remaining_idx_map[idx]]
-            return x, new_y, p[:-(1+self._ori_sys.ny)]
-
-        new_kw['pre_processors'] = self._ori_sys.pre_processors + [partially_solved_pre_processor]
-        new_kw['post_processors'] = [partially_solved_post_processor] + self._ori_sys.post_processors
-
         super(PartiallySolvedSystem, self).__init__(
             zip(new_dep, new_exprs), self._ori_sys.indep, new_params,
-            backend=_be, **new_kw)
+            backend=_be, roots=new_roots, **new_kw)
+
+    def pre_process(self, xout, y0, params=()):
+        _xout, _y0, _params = self._ori_sys.pre_process(xout, y0, params)
+        if _y0.ndim == 2:
+            return zip(*[self.pre_process(_x, _y, _p) for _x, _y, _p in zip(_xout, _y0, _params)])
+        return _xout, _skip(self.ori_analyt_idx_map, _y0), _append(_params, [_xout[0]], _y0)
+
+    def post_process(self, xout, yout, params):
+        """ Transforms internal values to output, used internally. """
+        try:
+            yout[0][0, 0]
+        except:
+            pass
+        else:
+            return zip(*[self.post_process(_x, _y, _p)
+                         for _x, _y, _p in zip(xout, yout, params)])
+        new_y = np.empty(yout.shape[:-1] + (yout.shape[-1]+len(self.analytic_exprs),))
+        analyt_y = self.analytic_cb(xout, yout, params)
+        for idx in range(self._ori_sys.ny):
+            if idx in self.ori_analyt_idx_map:
+                new_y[..., idx] = analyt_y[..., self.ori_analyt_idx_map[idx]]
+            else:
+                new_y[..., idx] = yout[..., self.ori_remaining_idx_map[idx]]
+        return self._ori_sys.post_process(xout, new_y, params[:-(1+self._ori_sys.ny)])
 
     @classmethod
     def from_linear_invariants(cls, ori_sys, preferred=None, **kwargs):
