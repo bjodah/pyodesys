@@ -186,9 +186,11 @@ class ODESys(object):
                 out[:, idx] = v
             return out, False
 
-    def pre_process(self, xout, y0, params=()):
+    def pre_process(self, xout, y0, params=(), early_pre_processors=None):
         """ Transforms input to internal values, used internally. """
-        for pre_processor in self.early_pre_processors:
+        if early_pre_processors is None:
+            early_pre_processors = self.early_pre_processors
+        for pre_processor in early_pre_processors:
             xout, y0, params = pre_processor(xout, y0, params)
 
         if self.dep_by_name and isinstance(y0, dict):

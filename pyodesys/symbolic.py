@@ -198,12 +198,14 @@ class SymbolicSys(ODESys):
         return self.dep[self.names.index(key)]
 
     def pre_process(self, xout, y0, params=()):
+        for pre_processor in self.early_pre_processors:
+            xout, y0, params = pre_processor(xout, y0, params)
         if isinstance(y0, dict) and not self.dep_by_name:
             y0 = [y0[symb] for symb in self.dep]  # assume "dep by symbol"
         if isinstance(params, dict) and (
                 not self.par_by_name or (self.param_names is None or len(self.param_names) == 0)):
             params = [params[symb] for symb in self.params]  # assume "par by symbol"
-        return super(SymbolicSys, self).pre_process(xout, y0, params)
+        return super(SymbolicSys, self).pre_process(xout, y0, params, early_pre_processors=[])
 
     @classmethod
     def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None,
@@ -310,6 +312,12 @@ class SymbolicSys(ODESys):
             if 'post_processors' not in kwargs:
                 kwargs['post_processors'] = []
             kwargs['post_processors'] = ori.post_processors + kwargs['post_processors']
+
+        if len(ori.early_pre_processors) > 0:
+            if 'early_pre_processors' not in kwargs:
+                kwargs['early_pre_processors'] = []
+            kwargs['early_pre_processors'] = kwargs['early_pre_processors'] + ori.early_pre_processors
+
 
         instance = cls(zip(ori.dep, ori.exprs), ori.indep, **kwargs)
         for attr in ori._attrs_to_copy:
@@ -853,8 +861,8 @@ class PartiallySolvedSystem(SymbolicSys):
         self.init_dep = [_Dummy('init_%s' % (idx if self._ori_sys.names is None else self._ori_sys.names[idx]))
                          for idx in range(self._ori_sys.ny)]
 
-        if 'pre_processors' in kwargs or 'post_processors' in kwargs:
-            raise NotImplementedError("Cannot override pre-/postprocessors")
+        if 'early_pre_processors' in kwargs or 'post_processors' in kwargs:
+            raise NotImplementedError("Cannot override early_pre-/postprocessors")
         if 'backend' in kwargs and Backend(kwargs['backend']) != _be:
             raise ValueError("Cannot mix backends.")
         _pars = self._ori_sys.params
@@ -900,33 +908,47 @@ class PartiallySolvedSystem(SymbolicSys):
         if 'upper_bounds' not in new_kw and getattr(self._ori_sys, 'upper_bounds', None) is not None:
             new_kw['upper_bounds'] = _skip(self.ori_analyt_idx_map, self._ori_sys.upper_bounds)
 
+        def partially_solved_pre_processor(x, y, p):
+            print(y)#DO-NOT-MERGE!
+            if isinstance(y, dict) and not self.dep_by_name:
+                y = [y[k] for k in self._ori_sys.dep]
+            print(y)#DO-NOT-MERGE!
+            if isinstance(p, dict) and not self.par_by_name:
+                p = [p[k] for k in self._ori_sys.params]
+            x, y, p = map(np.atleast_1d, (x, y, p))
+            if y.ndim == 2:
+                return zip(*[partially_solved_pre_processor(_x, _y, _p)
+                             for _x, _y, _p in zip(x, y, p)])
+
+            print("self.ori_analyt_idx_map=", self.ori_analyt_idx_map)#DO-NOT-MERGE!
+            print("y=", y)#DO-NOT-MERGE!
+            print("_skip(self.ori_analyt_idx_map, y)=", _skip(self.ori_analyt_idx_map, y))#DO-NOT-MERGE!
+            return (x, _skip(self.ori_analyt_idx_map, y), _append(p, [x[0]], y))
+
+        def partially_solved_post_processor(x, y, p):
+            try:
+                y[0][0, 0]
+            except:
+                pass
+            else:
+                return zip(*[partially_solved_post_processor(_x, _y, _p)
+                             for _x, _y, _p in zip(x, y, p)])
+            new_y = np.empty(y.shape[:-1] + (y.shape[-1]+len(self.analytic_exprs),))
+            analyt_y = self.analytic_cb(x, y, p)
+            for idx in range(self._ori_sys.ny):
+                if idx in self.ori_analyt_idx_map:
+                    new_y[..., idx] = analyt_y[..., self.ori_analyt_idx_map[idx]]
+                else:
+                    new_y[..., idx] = y[..., self.ori_remaining_idx_map[idx]]
+            return x, new_y, p[:-(1+self._ori_sys.ny)]
+
+        new_kw['pre_processors'] = self._ori_sys.pre_processors
+        new_kw['post_processors'] = [partially_solved_post_processor] + self._ori_sys.post_processors
+        new_kw['early_pre_processors'] = self._ori_sys.early_pre_processors + [partially_solved_pre_processor]
+
         super(PartiallySolvedSystem, self).__init__(
             zip(new_dep, new_exprs), self._ori_sys.indep, new_params,
             backend=_be, roots=new_roots, **new_kw)
-
-    def pre_process(self, xout, y0, params=()):
-        _xout, _y0, _params = self._ori_sys.pre_process(xout, y0, params)
-        if _y0.ndim == 2:
-            return zip(*[self.pre_process(_x, _y, _p) for _x, _y, _p in zip(_xout, _y0, _params)])
-        return _xout, _skip(self.ori_analyt_idx_map, _y0), _append(_params, [_xout[0]], _y0)
-
-    def post_process(self, xout, yout, params):
-        """ Transforms internal values to output, used internally. """
-        try:
-            yout[0][0, 0]
-        except:
-            pass
-        else:
-            return zip(*[self.post_process(_x, _y, _p)
-                         for _x, _y, _p in zip(xout, yout, params)])
-        new_y = np.empty(yout.shape[:-1] + (yout.shape[-1]+len(self.analytic_exprs),))
-        analyt_y = self.analytic_cb(xout, yout, params)
-        for idx in range(self._ori_sys.ny):
-            if idx in self.ori_analyt_idx_map:
-                new_y[..., idx] = analyt_y[..., self.ori_analyt_idx_map[idx]]
-            else:
-                new_y[..., idx] = yout[..., self.ori_remaining_idx_map[idx]]
-        return self._ori_sys.post_process(xout, new_y, params[:-(1+self._ori_sys.ny)])
 
     @classmethod
     def from_linear_invariants(cls, ori_sys, preferred=None, **kwargs):
@@ -1024,9 +1046,13 @@ def get_logexp(a=1, b=0, a2=None, b2=None, backend=None):
     Parameters
     ----------
     a : number
-        Scaling.
+        Scaling (forward).
     b : number
-        Shift.
+        Shift (forward).
+    a2 : number
+        Scaling (backward).
+    b2 : number
+        Shift (backward).
 
     Returns
     -------
@@ -1040,4 +1066,4 @@ def get_logexp(a=1, b=0, a2=None, b2=None, backend=None):
     if backend is None:
         import sympy as backend
     return (lambda x: backend.log(a*x + b),
-            lambda x: (backend.exp(x) - b)/a)
+            lambda x: (backend.exp(x) - b2)/a2)
