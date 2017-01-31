@@ -56,10 +56,10 @@ class ODESys(object):
     first_step_cb : callback
         Signature ``step1st(x, y[:], p[:]) -> dx0`` (pass first_step==0 to use).
         This is available for ``cvode``, ``odeint`` & ``gsl``, but not for ``scipy``.
-    roots : callback
-        Signature ``roots(x, y[:], p[:]=(), backend=math) -> discr[:]``.
+    roots_cb : callback
+        Signature ``roots_cb(x, y[:], p[:]=(), backend=math) -> discr[:]``.
     nroots : int
-        Length of return vector from ``roots``.
+        Length of return vector from ``roots_cb``.
     band : tuple of 2 integers or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
     names : iterable of strings (default : None)
@@ -110,7 +110,6 @@ class ODESys(object):
     latex_param_names : iterable of str
     pre_processors : iterable of callbacks
     post_processors : iterable of callbacks
-    early_pre_processors : iterable of callbacks
     append_iv : bool
     autonomous_interface : bool or None
         Indicates whether the system appears autonomous upon call to
@@ -133,8 +132,7 @@ class ODESys(object):
     def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
                  band=None, names=None, param_names=None, description=None, dep_by_name=False,
                  par_by_name=False, latex_names=None, latex_param_names=None, pre_processors=None,
-                 post_processors=None, append_iv=False, early_pre_processors=None,
-                 autonomous_interface=None, **kwargs):
+                 post_processors=None, append_iv=False, autonomous_interface=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -154,7 +152,6 @@ class ODESys(object):
         self.latex_param_names = latex_param_names
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
-        self.early_pre_processors = early_pre_processors or []  # for e.g. dedimensionalization
         self.append_iv = append_iv
         if hasattr(self, 'autonomous_interface'):
             if autonomous_interface is not None and autonomous_interface != self.autonomous_interface:
@@ -186,13 +183,8 @@ class ODESys(object):
                 out[:, idx] = v
             return out, False
 
-    def pre_process(self, xout, y0, params=(), early_pre_processors=None):
+    def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
-        if early_pre_processors is None:
-            early_pre_processors = self.early_pre_processors
-        for pre_processor in early_pre_processors:
-            xout, y0, params = pre_processor(xout, y0, params)
-
         if self.dep_by_name and isinstance(y0, dict):
             y0, tp_y0 = self._array_from_dict(y0, self.names)
         else:

@@ -198,14 +198,12 @@ class SymbolicSys(ODESys):
         return self.dep[self.names.index(key)]
 
     def pre_process(self, xout, y0, params=()):
-        for pre_processor in self.early_pre_processors:
-            xout, y0, params = pre_processor(xout, y0, params)
         if isinstance(y0, dict) and not self.dep_by_name:
             y0 = [y0[symb] for symb in self.dep]  # assume "dep by symbol"
         if isinstance(params, dict) and (
                 not self.par_by_name or (self.param_names is None or len(self.param_names) == 0)):
             params = [params[symb] for symb in self.params]  # assume "par by symbol"
-        return super(SymbolicSys, self).pre_process(xout, y0, params, early_pre_processors=[])
+        return super(SymbolicSys, self).pre_process(xout, y0, params)
 
     @classmethod
     def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None,
@@ -222,13 +220,13 @@ class SymbolicSys(ODESys):
             Length of ``p`` in ``rhs``.
         first_step_factory : callabble
             Signature ``step1st(x, y[:], p[:]) -> dx0``.
+        roots_cb : callable
+            Callback with signature ``roots(x, y[:], p[:], backend=math) -> r[:]``.
         dep_by_name : bool
             Make ``y`` passed to ``rhs`` a dict (keys from :attr:`names`) and convert
             its return value from dict to array.
         par_by_name : bool
             Make ``p`` passed to ``rhs`` a dict (keys from :attr:`param_names`).
-        roots_cb : callable
-            Callback with signature ``roots(x, y[:], p[:], backend=math) -> r[:]``.
         \*\*kwargs :
             Keyword arguments passed onto :class:`SymbolicSys`.
 
@@ -291,9 +289,7 @@ class SymbolicSys(ODESys):
 
     @classmethod
     def from_other(cls, ori, **kwargs):  # provisional
-        if ori.roots is not None:
-            raise NotImplementedError('roots currently unsupported')
-        for k in cls._attrs_to_copy + ('params',):
+        for k in cls._attrs_to_copy + ('params', 'roots'):
             if k not in kwargs:
                 val = getattr(ori, k)
                 if val is not None:
@@ -312,12 +308,6 @@ class SymbolicSys(ODESys):
             if 'post_processors' not in kwargs:
                 kwargs['post_processors'] = []
             kwargs['post_processors'] = ori.post_processors + kwargs['post_processors']
-
-        if len(ori.early_pre_processors) > 0:
-            if 'early_pre_processors' not in kwargs:
-                kwargs['early_pre_processors'] = []
-            kwargs['early_pre_processors'] = kwargs['early_pre_processors'] + ori.early_pre_processors
-
 
         instance = cls(zip(ori.dep, ori.exprs), ori.indep, **kwargs)
         for attr in ori._attrs_to_copy:
@@ -861,8 +851,8 @@ class PartiallySolvedSystem(SymbolicSys):
         self.init_dep = [_Dummy('init_%s' % (idx if self._ori_sys.names is None else self._ori_sys.names[idx]))
                          for idx in range(self._ori_sys.ny)]
 
-        if 'early_pre_processors' in kwargs or 'post_processors' in kwargs:
-            raise NotImplementedError("Cannot override early_pre-/postprocessors")
+        if 'pre_processors' in kwargs or 'post_processors' in kwargs:
+            raise NotImplementedError("Cannot override pre-/postprocessors")
         if 'backend' in kwargs and Backend(kwargs['backend']) != _be:
             raise ValueError("Cannot mix backends.")
         _pars = self._ori_sys.params
@@ -909,20 +899,14 @@ class PartiallySolvedSystem(SymbolicSys):
             new_kw['upper_bounds'] = _skip(self.ori_analyt_idx_map, self._ori_sys.upper_bounds)
 
         def partially_solved_pre_processor(x, y, p):
-            print(y)#DO-NOT-MERGE!
             if isinstance(y, dict) and not self.dep_by_name:
                 y = [y[k] for k in self._ori_sys.dep]
-            print(y)#DO-NOT-MERGE!
             if isinstance(p, dict) and not self.par_by_name:
                 p = [p[k] for k in self._ori_sys.params]
             x, y, p = map(np.atleast_1d, (x, y, p))
             if y.ndim == 2:
                 return zip(*[partially_solved_pre_processor(_x, _y, _p)
                              for _x, _y, _p in zip(x, y, p)])
-
-            print("self.ori_analyt_idx_map=", self.ori_analyt_idx_map)#DO-NOT-MERGE!
-            print("y=", y)#DO-NOT-MERGE!
-            print("_skip(self.ori_analyt_idx_map, y)=", _skip(self.ori_analyt_idx_map, y))#DO-NOT-MERGE!
             return (x, _skip(self.ori_analyt_idx_map, y), _append(p, [x[0]], y))
 
         def partially_solved_post_processor(x, y, p):
@@ -942,9 +926,8 @@ class PartiallySolvedSystem(SymbolicSys):
                     new_y[..., idx] = y[..., self.ori_remaining_idx_map[idx]]
             return x, new_y, p[:-(1+self._ori_sys.ny)]
 
-        new_kw['pre_processors'] = self._ori_sys.pre_processors
+        new_kw['pre_processors'] = self._ori_sys.pre_processors + [partially_solved_pre_processor]
         new_kw['post_processors'] = [partially_solved_post_processor] + self._ori_sys.post_processors
-        new_kw['early_pre_processors'] = self._ori_sys.early_pre_processors + [partially_solved_pre_processor]
 
         super(PartiallySolvedSystem, self).__init__(
             zip(new_dep, new_exprs), self._ori_sys.indep, new_params,

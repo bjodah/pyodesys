@@ -51,7 +51,7 @@ def test_SymbolicSys():
                                                              'bar': y['foo']}, 2,
                                         names=['foo', 'bar'], dep_by_name=True)
     for system, y0 in zip([odesys, odesys2], [[2, 3], {'foo': 2, 'bar': 3}]):
-        xout, yout, info = system.integrate(1, y0, integrator=RK4_example_integartor, dx0=1e-3)
+        xout, yout, info = system.integrate(1, y0, integrator=RK4_example_integartor, first_step=1e-3)
         assert np.allclose(yout[:, 0], 2*np.exp(-xout))
         assert np.allclose(yout[:, 1], 3 + 2*(1 - np.exp(-xout)))
 
@@ -163,7 +163,7 @@ def test_ScaledSysByName(nbody):
     foo0 = 2
     for system, y0 in zip([odesys, odesys2], [[foo0, 3], {'foo': foo0, 'bar': 3}]):
         xout, yout, info = system.integrate(1, y0, [k], integrator='cvode', nsteps=707*1.01,
-                                            dx0=1e-3, atol=1e-10, rtol=1e-10)
+                                            first_step=1e-3, atol=1e-10, rtol=1e-10)
         _r = (1/(foo0**(1-nbody) + nbody*k*xout*(nbody-1)))**(1/(nbody-1))
         assert np.allclose(yout[:, 0], _r, atol=1e-9, rtol=1e-9)
         assert np.allclose(yout[:, 1], 3 + 2 - _r, atol=1e-9, rtol=1e-9)
@@ -1023,7 +1023,7 @@ def test_SymbolicSys__roots():
     def roots(t, y, p, backend):
         return [y[0] - backend.exp(1)]
     odesys = SymbolicSys.from_callback(f, 1, roots_cb=roots)
-    kwargs = dict(dx0=1e-12, atol=1e-12, rtol=1e-12, method='adams', integrator='cvode')
+    kwargs = dict(first_step=1e-12, atol=1e-12, rtol=1e-12, method='adams', integrator='cvode')
     xout, yout, info = odesys.integrate(2, [1], **kwargs)
     assert len(info['root_indices']) == 1
     assert np.min(np.abs(xout - 1)) < 1e-11
@@ -1140,19 +1140,19 @@ def test_SymbolicSys__indep_in_exprs():
 
 
 @requires('sym', 'pycvodes')
-def test_PartiallySolvedSystem__roots():
+@pytest.mark.parametrize('idx', [0, 1, 2])
+def test_PartiallySolvedSystem__roots(idx):
     t, x, y, z, p, q = sp.symbols('t x y z, p, q')
-    systems = [SymbolicSys({x: -p*x, y: p*x - q*y, z: q*y}, t, params=(p, q), roots=roots)
-               for roots in ([x - y], [x - z], [y - z])]
+    odesys = SymbolicSys({x: -p*x, y: p*x - q*y, z: q*y}, t, params=(p, q), roots=([x - y], [x - z], [y - z])[idx])
     _p, _q, tend = 7, 3, 0.7
+    dep0 = {x: 1, y: 0, z: 0}
     ref = [0.11299628093544488, 0.20674119231833346, 0.3541828705348678]  # see .ipynb
 
-    def check(odesys, idx):
-        res = odesys.integrate(tend, {x: 1, y: 0, z: 0}, (_p, _q),
+    def check(odesys):
+        res = odesys.integrate(tend, [dep0[k] for k in getattr(odesys, 'original_dep', odesys.dep)], (_p, _q),
                                integrator='cvode', return_on_root=True)
         assert abs(res.xout[-1] - ref[idx]) < 1e-7
 
-    for idx, odesys in enumerate(systems):
-        check(odesys, idx)
-        psys = PartiallySolvedSystem(odesys, lambda t0, (x0, y0, z0), par0: {x: x0*sp.exp(-p*(t-t0))})
-        check(psys, idx)
+    check(odesys)
+    psys = PartiallySolvedSystem(odesys, lambda t0, xyz, par0: {x: xyz[odesys.dep.index(x)]*sp.exp(-p*(t-t0))})
+    check(psys)

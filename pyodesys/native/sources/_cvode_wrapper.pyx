@@ -48,7 +48,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        dx_max=None,
                        long int mxsteps=0,
                        str iter_type='undecided', int linear_solver=0, str method='BDF',
-                       bool with_jacobian=True, int autorestart=0, bool return_on_error=False,
+                       bool with_jacobian=True, bool return_on_root=False,
+                       int autorestart=0, bool return_on_error=False,
                        bool record_rhs_xvals=False, bool record_jac_xvals=False,
                        bool record_order=False, bool record_fpe=False,
                        double get_dx_max_factor=-1.0, bool error_outside_bounds=False):
@@ -62,7 +63,6 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         int maxl=0
         double eps_lin=0.0
         unsigned nderiv=0,
-        bool return_on_root=False
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max

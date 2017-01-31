@@ -179,6 +179,8 @@ AnyODE::Status OdeSys::roots(double x, const double * const y, double * const ou
     AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
     return AnyODE::Status::success;
 % else:
+    ${'' if any(p_odesys.indep in expr.free_symbols for expr in p_odesys.roots) else 'AnyODE::ignore(x);'}
+
   % for cse_token, cse_expr in p_roots['cses']:
     const auto ${cse_token} = ${cse_expr};
   % endfor
