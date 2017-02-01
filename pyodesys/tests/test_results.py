@@ -6,6 +6,7 @@ import math
 import numpy as np
 
 from .. import ODESys
+from ..util import requires
 from .test_core import sine, sine_jac
 
 
@@ -23,9 +24,11 @@ def _test_sine(use_deriv, atol=1e-8, rtol=1e-8, forgive=1e4):
     assert np.allclose(ref, est, atol=atol*forgive, rtol=rtol*forgive)
 
 
+@requires('scipy')
 def test_Result_at():
     _test_sine(use_deriv=False)
 
 
+@requires('scipy')
 def test_Result_at__use_deriv():
     _test_sine(use_deriv=True)

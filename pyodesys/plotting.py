@@ -7,12 +7,12 @@ from math import log
 import numpy as np
 
 
-def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None, ax=None,
+def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None, ax=None,
                 ls=('-', '--', ':', '-.'),
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
-                names=None, latex_names=None, post_processors=(), xlabel=None, ylabel=None,
+                names=None, latex_names=None, xlabel=None, ylabel=None,
                 xscale=None, yscale=None):
     """
     Plot the depepndent variables vs. the independent variable
@@ -26,8 +26,6 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None, a
         ``y.shape[0] == len(x)``, plot_results will draw
         ``y.shape[1]`` lines. If ``interpolate != None``
         y is expected two be three dimensional, otherwise two dimensional.
-    params : array_like
-        Parameters used.
     indices : iterable of integers
         What indices to plot (default: None => all).
     plot : callback (default: None)
@@ -54,7 +52,6 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None, a
         if True => 20. negative integer signifies log-spaced grid.
     interp_from_deriv : callback (default: None)
         When ``None``: ``scipy.interpolate.BPoly.from_derivatives``
-    post_processors : iterable of callback (default: tuple())
 
     """
     import matplotlib.pyplot as plt
@@ -85,31 +82,29 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None, a
     else:
         plot_kwargs_cb = plot_kwargs_cb or (lambda idx: {})
 
-    def post_process(x, y, p):
-        for post_processor in post_processors:
-            x, y, p = post_processor(x, y, p)
-        return x, y, p
-
     if interpolate is None:
         interpolate = y.ndim == 3 and y.shape[1] > 1
 
-    x_post, y_post, params_post = post_process(x, y[:, 0, :] if interpolate and
-                                               y.ndim == 3 else y, params)
+    if interpolate and y.ndim == 3:
+        _y = y[:, 0, :]
+    else:
+        _y = y
+
     if indices is None:
-        indices = range(y_post.shape[-1])  # e.g. PartiallySolvedSys
+        indices = range(_y.shape[-1])  # e.g. PartiallySolvedSys
     if lines is None:
         lines = interpolate in (None, False)
     markers = len(x) < m_lim
     for idx in indices:
-        plot(x_post, y_post[:, idx], **plot_kwargs_cb(
+        plot(x, _y[:, idx], **plot_kwargs_cb(
             idx, lines=lines, labels=latex_names or names))
         if markers:
-            plot(x_post, y_post[:, idx], **plot_kwargs_cb(
+            plot(x, _y[:, idx], **plot_kwargs_cb(
                 idx, lines=False, markers=markers, labels=latex_names or names))
 
     if xlabel is None:
         try:
-            plt.xlabel(x_post.dimensionality.latex)
+            plt.xlabel(x.dimensionality.latex)
         except AttributeError:
             pass
     else:
@@ -117,7 +112,7 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None, a
 
     if ylabel is None:
         try:
-            plt.ylabel(y_post.dimensionality.latex)
+            plt.ylabel(_y.dimensionality.latex)
         except AttributeError:
             pass
     else:
@@ -144,26 +139,23 @@ def plot_result(x, y, params=(), indices=None, plot=None, plot_kwargs_cb=None, a
             import scipy.interpolate
             interp_from_deriv = scipy.interpolate.BPoly.from_derivatives
 
-        y2 = np.empty((x_plot.size, y.shape[-1]))
-        for idx in range(y.shape[-1]):
+        y2 = np.empty((x_plot.size, _y.shape[-1]))
+        for idx in range(_y.shape[-1]):
             interp_cb = interp_from_deriv(x, y[..., idx])
             y2[:, idx] = interp_cb(x_plot)
 
-        x_post2, y_post2, params2 = post_process(x_plot, y2, params)
         for idx in indices:
-            plot(x_post2, y_post2[:, idx], **plot_kwargs_cb(
+            plot(x_plot, y2[:, idx], **plot_kwargs_cb(
                 idx, lines=True, markers=False))
-        return x_post2, y_post2
+        return x_plot, y2
 
     if xscale is not None:
         (ax or plt.gca()).set_xscale(xscale)
     if yscale is not None:
         (ax or plt.gca()).set_yscale(yscale)
-    return x_post, y_post
 
 
-def plot_phase_plane(x, y, params=(), indices=None, post_processors=(),
-                     plot=None, names=None, **kwargs):
+def plot_phase_plane(x, y, indices=None, plot=None, names=None, **kwargs):
     """ Plot the phase portrait of two dependent variables
 
     Parameters
@@ -172,12 +164,8 @@ def plot_phase_plane(x, y, params=(), indices=None, post_processors=(),
         Values of the independent variable.
     y: array_like
         Values of the dependent variables.
-    params: array_like
-        Parameters.
     indices: pair of integers (default: None)
         What dependent variable to plot for (None => (0, 1)).
-    post_processors: iterable of callbles
-        See :class:`ODESystem`.
     plot: callable (default: None)
         Uses ``matplotlib.pyplot.plot`` if ``None``
     names: iterable of strings
@@ -197,9 +185,6 @@ def plot_phase_plane(x, y, params=(), indices=None, post_processors=(),
         if names is not None:
             plt.xlabel(names[indices[0]])
             plt.ylabel(names[indices[1]])
-
-    for post_processor in post_processors:
-        x, y, params = post_processor(x, y, params)
 
     plot(y[:, indices[0]], y[:, indices[1]], **kwargs)
 
@@ -228,11 +213,14 @@ def info_vlines(ax, xout, info, vline_colors=('maroon', 'purple'), vline_keys=(
             vlines = xout[info['fpes'] & fpes[key.upper()] > 0]
         else:
             vlines = info[key] if post_proc is None else post_proc(info[key])
+
         if alpha is None:
             alpha = 0.01 + 1/log(len(vlines)+3)
+
         if every is None:
             ln_np1 = log(len(vlines)+1)
             every = min(round((ln_np1 - 4)/log(2)), 1)
+
         ax.vlines(vlines[::every], idx/nvk + 0.002, (idx+1)/nvk - 0.002, colors=vline_colors[idx % len(vline_colors)],
                   alpha=alpha, transform=ax.get_xaxis_transform())
     right_hand_ylabels(ax, [k[3] if k.startswith('fe_') else k[0] for k in vline_keys])

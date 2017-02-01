@@ -622,8 +622,12 @@ class ODESys(object):
         if 'x' in kwargs or 'y' in kwargs or 'params' in kwargs:
             raise ValueError("x and y from internal_xout and internal_yout")
 
-        if 'post_processors' not in kwargs:
-            kwargs['post_processors'] = self.post_processors
+        _internal = getattr(self, '_internal', [None]*3)
+        x, y, p = (_default(internal_xout, _internal[0]),
+                   _default(internal_yout, _internal[1]),
+                   _default(internal_params, _internal[2]))
+        for post_processor in self.post_processors:
+            x, y, p = post_processor(x, y, p)
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
@@ -631,10 +635,7 @@ class ODESys(object):
             if 'indices' not in kwargs and getattr(self, 'names', None) is not None:
                 kwargs['indices'] = [self.names.index(n) for n in kwargs['names']]
                 kwargs['names'] = self.names
-        _internal = getattr(self, '_internal', [None]*3)
-        return cb(_default(internal_xout, _internal[0]),
-                  _default(internal_yout, _internal[1]),
-                  _default(internal_params, _internal[2]), **kwargs)
+        return cb(x, y, **kwargs)
 
     def plot_result(self, **kwargs):
         """ Plots the integrated dependent variables from last integration.

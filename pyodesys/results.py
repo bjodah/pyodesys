@@ -128,13 +128,11 @@ class Result(object):
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
 
-    def _plot(self, cb, internal_xout=None, internal_yout=None, internal_params=None, **kwargs):
-        kwargs = kwargs.copy()
-        if 'x' in kwargs or 'y' in kwargs or 'params' in kwargs:
-            raise ValueError("x and y from internal_xout and internal_yout")
-
-        if 'post_processors' not in kwargs:
-            kwargs['post_processors'] = self.odesys.post_processors
+    def _plot(self, cb, x=None, y=None, **kwargs):
+        if x is None:
+            x = self.xout
+        if y is None:
+            y = self.yout
 
         if 'names' in kwargs:
             if 'indices' not in kwargs and getattr(self.odesys, 'names', None) is not None:
@@ -148,9 +146,7 @@ class Result(object):
             if _latex_names is not None and not all(ln is None for ln in _latex_names):
                 kwargs['latex_names'] = _latex_names
 
-        return cb(self._internal('xout', internal_xout),
-                  self._internal('yout', internal_yout),
-                  self._internal('params', internal_params), **kwargs)
+        return cb(x, y, **kwargs)
 
     def plot(self, info_vlines_kw=None, between=None, **kwargs):
         """ Plots the integrated dependent variables from last integration.
@@ -167,10 +163,9 @@ class Result(object):
             See :func:`pyodesys.plotting.plot_result`
         """
         if between is not None:
-            if 'internal_xout' in kwargs or 'internal_yout' in kwargs:
-                raise ValueError("internal_xout/internal_yout & between given.")
-            kwargs['internal_xout'], kwargs['internal_yout'] = self.between(
-                *between, xdata=self._internal('xout'), ydata=self._internal('yout'))
+            if 'x' in kwargs or 'y' in kwargs:
+                raise ValueError("x/y & between given.")
+            kwargs['x'], kwargs['y'] = self.between(*between)
         if info_vlines_kw is not None:
             if info_vlines_kw is True:
                 info_vlines_kw = {}
@@ -194,6 +189,6 @@ class Result(object):
 
     def plot_invariant_violations(self):
         invar = self.odesys.get_invariants_callback()
-        abs_viol = invar(self._internal('xout'), self._internal('yout'), self._internal('params'))
+        abs_viol = invar(self.xout, self.yout, self.params)
         invar_names = self.odesys.all_invariant_names()
-        return self._plot(plot_result, internal_yout=abs_viol, names=invar_names)
+        return self._plot(plot_result, y=abs_viol, names=invar_names)
