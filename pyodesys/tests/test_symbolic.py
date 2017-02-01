@@ -3,6 +3,7 @@
 from __future__ import print_function, absolute_import, division
 
 from collections import defaultdict
+from itertools import product
 import math
 
 import numpy as np
@@ -1146,7 +1147,8 @@ def test_PartiallySolvedSystem__roots(idx):
     odesys = SymbolicSys({x: -p*x, y: p*x - q*y, z: q*y}, t, params=(p, q), roots=([x - y], [x - z], [y - z])[idx])
     _p, _q, tend = 7, 3, 0.7
     dep0 = {x: 1, y: 0, z: 0}
-    ref = [0.11299628093544488, 0.20674119231833346, 0.3541828705348678]  # see .ipynb
+    ref = [0.11299628093544488, 0.20674119231833346, 0.3541828705348678]  # determined in notebook:
+    # test_symbolic__test_PartiallySolvedSystem__roots.ipynb
 
     def check(odesys):
         res = odesys.integrate(tend, [dep0[k] for k in getattr(odesys, 'original_dep', odesys.dep)], (_p, _q),
@@ -1156,3 +1158,40 @@ def test_PartiallySolvedSystem__roots(idx):
     check(odesys)
     psys = PartiallySolvedSystem(odesys, lambda t0, xyz, par0: {x: xyz[odesys.dep.index(x)]*sp.exp(-p*(t-t0))})
     check(psys)
+
+
+@requires('sym', 'pycvodes')
+@pytest.mark.parametrize('idx,scaled', product([0, 1, 2], [True, False]))
+def test_TransformedSys__roots(idx, scaled):
+    def f(x, y, p):
+        return [-p[0]*y[0], p[0]*y[0] - p[1]*y[1], p[1]*y[1]]
+
+    def roots(x, y):
+        return ([y[0] - 2*y[1]], [y[0] - 2*y[2]], [2*y[1] - y[2]])[idx]
+
+    if scaled:
+        orisys = SymbolicSys.from_callback(f, 3, 2, roots_cb=roots)
+    else:
+        orisys = ScaledSys.from_callback(f, 3, 2, roots_cb=roots, dep_scaling=42)
+    _p, _q, tend = 7, 3, 0.7
+    dep0 = (1, 0, 0)
+    ref = [0.06282860706989794, 0.16048612750646923, 0.5167041888895678]  # determined in notebook:
+    # test_symbolic__test_PartiallySolvedSystem__roots.ipynb
+
+    def check(odesys):
+        res = odesys.integrate(tend, dep0, (_p, _q),
+                               integrator='cvode', return_on_root=True)
+        assert abs(res.xout[-1] - ref[idx]) < 3e-7
+
+    check(orisys)
+
+    logexp = get_logexp(1, 1e-20, b2=0)
+    LogLogSys = symmetricsys(logexp, logexp, check_transforms=False)
+    loglog = LogLogSys.from_other(orisys)
+    check(loglog)
+
+    psys = PartiallySolvedSystem(orisys, lambda t0, xyz, par0, be: {
+        orisys.dep[0]: xyz[0]*be.exp(-par0[0]*(orisys.indep-t0))})
+    check(psys)
+    ploglog = LogLogSys.from_other(psys)
+    check(ploglog)

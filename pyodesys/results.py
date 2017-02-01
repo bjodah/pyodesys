@@ -192,3 +192,17 @@ class Result(object):
         abs_viol = invar(self.xout, self.yout, self.params)
         invar_names = self.odesys.all_invariant_names()
         return self._plot(plot_result, y=abs_viol, names=invar_names)
+
+    def extend_by_integration(self, xend, params=None, odesys=None, **kwargs):
+        odesys = odesys or self.odesys
+        x0 = self.xout[-1] if odesys.autonomous_interface else 0
+        res = odesys.integrate([x0, xend - x0], self.yout[..., -1, :],
+                               params or self.params, **kwargs)
+        self.xout = np.concatenate((self.xout, res.xout[1:] + x0))
+        self.yout = np.concatenate((self.yout, res.yout[..., 1:, :]))
+        new_info = {k: v for k, v in self.info.items() if not k.startsiwth('internal')}
+        for k, v in res:
+            if k.startswith('internal'):
+                continue
+            new_info[k] += v
+        self.info = new_info

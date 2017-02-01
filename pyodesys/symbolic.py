@@ -205,6 +205,19 @@ class SymbolicSys(ODESys):
             params = [params[symb] for symb in self.params]  # assume "par by symbol"
         return super(SymbolicSys, self).pre_process(xout, y0, params)
 
+    @staticmethod
+    def _kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be):
+        if roots_cb is not None:
+            if 'roots' in kwargs:
+                raise ValueError("Keyword argument ``roots`` already given.")
+
+            try:
+                roots = roots_cb(x, _y, _p, be)
+            except TypeError:
+                roots = _ensure_4args(roots_cb)(x, _y, _p, be)
+
+            kwargs['roots'] = roots
+
     @classmethod
     def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None,
                       roots_cb=None, **kwargs):
@@ -265,16 +278,7 @@ class SymbolicSys(ODESys):
         except TypeError:
             raise ValueError("Callback did not return an array_like of expressions: %s" % str(exprs))
 
-        if roots_cb is not None:
-            if 'roots' in kwargs:
-                raise ValueError("Keyword argument ``roots`` already given.")
-
-            try:
-                roots = roots_cb(x, _y, _p, be)
-            except TypeError:
-                roots = _ensure_4args(roots_cb)(x, _y, _p, be)
-
-            kwargs['roots'] = roots
+        cls._kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be)
 
         if first_step_factory is not None:
             if 'first_step_exprs' in kwargs:
@@ -506,10 +510,15 @@ class TransformedSys(SymbolicSys):
         if kwargs.get('nonlinear_invariants', None) is not None:
             raise NotImplementedError("support for non-linear invariants not yet implemented.")
         dep, exprs = zip(*dep_exprs)
+        roots = kwargs.pop('roots', None)
+
         if dep_transf is not None:
             self.dep_fw, self.dep_bw = zip(*dep_transf)
             exprs = transform_exprs_dep(
                 self.dep_fw, self.dep_bw, list(zip(dep, exprs)), check_transforms)
+            if roots is not None:
+                bw_subs = list(zip(dep, self.dep_bw))
+                roots = [r.subs(bw_subs)for r in roots]
         else:
             self.dep_fw, self.dep_bw = None, None
 
@@ -517,6 +526,8 @@ class TransformedSys(SymbolicSys):
             self.indep_fw, self.indep_bw = indep_transf
             exprs = transform_exprs_indep(
                 self.indep_fw, self.indep_bw, list(zip(dep, exprs)), indep, check_transforms)
+            if roots is not None:
+                roots = [r.subs(indep, self.indep_bw) for r in roots]
         else:
             self.indep_fw, self.indep_bw = None, None
 
@@ -526,7 +537,7 @@ class TransformedSys(SymbolicSys):
         pre_processors = kwargs.pop('pre_processors', [])
         post_processors = kwargs.pop('post_processors', [])
         super(TransformedSys, self).__init__(
-            zip(dep, exprs), indep, params,
+            zip(dep, exprs), indep, params, roots=roots,
             pre_processors=pre_processors + [self._forward_transform_xy],
             post_processors=[self._back_transform_out] + post_processors,
             **kwargs)
@@ -538,7 +549,7 @@ class TransformedSys(SymbolicSys):
 
     @classmethod
     def from_callback(cls, cb, ny=None, nparams=None, dep_transf_cbs=None,
-                      indep_transf_cbs=None, **kwargs):
+                      indep_transf_cbs=None, roots_cb=None, **kwargs):
         """
         Create an instance from a callback.
 
@@ -556,6 +567,9 @@ class TransformedSys(SymbolicSys):
             callables should have the signature ``f(yi) -> expression`` in yi
         indep_transf_cbs : pair of callbacks
             callables should have the signature ``f(x) -> expression`` in x
+        roots_cb : callable
+            Callback with signature ``roots(x, y[:], p[:], backend=math) -> r[:]``.
+            Callback should return untransformed roots.
         \*\*kwargs :
             Keyword arguments passed onto :class:`TransformedSys`.
 
@@ -580,6 +594,9 @@ class TransformedSys(SymbolicSys):
             indep_transf = None
         if kwargs.get('dep_by_name', False):
             exprs = [exprs[k] for k in kwargs['names']]
+
+        cls._kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be)
+
         return cls(list(zip(y, exprs)), x, dep_transf,
                    indep_transf, p, backend=be, **kwargs)
 
