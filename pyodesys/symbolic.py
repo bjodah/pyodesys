@@ -720,11 +720,11 @@ class ScaledSys(TransformedSys):
     >>> from sympy import Symbol
     >>> x = Symbol('x')
     >>> scaled1 = ScaledSys([(x, x*x)], dep_scaling=1000)
-    >>> scaled1.exprs
-    (x**2/1000,)
+    >>> scaled1.exprs == (x**2/1000,)
+    True
     >>> scaled2 = ScaledSys([(x, x**3)], dep_scaling=1000)
-    >>> scaled2.exprs
-    (x**3/1000000,)
+    >>> scaled2.exprs == (x**3/1000000,)
+    True
 
     """
 
