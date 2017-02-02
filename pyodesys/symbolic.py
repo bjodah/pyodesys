@@ -186,6 +186,8 @@ class SymbolicSys(ODESys):
             self.get_roots_callback(),
             nroots=None if roots is None else len(roots),
             **kwargs)
+        if self.autonomous_interface is None:
+            self.autonomous_interface = self.autonomous_exprs
 
     def all_invariants(self):
         return (([] if self.linear_invariants is None else (self.linear_invariants * self.dep).tolist()) +
@@ -292,7 +294,7 @@ class SymbolicSys(ODESys):
         return cls(zip(y, exprs), x, None if len(p) == 0 else p, backend=be, **kwargs)
 
     @classmethod
-    def from_other(cls, ori, **kwargs):  # provisional
+    def from_other(cls, ori, **kwargs):
         for k in cls._attrs_to_copy + ('params', 'roots'):
             if k not in kwargs:
                 val = getattr(ori, k)
@@ -518,7 +520,7 @@ class TransformedSys(SymbolicSys):
                 self.dep_fw, self.dep_bw, list(zip(dep, exprs)), check_transforms)
             if roots is not None:
                 bw_subs = list(zip(dep, self.dep_bw))
-                roots = [r.subs(bw_subs)for r in roots]
+                roots = [r.subs(bw_subs) for r in roots]
         else:
             self.dep_fw, self.dep_bw = None, None
 
@@ -751,8 +753,6 @@ class ScaledSys(TransformedSys):
             indep_transf=(transf_indep_cbs[0](indep),
                           transf_indep_cbs[0](indep)) if indep is not None else None,
             **kwargs)
-        if self.autonomous_interface is None:
-            self.autonomous_interface = self.autonomous_exprs
 
     @classmethod
     def from_callback(cls, cb, ny=None, nparams=None, dep_scaling=1, indep_scaling=1,
@@ -786,15 +786,12 @@ class ScaledSys(TransformedSys):
         (p_0*y_0**2/10,)
 
         """
-        res = TransformedSys.from_callback(
+        return TransformedSys.from_callback(
             cb, ny, nparams,
             dep_transf_cbs=repeat(cls._scale_fw_bw(dep_scaling)),
             indep_transf_cbs=cls._scale_fw_bw(indep_scaling),
             **kwargs
         )
-        if res.autonomous_interface is None:
-            res.autonomous_interface = res.autonomous_exprs
-        return res
 
 
 def _skip(indices, iterable):

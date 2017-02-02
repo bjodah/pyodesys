@@ -18,6 +18,10 @@ class Result(object):
         self.info = info
         self.odesys = odesys
 
+    def copy(self):
+        return Result(self.xout.copy(), self.yout.copy(), self.params.copy(),
+                      self.info.copy(), self.odesys)
+
     def __len__(self):
         return 3
 
@@ -193,16 +197,31 @@ class Result(object):
         invar_names = self.odesys.all_invariant_names()
         return self._plot(plot_result, y=abs_viol, names=invar_names)
 
-    def extend_by_integration(self, xend, params=None, odesys=None, **kwargs):
+    def extend_by_integration(self, xend, params=None, odesys=None, autonomous=None, **kwargs):
         odesys = odesys or self.odesys
-        x0 = self.xout[-1] if odesys.autonomous_interface else 0
-        res = odesys.integrate([x0, xend - x0], self.yout[..., -1, :],
+        if autonomous is None:
+            autonomous = odesys.autonomous_interface
+        x0 = self.xout[-1]
+        nx0 = self.xout.size
+        res = odesys.integrate((xend - x0) if autonomous else (x0, xend), self.yout[..., -1, :],
                                params or self.params, **kwargs)
-        self.xout = np.concatenate((self.xout, res.xout[1:] + x0))
+        self.xout = np.concatenate((self.xout, res.xout[1:] + (x0 if autonomous else 0)))
         self.yout = np.concatenate((self.yout, res.yout[..., 1:, :]))
-        new_info = {k: v for k, v in self.info.items() if not k.startsiwth('internal')}
-        for k, v in res:
+        new_info = {k: v for k, v in self.info.items() if not k.startswith('internal')}
+        for k, v in res.info.items():
             if k.startswith('internal'):
                 continue
-            new_info[k] += v
+            elif k == 'success':
+                new_info[k] = new_info[k] and v
+            elif k.endswith('_xvals'):
+                new_info[k] = np.concatenate((new_info[k], v + (x0 if autonomous else 0)))
+            elif k.endswith('_indices'):
+                new_info[k].extend([itm + nx0 - 1 for itm in v])
+            elif isinstance(v, str):
+                if isinstance(new_info[k], str):
+                    new_info[k] = [new_info[k]]
+                new_info[k].append(v)
+            else:
+                new_info[k] += v
         self.info = new_info
+        return self

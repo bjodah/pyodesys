@@ -200,9 +200,25 @@ def right_hand_ylabels(ax, labels):
     ax2.set_yticklabels(labels)
 
 
-def info_vlines(ax, xout, info, vline_colors=('maroon', 'purple'), vline_keys=(
-        'steps', 'rhs_xvals', 'jac_xvals', 'fe_underflow', 'fe_overflow', 'fe_invalid', 'fe_divbyzero'),
+def info_vlines(ax, xout, info, vline_colors=('maroon', 'purple'),
+                vline_keys=('steps', 'rhs_xvals', 'jac_xvals'),
                 post_proc=None, alpha=None, fpes=None, every=None):
+    """ Plot vertical lines in the background
+
+    Parameters
+    ----------
+    ax : axes
+    xout : array_like
+    info : dict
+    vline_colors : iterable of str
+    vline_keys : iterable of str
+        Choose from ``'steps', 'rhs_xvals', 'jac_xvals',
+        'fe_underflow', 'fe_overflow', 'fe_invalid', 'fe_divbyzero'``.
+    vline_post_proc : callable
+    alpha : float
+
+    """
+
     nvk = len(vline_keys)
     for idx, key in enumerate(vline_keys):
         if key == 'steps':
