@@ -40,7 +40,7 @@ idty2 = (identity, identity)
 
 @requires('sym', 'scipy')
 def test_SymbolicSys():
-    from pyodesys.integrators import RK4_example_integartor
+    from pyodesys.integrators import RK4_example_integrator
     odesys = SymbolicSys.from_callback(lambda x, y, p, be: [-y[0], y[0]], 2,
                                        names=['foo', 'bar'])
     assert odesys.autonomous_interface is True
@@ -52,7 +52,7 @@ def test_SymbolicSys():
                                                              'bar': y['foo']}, 2,
                                         names=['foo', 'bar'], dep_by_name=True)
     for system, y0 in zip([odesys, odesys2], [[2, 3], {'foo': 2, 'bar': 3}]):
-        xout, yout, info = system.integrate(1, y0, integrator=RK4_example_integartor, first_step=1e-3)
+        xout, yout, info = system.integrate(1, y0, integrator=RK4_example_integrator, first_step=1e-3)
         assert np.allclose(yout[:, 0], 2*np.exp(-xout))
         assert np.allclose(yout[:, 1], 3 + 2*(1 - np.exp(-xout)))
 

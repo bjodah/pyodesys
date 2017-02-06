@@ -116,10 +116,10 @@ def test_pre_post_processors():
 
 
 def test_custom_module():
-    from pyodesys.integrators import RK4_example_integartor
+    from pyodesys.integrators import RK4_example_integrator
     odes = ODESys(vdp_f, vdp_j)
     xout, yout, info = odes.integrate(
-        [0, 2], [1, 0], params=[2.0], integrator=RK4_example_integartor,
+        [0, 2], [1, 0], params=[2.0], integrator=RK4_example_integrator,
         first_step=1e-2)
     # blessed values:
     assert np.allclose(yout[0], [1, 0])
@@ -128,7 +128,7 @@ def test_custom_module():
 
     xout, yout, info = odes.integrate(
         np.linspace(0, 2, 150), [1, 0], params=[2.0],
-        integrator=RK4_example_integartor)
+        integrator=RK4_example_integrator)
 
     assert np.allclose(yout[0], [1, 0])
     assert np.allclose(yout[-1], [-1.89021896, -0.71633577])
@@ -161,22 +161,22 @@ def _test_integrate_multiple_predefined(odes, **kwargs):
 
 
 @requires('scipy')
-def test_integarte_multiple_predefined__scipy():
+def test_integrate_multiple_predefined__scipy():
     _test_integrate_multiple_predefined(ODESys(decay), integrator='scipy', method='dopri5')
 
 
 @requires('pycvodes')
-def test_integarte_multiple_predefined__cvode():
+def test_integrate_multiple_predefined__cvode():
     _test_integrate_multiple_predefined(ODESys(decay), integrator='cvode', method='adams', atol=1e-9)
 
 
 @requires('pyodeint')
-def test_integarte_multiple_predefined__odeint():
+def test_integrate_multiple_predefined__odeint():
     _test_integrate_multiple_predefined(ODESys(decay), integrator='odeint', method='bulirsch_stoer', atol=1e-9)
 
 
 @requires('pygslodeiv2')
-def test_integarte_multiple_predefined__gsl():
+def test_integrate_multiple_predefined__gsl():
     _test_integrate_multiple_predefined(ODESys(decay), integrator='gsl', method='rkck')
 
 
@@ -251,25 +251,25 @@ def _test_integrate_multiple_adaptive(odes, **kwargs):
 
 
 @requires('scipy')
-def test_integarte_multiple_adaptive__scipy():
+def test_integrate_multiple_adaptive__scipy():
     _test_integrate_multiple_adaptive(ODESys(sine, sine_jac),
                                       integrator='scipy', method='bdf', name='vode', first_step=1e-9)
 
 
 @requires('pycvodes')
-def test_integarte_multiple_adaptive__pycvodes():
+def test_integrate_multiple_adaptive__pycvodes():
     _test_integrate_multiple_adaptive(ODESys(sine, sine_jac),
                                       integrator='cvode', method='bdf', nsteps=700)
 
 
 @requires('pyodeint')
-def test_integarte_multiple_adaptive__pyodeint():
+def test_integrate_multiple_adaptive__pyodeint():
     _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, sine_dfdt),
                                       integrator='odeint', method='rosenbrock4', nsteps=1000)
 
 
 @requires('pygslodeiv2')
-def test_integarte_multiple_adaptive__pygslodeiv2():
+def test_integrate_multiple_adaptive__pygslodeiv2():
     _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, sine_dfdt),
                                       integrator='gsl', method='bsimp')
 
