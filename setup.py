@@ -2,14 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import io
-import os
-import shutil
 from itertools import chain
+import os
+import re
+import shutil
+import subprocess
+import sys
+import warnings
 
 from setuptools import setup
 
 
 pkg_name = 'pyodesys'
+url = 'https://github.com/bjodah/' + pkg_name
+license = 'BSD'
 
 RELEASE_VERSION = os.environ.get('%s_RELEASE_VERSION' % pkg_name.upper(), '')  # v*
 
@@ -37,6 +43,17 @@ else:
     TAGGED_RELEASE = False
     # read __version__ attribute from _release.py:
     exec(open(release_py_path).read())
+    if __version__.endswith('git'):
+        try:
+            _git_version = subprocess.check_output(
+                ['git', 'describe', '--dirty']).rstrip().decode('utf-8').replace('-dirty', '.dirty')
+        except subprocess.CalledProcessError:
+            warnings.warn("A git-archive is being installed - version information incomplete.")
+        else:
+            if 'develop' not in sys.argv:
+                warnings.warn("Using git to derive version: dev-branches may compete.")
+                __version__ = re.sub('v([0-9.]+)-(\d+)-(\w+)', r'\1.post\2+\3', _git_version)  # .dev < '' < .post
+
 
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -57,13 +74,15 @@ tests = [
 
 with open(_path_under_setup(pkg_name, '__init__.py'), 'rt') as f:
     short_description = f.read().split('"""')[1].split('\n')[1]
-assert 10 < len(short_description) < 80
-long_description = io.open(_path_under_setup('README.rst'),
-                           encoding='utf-8').read()
-assert len(long_description) > 100
+if not 10 < len(short_description) < 255:
+    warnings.warn("Short description from __init__.py proably not read correctly")
+long_descr = io.open(_path_under_setup('README.rst'), encoding='utf-8').read()
+if not len(long_descr) > 100:
+    warnings.warn("Long description from README.rst probably not read correctly.")
+_author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().split('<')
 
 extras_req = {
-    'integrators': ['pyodeint>=0.7.0', 'pycvodes>=0.6.0', 'pygslodeiv2>=0.6.0'],
+    'integrators': ['scipy>=0.15.0', 'pyodeint>=0.7.0', 'pycvodes>0.6.0', 'pygslodeiv2>0.6.0'],
     'symbolic': ['sym', 'sympy'],
     'native': ['pycompilation>=0.4.3', 'pycodeexport>=0.1.1', 'appdirs'],
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
@@ -75,15 +94,15 @@ setup_kwargs = dict(
     name=pkg_name,
     version=__version__,
     description=short_description,
-    long_description=long_description,
+    long_descr=long_descr,
     classifiers=classifiers,
-    author='Björn Dahlgren',
-    author_email='bjodah@DELETEMEgmail.com',
-    url='https://github.com/bjodah/' + pkg_name,
-    license='BSD',
+    author=_author,
+    author_email=_author_email,
+    url=url,
+    license=license,
     packages=[pkg_name] + submodules + tests,
     include_package_data=True,
-    install_requires=['numpy', 'scipy'],
+    install_requires=['numpy'],
     extras_require=extras_req
 )
 

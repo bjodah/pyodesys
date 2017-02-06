@@ -2,12 +2,18 @@
 
 from __future__ import print_function, absolute_import, division
 
+from collections import defaultdict
+from itertools import product
 import math
 
 import numpy as np
-import sympy as sp
 import pytest
 import time
+
+try:
+    import sympy as sp
+except ImportError:
+    sp = None
 
 try:
     import sym
@@ -17,25 +23,44 @@ except ImportError:
 else:
     sym_backends = sym.Backend.backends.keys()
 
-from .. import OdeSys
-from ..symbolic import SymbolicSys
-from ..symbolic import ScaledSys, symmetricsys, PartiallySolvedSystem
+from .. import ODESys
+from ..core import integrate_chained
+from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem, get_logexp
+from ..util import requires
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
+from . import _cetsa
 
 
 def identity(x):
     return x
 
 idty2 = (identity, identity)
-logexp = (sp.log, sp.exp)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 def test_SymbolicSys():
-    odesys = SymbolicSys.from_callback(lambda x, y, p, be: [y[1], -y[0]], 2)
+    from pyodesys.integrators import RK4_example_integrator
+    odesys = SymbolicSys.from_callback(lambda x, y, p, be: [-y[0], y[0]], 2,
+                                       names=['foo', 'bar'])
+    assert odesys.autonomous_interface is True
+    assert isinstance(odesys.exprs, tuple)
     with pytest.raises(ValueError):
         odesys.integrate(1, [0])
+
+    odesys2 = SymbolicSys.from_callback(lambda x, y, p, be: {'foo': -y['foo'],
+                                                             'bar': y['foo']}, 2,
+                                        names=['foo', 'bar'], dep_by_name=True)
+    for system, y0 in zip([odesys, odesys2], [[2, 3], {'foo': 2, 'bar': 3}]):
+        xout, yout, info = system.integrate(1, y0, integrator=RK4_example_integrator, first_step=1e-3)
+        assert np.allclose(yout[:, 0], 2*np.exp(-xout))
+        assert np.allclose(yout[:, 1], 3 + 2*(1 - np.exp(-xout)))
+
+    with pytest.raises(ValueError):
+        SymbolicSys.from_callback(lambda x, y, p, be: None, 2, names=['foo', 'bar'])
+
+    with pytest.raises(ValueError):
+        SymbolicSys.from_callback(lambda x, y, p, be: [], 2, names=['foo', 'bar'])
 
 
 def decay_rhs(t, y, k):
@@ -49,41 +74,54 @@ def decay_rhs(t, y, k):
     return dydt
 
 
-def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1, **kwargs):
+def _test_TransformedSys(dep_tr, indep_tr, rtol, atol, first_step, forgive=1, y_zero=1e-20, t_zero=1e-12, **kwargs):
     k = [7., 3, 2]
     ts = symmetricsys(dep_tr, indep_tr).from_callback(
         decay_rhs, len(k)+1, len(k))
-    y0 = [1e-20]*(len(k)+1)
+    y0 = [y_zero]*(len(k)+1)
     y0[0] = 1
     xout, yout, info = ts.integrate(
-        [1e-12, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol,
+        [t_zero, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol,
         first_step=first_step, **kwargs)
     ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
-    np.set_printoptions(linewidth=240)
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym')
+def test_SymbolicSys__jacobian_singular():
+    k = (4, 3)
+    odesys = SymbolicSys.from_callback(decay_dydt_factory(k), len(k)+1)
+    assert odesys.jacobian_singular()
+
+
+@requires('sym', 'pycvodes')
 def test_TransformedSys_liny_linx():
     _test_TransformedSys(idty2, idty2, 1e-11, 1e-11, 0, 15)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 def test_TransformedSys_logy_logx():
-    _test_TransformedSys(logexp, logexp, 1e-7, 1e-7, 1e-4, 150, nsteps=800)
+    _test_TransformedSys(get_logexp(), get_logexp(), 1e-7, 1e-7, 1e-4, 150, nsteps=800)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'sympy')
+def test_TransformedSys_logy_logx_scaled_shifted():
+    em16 = (sp.S.One*10)**-16
+    _test_TransformedSys(get_logexp(42, em16), get_logexp(42, em16), 1e-7, 1e-7, 1e-4,
+                         150, y_zero=0, t_zero=0, nsteps=800)
+
+
+@requires('sym', 'pycvodes')
 def test_TransformedSys_logy_linx():
-    _test_TransformedSys(logexp, idty2, 1e-8, 1e-8, 0, 150, nsteps=1700)
+    _test_TransformedSys(get_logexp(), idty2, 1e-8, 1e-8, 0, 150, nsteps=1700)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 def test_TransformedSys_liny_logx():
-    _test_TransformedSys(idty2, logexp, 1e-9, 1e-9, 0, 150)
+    _test_TransformedSys(idty2, get_logexp(), 1e-9, 1e-9, 0, 150)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 def test_ScaledSys():
     k = k0, k1, k2 = [7., 3, 2]
     y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
@@ -103,7 +141,36 @@ def test_ScaledSys():
     assert np.allclose(yout, ref, rtol=2e-11, atol=2e-11)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy', 'pycvodes')
+@pytest.mark.parametrize('nbody', [2, 3, 4, 5])
+def test_ScaledSysByName(nbody):
+    sfact = nbody * 7
+    kwargs = dict(names=['foo', 'bar'], dep_scaling=sfact)
+
+    def nmerization(x, y, p):
+        return [-nbody*p[0]*y[0]**nbody, nbody*p[0]*y[0]**nbody]
+
+    odesys = ScaledSys.from_callback(nmerization, 2, 1, **kwargs)
+    assert odesys.autonomous_interface is True
+    with pytest.raises(TypeError):
+        odesys.integrate(1, [0])
+
+    def nmerization_name(x, y, p):
+        return {'foo': -nbody*p[0]*y['foo']**nbody, 'bar': nbody*p[0]*y['foo']**nbody}
+
+    odesys2 = ScaledSys.from_callback(nmerization_name, dep_by_name=True, nparams=1, **kwargs)
+    assert odesys2.autonomous_interface is True
+    k = 5
+    foo0 = 2
+    for system, y0 in zip([odesys, odesys2], [[foo0, 3], {'foo': foo0, 'bar': 3}]):
+        xout, yout, info = system.integrate(1, y0, [k], integrator='cvode', nsteps=707*1.01,
+                                            first_step=1e-3, atol=1e-10, rtol=1e-10)
+        _r = (1/(foo0**(1-nbody) + nbody*k*xout*(nbody-1)))**(1/(nbody-1))
+        assert np.allclose(yout[:, 0], _r, atol=1e-9, rtol=1e-9)
+        assert np.allclose(yout[:, 1], 3 + 2 - _r, atol=1e-9, rtol=1e-9)
+
+
+@requires('sym', 'scipy')
 def test_ScaledSys_from_callback():
     # this is actually a silly example since it is linear
     def f(t, x, k):
@@ -123,7 +190,7 @@ def test_ScaledSys_from_callback():
         odesys.integrate([1e-12, 1], [0]*len(k), k, integrator='scipy')
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 def test_ScaledSys_from_callback__exprs():
     def f(t, x, k):
         return [-k[0]*x[0]*x[0]*t]
@@ -144,7 +211,7 @@ def timeit(callback, *args, **kwargs):
     return time.clock() - t0, result
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pyodeint')
 @pytest.mark.parametrize('method', ['bs', 'rosenbrock4'])
 def test_exp(method):
     x = sp.Symbol('x')
@@ -162,14 +229,13 @@ def _test_mpmath():  # too slow
     x = sp.Symbol('x')
     symsys = SymbolicSys([(x, sp.exp(x))])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
-    # import pudb; pudb.set_trace()
     xout, yout, info = symsys.integrate(tout, [1], integrator='mpmath')
     e = math.e
     ref = -math.log(1/e - 0.1)
     assert abs(yout[-1, 0] - ref) < 4e-8
 
 
-def decay_dydt_factory(k):
+def decay_dydt_factory(k, names=None):
     # Generates a callback for evaluating a dydt-callback for
     # a chain of len(k) + 1 species with len(k) decays
     # with corresponding decay constants k
@@ -179,19 +245,27 @@ def decay_dydt_factory(k):
         exprs = []
         for idx in range(ny):
             expr = 0
+            curr_key = idx
+            prev_key = idx - 1
+            if names is not None:
+                curr_key = names[curr_key]
+                prev_key = names[prev_key]
             if idx < ny-1:
-                expr -= y[idx]*k[idx]
+                expr -= y[curr_key]*k[curr_key]
             if idx > 0:
-                expr += y[idx-1]*k[idx-1]
+                expr += y[prev_key]*k[prev_key]
             exprs.append(expr)
-        return exprs
+        if names is None:
+            return exprs
+        else:
+            return dict(zip(names, exprs))
 
     return dydt
 
 
 # Short decay chains, using Bateman's equation
 # --------------------------------------------
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('band', [(1, 0), None])
 def test_SymbolicSys__from_callback_bateman(band):
     # Decay chain of 3 species (2 decays)
@@ -206,17 +280,27 @@ def test_SymbolicSys__from_callback_bateman(band):
     assert np.allclose(yout, ref, rtol=rtol, atol=atol)
 
 
-@pytest.mark.parametrize('band', [(1, 0), None])
-@pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_SymbolicSys_bateman(band):
+def _test_bateman(SymbSys, **kwargs):
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
     dydt = decay_dydt_factory(k)
     f = dydt(0, y)
-    odesys = SymbolicSys(zip(y, f), band=band)
+    odesys = SymbSys(zip(y, f), **kwargs)
     xout, yout, info = odesys.integrate(tend, y0, integrator='scipy')
     ref = np.array(bateman_full(y0, k+[0], xout-xout[0], exp=np.exp)).T
     assert np.allclose(yout, ref)
+
+
+@requires('sym', 'scipy')
+@pytest.mark.parametrize('band', [(1, 0), None])
+def test_SymbolicSys_bateman(band):
+    _test_bateman(SymbolicSys, band=band)
+
+
+@requires('sym', 'scipy')
+@pytest.mark.parametrize('band', [(1, 0), None])
+def test_ScaledSys_bateman(band):
+    _test_bateman(ScaledSys, band=band, dep_scaling=1e3)
 
 
 # Longer chains with careful choice of parameters
@@ -252,7 +336,7 @@ def get_special_chain(n, p, a, **kwargs):
     return y0, k, SymbolicSys.from_callback(dydt, n, **kwargs)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('p', [0, 1, 2, 3])
 def test_check(p):
     n, a = 7, 5
@@ -263,7 +347,7 @@ def test_check(p):
 
 # adaptive stepsize with vode is performing ridiculously
 # poorly for this problem
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('name,forgive', zip(
     'dopri5 dop853 vode'.split(), (1, 1, (3, 3e6))))
 def test_scipy(name, forgive):
@@ -288,9 +372,9 @@ def test_scipy(name, forgive):
 
 
 # (dopri5, .2), (bs, .03) <-- works in boost 1.59
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pyodeint')
 @pytest.mark.parametrize('method,forgive', zip(
-    'rosenbrock4'.split(), (.2,)))
+    'rosenbrock4 dopri5 bs'.split(), (.2, .2, .04)))
 def test_odeint(method, forgive):
     n, p, a = 13, 1, 13
     atol, rtol = 1e-10, 1e-10
@@ -316,16 +400,16 @@ def _gsl(tout, method, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pygslodeiv2')
 @pytest.mark.parametrize('method,forgive', zip(
     'msadams msbdf rkck bsimp'.split(), (5, 14, 0.2, 0.02)))
 def test_gsl_predefined(method, forgive):
     _gsl([10**i for i in range(-14, 1)], method, forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pygslodeiv2')
 @pytest.mark.parametrize('method,forgive', zip(
-    'bsimp msadams msbdf rkck'.split(), (0.004, 4, 14, 0.21)))
+    'bsimp msadams msbdf rkck'.split(), (0.01, 4, 14, 0.21)))
 def test_gsl_adaptive(method, forgive):
     _gsl(1, method, forgive)
 
@@ -342,21 +426,22 @@ def _cvode(tout, method, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
+@requires('sym', 'pycvodes')
 @pytest.mark.parametrize('method,forgive', zip(
-    'adams bdf'.split(), (1.3, 5.0)))
+    'adams bdf'.split(), (2.4, 5.0)))
 def test_cvode_predefined(method, forgive):
     _cvode([10**i for i in range(-15, 1)], method, forgive)
 
 
 # cvode performs significantly better than vode:
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 @pytest.mark.parametrize('method,forgive', zip(
-    'adams bdf'.split(), (1.5, 5)))
+    'adams bdf'.split(), (2.4, 5)))
 def test_cvode_adaptive(method, forgive):
     _cvode(1, method, forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('n,forgive', [(4, 1), (17, 1), (42, 7)])
 def test_long_chain_dense(n, forgive):
     p, a = 0, n
@@ -368,7 +453,7 @@ def test_long_chain_dense(n, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 @pytest.mark.parametrize('n', [29])  # something maxes out at 31
 def test_long_chain_banded_scipy(n):
     p, a = 0, n
@@ -399,7 +484,7 @@ def test_long_chain_banded_scipy(n):
     assert min_time_dens*2 > min_time_band  # (2x: fails sometimes due to load)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes')
 @pytest.mark.parametrize('n', [29, 79])
 def test_long_chain_banded_cvode(n):
     p, a = 0, n
@@ -428,52 +513,231 @@ def test_long_chain_banded_cvode(n):
         pass  # will fail sometimes due to load
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_PartiallySolvedSystem():
-    odesys = SymbolicSys.from_callback(
+def _get_decay3(**kwargs):
+    return SymbolicSys.from_callback(
         lambda x, y, p: [
             -p[0]*y[0],
             p[0]*y[0] - p[1]*y[1],
             p[1]*y[1] - p[2]*y[2]
-        ], 3, 3)
-    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
-        odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+        ], 3, 3, **kwargs)
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_no_diff_adaptive_chained_single(integrator):
+    odesys = _get_decay3()
+    tout, y0, k = [3, 5], [3, 2, 1], [3.5, 2.5, 1.5]
+    xout1, yout1, info1 = odesys.integrate(tout, y0, k, integrator=integrator)
+    ref = np.array(bateman_full(y0, k, xout1 - xout1[0], exp=np.exp)).T
+    assert info1['success']
+    assert xout1.size > 10
+    assert xout1.size == yout1.shape[0]
+    assert np.allclose(yout1, ref)
+
+    xout2, yout2, info2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator)
+    assert info1['success']
+    assert xout2.size == xout1.size
+    assert np.allclose(yout2, ref)
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_no_diff_adaptive_chained_single__multimode(integrator):
+    odesys = _get_decay3()
+    tout = [[3, 5], [4, 6], [6, 8], [9, 11]]
+    _y0 = [3, 2, 1]
+    y0 = [_y0]*4
+    _k = [3.5, 2.5, 1.5]
+    k = [_k]*4
+    res1 = odesys.integrate(tout, y0, k, integrator=integrator, first_step=1e-14)
+    for xout1, yout1, info1 in zip(*res1):
+        assert np.allclose(xout1 - xout1[0], res1[0][0] - res1[0][0][0])
+        assert np.allclose(yout1, res1[1][0])
+        ref = np.array(bateman_full(_y0, _k, xout1 - xout1[0], exp=np.exp)).T
+        assert info1['success']
+        assert xout1.size > 10
+        assert xout1.size == yout1.shape[0]
+        assert np.allclose(yout1, ref)
+
+    res2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator, first_step=1e-14)
+    for xout2, yout2, info2 in zip(*res2):
+        assert info1['success']
+        assert xout2.size == xout1.size
+        assert np.allclose(yout2, ref)
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem(integrator):
+    odesys = _get_decay3(lower_bounds=[0, 0, 0])
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be: {
+        odesys.dep[0]: y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
     })
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 1.5]
-    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator=integrator)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
     assert np.allclose(yout, ref)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
-def test_PartiallySolvedSystem__using_y():
-    odesys = SymbolicSys.from_callback(
-        lambda x, y, p: [
-            -p[0]*y[0],
-            p[0]*y[0] - p[1]*y[1],
-            p[1]*y[1]
-        ], 3, 3)
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem__using_y(integrator):
+    odesys = _get_decay3()
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
         odesys.dep[2]: y0[0] + y0[1] + y0[2] - odesys.dep[0] - odesys.dep[1]
     })
     y0 = [3, 2, 1]
-    k = [3.5, 2.5, 1.5]
-    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator='scipy')
+    k = [3.5, 2.5, 0]
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator=integrator)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
-    assert np.allclose(yout[:, :-1], ref[:, :-1])
+    assert info['success']
+    assert np.allclose(yout, ref)
     assert np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem_multiple_subs(integrator):
+    odesys = _get_decay3(lower_bounds=[0, 0, 0])
+
+    def substitutions(x0, y0, p0, be):
+        analytic0 = y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
+        analytic2 = y0[0] + y0[1] + y0[2] - analytic0 - odesys.dep[1]
+        return {odesys.dep[0]: analytic0, odesys.dep[2]: analytic2}
+
+    partsys = PartiallySolvedSystem(odesys, substitutions)
+    y0 = [3, 2, 1]
+    k = [3.5, 2.5, 0]
+    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator=integrator)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
+    assert np.allclose(yout, ref)
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
+    odesys = _get_decay3(lower_bounds=[0, 0, 0])
+
+    def substitutions(x0, y0, p0, be):
+        analytic0 = y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
+        analytic2 = y0[0] + y0[1] + y0[2] - analytic0 - odesys.dep[1]
+        return {odesys.dep[0]: analytic0, odesys.dep[2]: analytic2}
+
+    partsys = PartiallySolvedSystem(odesys, substitutions)
+    LogLogSys = symmetricsys(get_logexp(), get_logexp())
+    loglogpartsys = LogLogSys.from_other(partsys)
+    y0 = [3, 2, 1]
+    k = [3.5, 2.5, 0]
+    tend = 1
+    xout, yout, info = loglogpartsys.integrate([1e-12, tend], y0, k, integrator=integrator, first_step=1e-14)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
+    assert info['internal_yout'].shape[-1] == 1
+    assert info['internal_yout'][-1, 0] < 0  # ln(y[1])
+    assert np.allclose(yout, ref)
+
+
+def _get_transf_part_system():
+    odesys = _get_decay3()
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
+        odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
+    })
+    LogLogSys = symmetricsys(get_logexp(), get_logexp())
+    return LogLogSys.from_other(partsys)
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem__symmetricsys(integrator):
+    trnsfsys = _get_transf_part_system()
+    y0 = [3., 2., 1.]
+    k = [3.5, 2.5, 0]
+    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator=integrator, first_step=1e-14)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
+    assert np.allclose(yout, ref)
+    assert np.allclose(np.sum(yout, axis=1), sum(y0))
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
+    trnsfsys = _get_transf_part_system()
+    y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
+    ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
+    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator=integrator, first_step=1e-14)
+    for i, (y0, k) in enumerate(zip(y0s, ks)):
+        ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
+        assert info[i]['success'] and info[i]['nfev'] > 10
+        assert info[i]['nfev'] > 1 and info[i]['time_cpu'] < 100
+        assert np.allclose(yout[i], ref) and np.allclose(np.sum(yout[i], axis=1), sum(y0))
+
+
+def _get_nonlin(**kwargs):
+    return SymbolicSys.from_callback(
+        lambda x, y, p: [
+            -p[0]*y[0]*y[1] + p[1]*y[2],
+            -p[0]*y[0]*y[1] + p[1]*y[2],
+            p[0]*y[0]*y[1] - p[1]*y[2]
+        ], 3, 2, **kwargs)
+
+
+def _get_nonlin_part_system():
+    odesys = _get_nonlin()
+    return PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
+        odesys.dep[0]: y0[0] + y0[2] - odesys.dep[2]
+    })
+
+
+def _ref_nonlin(y0, k, t):
+    X, Y, Z = y0[2], max(y0[:2]), min(y0[:2])
+    kf, kb = k
+    x0 = Y*kf
+    x1 = Z*kf
+    x2 = 2*X*kf
+    x3 = -kb - x0 - x1
+    x4 = -x2 + x3
+    x5 = np.sqrt(-4*kf*(X**2*kf + X*x0 + X*x1 + Z*x0) + x4**2)
+    x6 = kb + x0 + x1 + x5
+    x7 = (x3 + x5)*np.exp(-t*x5)
+    x8 = x3 - x5
+    return (x4*x8 + x5*x8 + x7*(x2 + x6))/(2*kf*(x6 + x7))
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem__symmetricsys__nonlinear(integrator):
+    partsys = _get_nonlin_part_system()
+    logexp = get_logexp(7, partsys.indep**0/10**7)
+    trnsfsys = symmetricsys(logexp, logexp).from_other(partsys)
+    y0 = [3., 2., 1.]
+    k = [9.351, 2.532]
+    tend = 1.7
+    atol, rtol = 1e-12, 1e-13
+    for odesys, forgive in [(partsys, 21), (trnsfsys, 298)]:
+        xout, yout, info = odesys.integrate(tend, y0, k, integrator=integrator,
+                                            first_step=1e-14, atol=atol, rtol=rtol,
+                                            nsteps=1000)
+        assert info['success']
+        yref = np.empty_like(yout)
+        yref[:, 2] = _ref_nonlin(y0, k, xout - xout[0])
+        yref[:, 0] = y0[0] + y0[2] - yref[:, 2]
+        yref[:, 1] = y0[1] + y0[2] - yref[:, 2]
+        assert np.allclose(yout, yref, atol=forgive*atol, rtol=forgive*rtol)
+
+
+@requires('sym', 'scipy')
 def test_SymbolicSys_from_other():
     scaled = ScaledSys.from_callback(lambda x, y: [y[0]*y[0]], 1,
                                      dep_scaling=101)
-    LogLogSys = symmetricsys(logexp, logexp)
+    LogLogSys = symmetricsys(get_logexp(), get_logexp())
     transformed_scaled = LogLogSys.from_other(scaled)
     tout = np.array([0, .2, .5])
     y0 = [1.]
-    ref, nfo1 = OdeSys(lambda x, y: y[0]*y[0]).predefined(
+    ref, nfo1 = ODESys(lambda x, y: y[0]*y[0]).predefined(
         y0, tout, first_step=1e-14)
     analytic = 1/(1-tout.reshape(ref.shape))
     assert np.allclose(ref, analytic)
@@ -481,7 +745,7 @@ def test_SymbolicSys_from_other():
     assert np.allclose(yout, analytic)
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
+@requires('sym', 'scipy')
 def test_backend():
 
     def f(x, y, p, backend=math):
@@ -506,16 +770,435 @@ def test_backend():
         yout, info = odesys.predefined([y0], tout, [p])
         assert np.allclose(yout.flatten(), ref)
 
-    _test_odesys(OdeSys(f))
+    _test_odesys(ODESys(f))
     _test_odesys(SymbolicSys.from_callback(f, 1, 1))
 
 
-@pytest.mark.skipif(sym is None, reason='package sym missing')
-@pytest.mark.parametrize('backend', sym_backends)
-def test_SymbolicSys_from_callback__backends(backend):
+@requires('sym', 'scipy')
+def _test_SymbolicSys_from_callback__backend(backend):
     ss = SymbolicSys.from_callback(vdp_f, 2, 1, backend=backend)
     xout, yout, info = ss.integrate([0, 1, 2], [1, 0], params=[2.0])
     # blessed values:
     ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
     assert np.allclose(yout, ref)
     assert info['nfev'] > 0
+
+
+@requires('sym', 'sympy')
+def test_SymbolicSys_from_callback__sympy():
+    _test_SymbolicSys_from_callback__backend('sympy')
+
+
+@requires('sym', 'symengine')
+def test_SymbolicSys_from_callback__symengine():
+    _test_SymbolicSys_from_callback__backend('symengine')
+
+
+@requires('sym', 'symcxx')
+def test_SymbolicSys_from_callback__symcxx():
+    _test_SymbolicSys_from_callback__backend('symcxx')
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator,method', [('cvode', 'adams'), ('gsl', 'msadams')])
+def test_integrate_chained(integrator, method):
+    for p in (0, 1, 2, 3):
+        n, a = 7, 5
+        atol, rtol = 1e-10, 1e-10
+        y0, k, linsys = get_special_chain(n, p, a)
+        y0 += 1e-10
+        LogLogSys = symmetricsys(get_logexp(), get_logexp())
+        logsys = LogLogSys.from_other(linsys)
+        tout = [10**-12, 1]
+        kw = dict(
+            integrator=integrator, method=method, atol=atol, rtol=rtol,
+        )
+        forgive = (5+p)*1.2
+
+        xout, yout, info = integrate_chained([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
+                                             return_on_error=True, **kw)
+        assert info['success'] is False
+        ntot = 400
+        nlinear = 60*(p+3)
+
+        xout, yout, info = integrate_chained([logsys, linsys], {
+            'nsteps': [ntot - nlinear, nlinear],
+            'first_step': [30.0, 1e-5],
+            'return_on_error': [True, False]
+        }, tout, y0, **kw)
+        assert info['success'] is True
+        check(yout[-1, :], n, p, a, atol, rtol, forgive)
+
+
+def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
+    # real-world based test-case
+    from ._cetsa import _get_cetsa_odesys
+    molar_unitless = 1e9
+    t0, tend = 1e-16, 180
+    odesys = _get_cetsa_odesys(molar_unitless, False)
+    tsys = _get_cetsa_odesys(molar_unitless, True)
+    if y0.ndim == 1:
+        tout = [t0, tend]
+    elif y0.ndim == 2:
+        tout = np.asarray([(t0, tend)]*y0.shape[0])
+
+    comb_res = integrate_chained([tsys, odesys], {'nsteps': [500*stepx, 20*stepx]}, tout, y0/molar_unitless, params,
+                                 return_on_error=True, autorestart=2, **kwargs)
+    if isinstance(comb_res[2], dict):
+        assert comb_res[2]['success']
+        assert comb_res[2]['nfev'] > 10
+    else:
+        for d in comb_res[2]:
+            assert d['success']
+            assert d['nfev'] > 10
+
+    if extra:
+        with pytest.raises(RuntimeError):  # (failure)
+            odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, atol=1e-7, rtol=1e-7,
+                             nsteps=500, first_step=1e-14, **kwargs)
+
+        res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1),
+                               first_step=1e-14, **kwargs)
+        assert np.min(res[1][-1, :]) < -1e-6  # crazy! (failure of the linear formulation)
+        tres = tsys.integrate([t0, tend], y0/molar_unitless, params, nsteps=int(1345*1.1), **kwargs)
+        assert tres[2]['success'] is True
+        assert tres[2]['nfev'] > 100
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2', 'pyodeint')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl', 'odeint'])
+def test_cetsa(integrator):
+    _test_cetsa(_cetsa.ys[1], _cetsa.ps[1], integrator=integrator, first_step=1e-14,
+                stepx=2 if integrator == 'odeint' else 1)
+    if integrator == 'cvode':
+        _test_cetsa(_cetsa.ys[0], _cetsa.ps[0], extra=True, integrator=integrator)
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2', 'pyodeint')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl', 'odeint'])
+def test_cetsa_multi(integrator):
+    _test_cetsa(np.asarray(_cetsa.ys), np.asarray(_cetsa.ps), integrator=integrator, first_step=1e-14,
+                stepx=2 if integrator == 'odeint' else 1)
+
+
+@requires('sym', 'pycvodes')
+def test_dep_by_name():
+    def _sin(t, y, p):
+        return {'prim': y['bis'], 'bis': -p[0]**2 * y['prim']}
+    odesys = SymbolicSys.from_callback(_sin, names=['prim', 'bis'], nparams=1, dep_by_name=True)
+    A, k = 2, 3
+    for y0 in ({'prim': 0, 'bis': A*k}, [0, A*k]):
+        xout, yout, info = odesys.integrate(np.linspace(0, 1), y0, [k],
+                                            integrator='cvode', method='adams')
+        assert info['success']
+        assert xout.size > 7
+        ref = [
+            A*np.sin(k*(xout - xout[0])),
+            A*np.cos(k*(xout - xout[0]))*k
+        ]
+        assert np.allclose(yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
+        assert np.allclose(yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
+
+
+def _get_cetsa_isothermal():
+    # tests rhs returning dict, integrate with y0 being a dict & multiple solved variables
+    names = ('NL', 'N', 'L', 'U', 'A')
+    k_names = ('dis', 'as', 'un', 'fo', 'ag')
+
+    def i(n):
+        return names.index(n)
+
+    def k(n):
+        return k_names.index(n)
+
+    def rhs(x, y, p):
+        r = {
+            'diss': p['dis']*y['NL'],
+            'asso': p['as']*y['N']*y['L'],
+            'unfo': p['un']*y['N'],
+            'fold': p['fo']*y['U'],
+            'aggr': p['ag']*y['U']
+        }
+        return {
+            'NL': r['asso'] - r['diss'],
+            'N': r['diss'] - r['asso'] + r['fold'] - r['unfo'],
+            'L': r['diss'] - r['asso'],
+            'U': r['unfo'] - r['fold'] - r['aggr'],
+            'A': r['aggr']
+        }
+
+    return SymbolicSys.from_callback(rhs, dep_by_name=True, par_by_name=True, names=names, param_names=k_names)
+
+
+@requires('sym', 'scipy')
+def test_cetsa_isothermal():
+    odesys = _get_cetsa_isothermal()
+    tout = (0, 300)
+    par = {'dis': 10.0, 'as': 1e9, 'un': 0.1, 'fo': 2.0, 'ag': 0.05}
+    conc0 = defaultdict(float, {'NL': 1, 'L': 5})
+    xout, yout, nfo = odesys.integrate(tout, conc0, par)
+    assert nfo['success']
+
+
+@requires('sym', 'sympy', 'pycvodes')
+def test_SymbolicSys__first_step_expr():
+    import sympy
+    tend, k, y0 = 5, [1e23, 3], (.7, .0, .0)
+    kwargs = dict(integrator='cvode', atol=1e-8, rtol=1e-8)
+    factory = decay_dydt_factory(k)
+    dep = sympy.symbols('y0 y1 y2', real=True)
+    exprs = factory(k, dep)
+    odesys = SymbolicSys(zip(dep, exprs), jac=True, first_step_expr=dep[0]*1e-30)
+    xout, yout, info = odesys.integrate(tend, y0, **kwargs)
+    ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+    assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+
+
+@requires('sym', 'pygslodeiv2')
+def test_SymbolicSys__from_callback__first_step_expr():
+    tend, k, y0 = 5, [1e23, 3], (.7, .0, .0)
+    kwargs = dict(integrator='gsl', atol=1e-8, rtol=1e-8)
+    factory = decay_dydt_factory(k)
+    odesys = SymbolicSys.from_callback(factory, 3, first_step_factory=lambda x, y, p: y[0]*1e-30)
+    xout, yout, info = odesys.integrate(tend, y0, **kwargs)
+    ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+    assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys__from_callback__first_step_expr__by_name():
+    kwargs = dict(integrator='cvode', atol=1e-8, rtol=1e-8)
+    names = ['foo', 'bar', 'baz']
+    par_names = 'first second third'.split()
+    odesys = SymbolicSys.from_callback(
+        lambda x, y, p, be: {
+            'foo': -p['first']*y['foo'],
+            'bar': p['first']*y['foo'] - p['second']*y['bar'],
+            'baz': p['second']*y['bar'] - p['third']*y['baz']
+        }, names=names, param_names=par_names,
+        dep_by_name=True, par_by_name=True,
+        first_step_factory=lambda x0, ic: 1e-30*ic['foo'])
+    y0 = {'foo': .7, 'bar': 0, 'baz': 0}
+    p = {'first': 1e23, 'second': 2, 'third': 3}
+    xout, yout, info = odesys.integrate(5, y0, p, **kwargs)
+    ref = np.array(bateman_full([y0[k] for k in names], [p[k] for k in par_names], xout - xout[0], exp=np.exp)).T
+    assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+
+
+@requires('sym', 'pyodeint')
+def test_PartiallySolvedSystem__by_name():
+    k = [math.log(2)/(138.4*24*3600)]
+    names = 'Po-210 Pb-206'.split()
+    with pytest.raises(ValueError):
+        odesys = SymbolicSys.from_callback(decay_dydt_factory({'Po-210': k[0]}, names=names),
+                                           dep_by_name=True, par_by_name=True, names=names, param_names=names)
+    odesys = SymbolicSys.from_callback(decay_dydt_factory({'Po-210': k[0]}, names=names),
+                                       dep_by_name=True, names=names)
+
+    assert odesys.ny == 2
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be=None: {
+        odesys['Pb-206']: y0[odesys['Pb-206']] + y0[odesys['Po-210']] - odesys['Po-210']
+    })
+    assert partsys.free_names == ['Po-210']
+    assert partsys.ny == 1
+    assert (partsys['Pb-206'] - partsys.init_dep[partsys.names.index('Pb-206')] -
+            partsys.init_dep[partsys.names.index('Po-210')] + odesys['Po-210']) == 0
+    duration = 7*k[0]
+    atol, rtol, forgive = 1e-9, 1e-9, 10
+    y0 = [1e-20]*(len(k)+1)
+    y0[0] = 1
+    for system in (odesys, partsys):
+        xout, yout, info = system.integrate(duration, y0, integrator='odeint', rtol=rtol, atol=atol)
+        ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
+        assert yout.shape[1] == 2
+        assert xout.shape[0] == yout.shape[0]
+        assert yout.ndim == 2 and xout.ndim == 1
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys__roots():
+    def f(t, y):
+        return [y[0]]
+
+    def roots(t, y, p, backend):
+        return [y[0] - backend.exp(1)]
+    odesys = SymbolicSys.from_callback(f, 1, roots_cb=roots)
+    kwargs = dict(first_step=1e-12, atol=1e-12, rtol=1e-12, method='adams', integrator='cvode')
+    xout, yout, info = odesys.integrate(2, [1], **kwargs)
+    assert len(info['root_indices']) == 1
+    assert np.min(np.abs(xout - 1)) < 1e-11
+
+
+@requires('sym', 'pyodeint')
+@pytest.mark.parametrize('method', ['bs', 'rosenbrock4'])
+def test_SymbolicSys__reference_parameters_using_symbols(method):
+    be = sym.Backend('sympy')
+    x, p = map(be.Symbol, 'x p'.split())
+    symsys = SymbolicSys([(x, -p*x)])
+    tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
+    for y_symb in [False, True]:
+        for p_symb in [False, True]:
+            xout, yout, info = symsys.integrate(
+                tout, {x: 2} if y_symb else [2], {p: 3} if p_symb else [3],
+                method=method, integrator='odeint', atol=1e-12, rtol=1e-12)
+            assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
+
+
+@requires('sym', 'pygslodeiv2')
+@pytest.mark.parametrize('method', ['rkck', 'rk4imp'])
+def test_SymbolicSys__reference_parameters_using_symbols_from_callback(method):
+    be = sym.Backend('sympy')
+    k = be.Symbol('p')
+
+    def dydt(t, y):       # external symbolic parameter 'k', should be allowed
+        return [-k*y[0]]  # even though reminiscent of global variables.
+
+    odesys1 = SymbolicSys.from_callback(dydt, 1, backend=be)
+    odesys2 = SymbolicSys.from_callback(dydt, 1, backend=be, par_by_name=True, param_names=[])
+    tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
+    for symsys in (odesys1, odesys2):
+        for y_symb in [False, True]:
+            for p_symb in [False, True]:
+                xout, yout, info = symsys.integrate(
+                    tout, {symsys.dep[0]: 2} if y_symb else [2], {k: 3} if p_symb else [3],
+                    method=method, integrator='gsl', atol=1e-12, rtol=1e-12)
+                assert xout.size > 4
+                assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
+
+
+@requires('sym', 'pycvodes')
+@pytest.mark.parametrize('scaled', [False, True])
+def test_PartiallySolvedSystem__from_linear_invariants(scaled):
+    atol, rtol, forgive = 1e-11, 1e-11, 20
+    k = [7., 3, 2]
+    _ss = SymbolicSys.from_callback(decay_rhs, len(k)+1, len(k),
+                                    linear_invariants=[[1]*(len(k)+1)],
+                                    linear_invariant_names=['tot_amount'])
+    if scaled:
+        ss = ScaledSys.from_other(_ss, dep_scaling=1e3)
+    else:
+        ss = _ss
+
+    y0 = [0]*(len(k)+1)
+    y0[0] = 1
+
+    def check_formulation(odesys):
+        xout, yout, info = odesys.integrate(
+            [0, 1], y0, k, integrator='cvode', atol=atol, rtol=rtol, nsteps=800)
+        ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
+
+    check_formulation(ss)
+
+    ps = PartiallySolvedSystem.from_linear_invariants(ss)
+    assert ps.ny == ss.ny - 1
+    check_formulation(ps)
+
+
+@requires('sym', 'pyodeint')
+def test_PartiallySolvedSystem__by_name__from_linear_invariants():
+    k = [math.log(2)/(138.4*24*3600)]
+    names = 'Po-210 Pb-206'.split()
+    odesys = SymbolicSys.from_callback(
+        decay_dydt_factory({'Po-210': k[0]}, names=names),
+        dep_by_name=True, names=names, linear_invariants=[[1, 1]])
+    assert odesys.ny == 2
+    partsys1 = PartiallySolvedSystem.from_linear_invariants(odesys)
+    partsys2 = PartiallySolvedSystem.from_linear_invariants(odesys, ['Pb-206'])
+    partsys3 = PartiallySolvedSystem.from_linear_invariants(odesys, ['Po-210'])
+
+    assert partsys1.free_names in (['Po-210'], ['Pb-206'])
+    assert partsys2.free_names == ['Po-210']
+    assert partsys3.free_names == ['Pb-206']
+    assert partsys1.ny == partsys2.ny == partsys3.ny == 1
+
+    assert (partsys2['Pb-206'] - partsys2.init_dep[partsys2.names.index('Pb-206')] -
+            partsys2.init_dep[partsys2.names.index('Po-210')] + odesys['Po-210']) == 0
+    duration = 7*k[0]
+    atol, rtol, forgive = 1e-9, 1e-9, 10
+    y0 = [1e-20]*(len(k)+1)
+    y0[0] = 1
+    for system in (odesys, partsys1, partsys2, partsys3):
+        xout, yout, info = system.integrate(duration, y0, integrator='odeint', rtol=rtol, atol=atol)
+        ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
+        assert yout.shape[1] == 2
+        assert xout.shape[0] == yout.shape[0]
+        assert yout.ndim == 2 and xout.ndim == 1
+
+
+@requires('sym')
+def test_SymbolicSys__indep_in_exprs():
+    def dydt(t, y, p):
+        return [t*p[0]*y[0]]
+    be = sym.Backend('sympy')
+    t, y, p = map(be.Symbol, 't y p'.split())
+    odesys = SymbolicSys([(y, dydt(t, [y], [p])[0])], t)
+    fout = odesys.f_cb(2, [3], [4])
+    assert len(fout) == 1
+    assert abs(fout[0] - 2*3*4) < 1e-14
+
+
+@requires('sym', 'pycvodes')
+@pytest.mark.parametrize('idx', [0, 1, 2])
+def test_PartiallySolvedSystem__roots(idx):
+    t, x, y, z, p, q = sp.symbols('t x y z, p, q')
+    odesys = SymbolicSys({x: -p*x, y: p*x - q*y, z: q*y}, t, params=(p, q), roots=([x - y], [x - z], [y - z])[idx])
+    _p, _q, tend = 7, 3, 0.7
+    dep0 = {x: 1, y: 0, z: 0}
+    ref = [0.11299628093544488, 0.20674119231833346, 0.3541828705348678]  # determined in notebook:
+    # test_symbolic__test_PartiallySolvedSystem__roots.ipynb
+
+    def check(odesys):
+        res = odesys.integrate(tend, [dep0[k] for k in getattr(odesys, 'original_dep', odesys.dep)], (_p, _q),
+                               integrator='cvode', return_on_root=True)
+        assert abs(res.xout[-1] - ref[idx]) < 1e-7
+
+    check(odesys)
+    psys = PartiallySolvedSystem(odesys, lambda t0, xyz, par0: {x: xyz[odesys.dep.index(x)]*sp.exp(-p*(t-t0))})
+    check(psys)
+
+
+@requires('sym', 'pycvodes')
+@pytest.mark.parametrize('idx1,idx2,scaled,b2', product([0, 1, 2], [0, 1, 2], [True, False], [None, 0]))
+def test_TransformedSys__roots(idx1, idx2, scaled, b2):
+    def f(x, y, p):
+        return [-p[0]*y[0], p[0]*y[0] - p[1]*y[1], p[1]*y[1]]
+
+    def roots(x, y):
+        return ([y[0] - 3*y[1]], [y[0] - 3*y[2]], [3*y[1] - y[2]])[idx1]
+
+    if scaled:
+        orisys = SymbolicSys.from_callback(f, 3, 2, roots_cb=roots)
+    else:
+        orisys = ScaledSys.from_callback(f, 3, 2, roots_cb=roots, dep_scaling=42)
+    _p, _q, tend = 7, 3, 0.7
+    dep0 = (1, .1, 0)
+    ref = [0.02969588399749174, 0.1241509730780618, 0.6110670818418275]  # determined in notebook:
+    # test_symbolic__test_PartiallySolvedSystem__roots.ipynb
+
+    def check(odesys):
+        res = odesys.integrate(tend, dep0, (_p, _q),
+                               integrator='cvode', return_on_root=True)
+        assert abs(res.xout[-1] - ref[idx1]) < 6e-7
+
+    logexp = get_logexp(1, 1e-20, b2=None)
+    LogLogSys = symmetricsys(logexp, logexp, check_transforms=False)
+
+    if idx2 == 0:  # no need to rerun this code more than once
+        check(orisys)
+        loglog = LogLogSys.from_other(orisys)
+        check(loglog)
+
+        psys1 = PartiallySolvedSystem(orisys, lambda t0, xyz, par0, be: {
+            orisys.dep[0]: xyz[0]*be.exp(-par0[0]*(orisys.indep-t0))})
+        check(psys1)
+        ploglog1 = LogLogSys.from_other(psys1)
+        check(ploglog1)
+
+    psys2 = PartiallySolvedSystem(orisys, lambda t0, iv, p0: {
+        orisys.dep[idx2]: iv[0] + iv[1] + iv[2] - sum(orisys.dep[j] for j in range(3) if j != idx2)
+    })
+    ploglog2 = LogLogSys.from_other(psys2)
+    check(ploglog2)

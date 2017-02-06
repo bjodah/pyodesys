@@ -3,6 +3,9 @@ from __future__ import (absolute_import, division, print_function)
 
 import inspect
 import math
+import operator
+
+from pkg_resources import parse_requirements, parse_version
 
 import numpy as np
 
@@ -61,6 +64,7 @@ def transform_exprs_dep(fw, bw, dep_exprs, check=True):
     Returns
     -------
     List of transformed expressions for dydx
+
     """
     if len(fw) != len(dep_exprs) or \
        len(fw) != len(bw):
@@ -148,9 +152,10 @@ class _Wrapper(_Blessed):
     def __call__(self, x, y, params=(), backend=None):
         _x = np.asarray(x)
         _y = np.asarray(y)
+        _p = np.asarray(params)
         if _y.shape[-1] != self.ny:
             raise TypeError("Incorrect shape of y")
-        input_width = self.ny + len(params) + 1
+        input_width = self.ny + _p.shape[-1] + 1
         if _x.ndim == 0:
             inp_shape = (input_width,)
         elif _x.ndim == 1:
@@ -160,5 +165,98 @@ class _Wrapper(_Blessed):
         inp = np.empty(inp_shape)
         inp[..., 0] = _x
         inp[..., 1:(1+self.ny)] = _y
-        inp[..., (1+self.ny):] = params
+        inp[..., (1+self.ny):] = _p
         return self.callback(inp)
+
+
+class requires(object):
+    """ Conditional skipping (on requirements) of tests in pytest
+
+    Examples
+    --------
+    >>> @requires('numpy', 'scipy')
+    ... def test_sqrt():
+    ...     import numpy as np
+    ...     assert np.sqrt(4) == 2
+    ...     from scipy.special import zeta
+    ...     assert zeta(2) < 2
+    ...
+    >>> @requires('numpy>=1.9.0')
+    ... def test_nanmedian():
+    ...     import numpy as np
+    ...     a = np.array([[10.0, 7, 4], [3, 2, 1]])
+    ...     a[0, 1] = np.nan
+    ...     assert np.nanmedian(a) == 3
+    ...
+
+    """
+    from operator import lt, le, eq, ne, ge, gt
+    _relop = dict(zip('< <= == != >= >'.split(), [getattr(operator, attr) for attr in
+                                                  'lt le eq ne ge gt'.split()]))
+
+    def __init__(self, *reqs):
+        self.missing = []
+        self.incomp = []
+        self.requirements = list(parse_requirements(reqs))
+        for req in self.requirements:
+            try:
+                mod = __import__(req.project_name)
+            except ImportError:
+                self.missing.append(req.project_name)
+            else:
+                try:
+                    ver = parse_version(mod.__version__)
+                except AttributeError:
+                    pass
+                else:
+                    for rel, vstr in req.specs:
+                        if not self._relop[rel](ver, parse_version(vstr)):
+                            self.incomp.append(str(req))
+
+    def __call__(self, cb):
+        import pytest
+        r = 'Unfulfilled requirements.'
+        if self.missing:
+            r += " Missing modules: %s." % ', '.join(self.missing)
+        if self.incomp:
+            r += " Incomp versions: %s." % ', '.join(self.incomp)
+        return pytest.mark.skipif(self.missing or self.incomp, reason=r)(cb)
+
+
+class MissingImport(object):
+
+    def __init__(self, modname):
+        self._modname = modname
+
+    def __getattribute__(self, attr):
+        if attr == '_modname':
+            return object.__getattribute__(self, attr)
+        else:
+            raise ImportError("Failed to import %s" % self._modname)
+
+    def __call__(self, *args, **kwargs):
+        raise ImportError("Failed to import %s" % self._modname)
+
+
+def import_(modname, *args):
+    if len(args) == 0:
+        try:
+            return __import__(modname)
+        except ImportError:
+            return MissingImport(modname)
+
+    mods = []
+    for arg in args:
+        mi = MissingImport(modname + '.' + arg)
+        try:
+            mod = __import__(modname, globals(), locals(), [arg])
+        except ImportError:
+            mods.append(mi)
+        else:
+            try:
+                attr = getattr(mod, arg)
+            except AttributeError:
+                mods.append(mi)
+            else:
+                mods.append(attr)
+    return mods if len(args) > 1 else mods[0]

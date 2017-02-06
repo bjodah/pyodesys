@@ -3,15 +3,20 @@
 from __future__ import print_function, absolute_import, division
 
 import numpy as np
-import sympy as sp
 
-from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys
+try:
+    import sympy as sp
+except ImportError:
+    sp = None
+
+from pyodesys.core import integrate_chained
+from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys, PartiallySolvedSystem
 
 from pyodesys.tests.test_core import (
     vdp_f, _test_integrate_multiple_adaptive, _test_integrate_multiple_predefined, sine, decay
 )
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
-from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory
+from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3, get_logexp
 
 
 def _test_NativeSys(NativeSys, **kwargs):
@@ -90,6 +95,65 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
 
+def _test_Decay_nonnegative(NativeSys):
+    odesys = NativeSys.from_other(_get_decay3(lower_bounds=[0]*3))
+    y0, k = [3., 2., 1.], [3.5, 2.5, 0]
+    xout, yout, info = odesys.integrate([1e-10, 1], y0, k, integrator='native')
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success'] and info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
+    assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
+
+
+def _get_transformed_partially_solved_system(NativeSys, multiple=False):
+    odesys = _get_decay3()
+    if multiple:
+        def substitutions(x0, y0, p0, be):
+            analytic0 = y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
+            analytic2 = y0[0] + y0[1] + y0[2] - analytic0 - odesys.dep[1]
+            return {odesys.dep[0]: analytic0, odesys.dep[2]: analytic2}
+    else:
+        def substitutions(x0, y0, p0, be):
+            return {odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))}
+
+    partsys = PartiallySolvedSystem(odesys, substitutions)
+
+    class TransformedNativeSys(TransformedSys, NativeSys):
+        pass
+
+    LogLogSys = symmetricsys(get_logexp(), get_logexp(), SuperClass=TransformedNativeSys)
+    return LogLogSys.from_other(partsys)
+
+
+def _test_PartiallySolved_symmetric_native(NativeSys, multiple=False, forgive=1, **kwargs):
+    trnsfsys = _get_transformed_partially_solved_system(NativeSys, multiple)
+    y0, k = [3., 2., 1.], [3.5, 2.5, 0]
+    xout, yout, info = trnsfsys.integrate([1e-10, 1], y0, k, integrator='native', **kwargs)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    assert info['success']
+    assert info['nfev'] > 10
+    assert info['nfev'] > 1
+    assert info['time_cpu'] < 100
+    allclose_kw = dict(atol=kwargs.get('atol', 1e-8)*forgive, rtol=kwargs.get('rtol', 1e-8)*forgive)
+    assert np.allclose(yout, ref, **allclose_kw)
+    assert np.allclose(np.sum(yout, axis=1), sum(y0), **allclose_kw)
+
+
+def _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple=False, forgive=1, **kwargs):
+    trnsfsys = _get_transformed_partially_solved_system(NativeSys, multiple)
+    y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
+    ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
+    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='native', **kwargs)
+    allclose_kw = dict(atol=kwargs.get('atol', 1e-8)*forgive, rtol=kwargs.get('rtol', 1e-8)*forgive)
+    for i, (y0, k) in enumerate(zip(y0s, ks)):
+        ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
+        assert info[i]['success']
+        assert info[i]['nfev'] > 10
+        assert info[i]['nfev'] > 1
+        assert info[i]['time_cpu'] < 100
+        assert np.allclose(yout[i], ref, **allclose_kw)
+        assert np.allclose(np.sum(yout[i], axis=1), sum(y0), **allclose_kw)
+
+
 def _test_multiple_adaptive(NativeSys, **kwargs):
     native = NativeSys.from_callback(sine, 2, 1)
     _test_integrate_multiple_adaptive(native, integrator='native', **kwargs)
@@ -98,3 +162,124 @@ def _test_multiple_adaptive(NativeSys, **kwargs):
 def _test_multiple_predefined(NativeSys, **kwargs):
     native = NativeSys.from_callback(decay, 2, 1)
     _test_integrate_multiple_predefined(native, integrator='native', **kwargs)
+
+
+def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
+    logexp = (sp.log, sp.exp)
+    # first_step = 1e-4
+    rtol, atol = 1e-14, 1e-12
+    ny = 4
+    ks = [[7e13, 3, 2], [2e5, 3e4, 12.7]]
+    y0s = [[1.0, 3.0, 2.0, 5.0], [2.0, 1.0, 3.0, 4.0]]
+    t0, tend = 1e-16, 7
+    touts = [(t0, tend)]*2
+
+    class TransformedMySys(TransformedSys, MySys):
+        pass
+
+    SS = symmetricsys(logexp, logexp, SuperClass=TransformedMySys)
+
+    tsys = SS.from_callback(decay_rhs, ny, ny-1)
+
+    osys = MySys.from_callback(decay_rhs, ny, ny-1)
+
+    comb_res = integrate_chained([tsys, osys], kw, touts, y0s, ks, atol=atol, rtol=rtol, **kwargs)
+
+    for y0, k, xout, yout in zip(y0s, ks, comb_res[0], comb_res[1]):
+        ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref, rtol=rtol*800, atol=atol*800)
+
+    for nfo in comb_res[2]:
+        assert 0 < nfo['time_cpu'] < 100
+        assert 0 < nfo['time_wall'] < 100
+        assert nfo['success'] == True  # noqa
+
+
+def _test_NativeSys__first_step_cb(NativeSys, forgive=20):
+    dec3 = _get_decay3()
+    dec3.first_step_expr = dec3.dep[0]*1e-30
+    odesys = NativeSys.from_other(dec3)
+    y0, k = [.7, 0, 0], [1e23, 2, 3.]
+    kwargs = dict(atol=1e-8, rtol=1e-8)
+    xout, yout, info = odesys.integrate(5, y0, k, integrator='native', **kwargs)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    allclose_kw = dict(atol=kwargs['atol']*forgive, rtol=kwargs['rtol']*forgive)
+    assert info['success'] and info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
+    assert np.allclose(yout, ref, **allclose_kw)
+
+
+def _test_NativeSys__first_step_cb_source_code(NativeSys, log10myconst, should_succeed, forgive=20, **kwargs):
+    dec3 = _get_decay3()
+    odesys = NativeSys.from_other(dec3, namespace_override={
+        'p_first_step': 'return good_const()*y[0];',
+        'p_anon': 'double good_const(){ return std::pow(10, %.5g); }' % log10myconst
+    }, namespace_extend={'p_includes': ['<cmath>']})
+    y0, k = [.7, 0, 0], [1e23, 2, 3.]
+    xout, yout, info = odesys.integrate(5, y0, k, integrator='native', **kwargs)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    allclose_kw = dict(atol=kwargs['atol']*forgive, rtol=kwargs['rtol']*forgive)
+    if should_succeed is None:
+        assert not np.allclose(yout, ref, **allclose_kw)
+    else:
+        assert info['success'] == should_succeed
+        info['nfev'] > 10 and info['nfev'] > 1 and info['time_cpu'] < 100
+        if should_succeed:
+            assert np.allclose(yout, ref, **allclose_kw)
+
+
+def _test_NativeSys__roots(NativeSys):
+    def f(t, y):
+        return [y[0]]
+
+    def roots(t, y, p, backend):
+        return [y[0] - backend.exp(1)]
+
+    odesys = NativeSys.from_callback(f, 1, 0, roots_cb=roots)
+    kwargs = dict(first_step=1e-12, atol=1e-12, rtol=1e-12, method='adams')
+    xout, yout, info = odesys.integrate(2, [1], **kwargs)
+    assert len(info['root_indices']) == 1
+    assert np.min(np.abs(xout - 1)) < 1e-11
+
+
+def _test_NativeSys__get_dx_max_source_code(NativeSys, forgive=20, **kwargs):
+    dec3 = _get_decay3()
+    odesys = NativeSys.from_other(dec3, namespace_override={
+        'p_get_dx_max': 'AnyODE::ignore(y); return 1e-4*x + 1e-3;',
+    })
+    y0, k = [.7, 0, 0], [7., 2, 3.]
+    xout, yout, info = odesys.integrate(1, y0, k, integrator='native',
+                                        get_dx_max_factor=1.0, **kwargs)
+    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+    allclose_kw = dict(atol=kwargs['atol']*forgive, rtol=kwargs['rtol']*forgive)
+    assert np.allclose(yout, ref, **allclose_kw)
+    assert info['success']
+    assert info['nfev'] > 10
+    if 'n_steps' in info:
+        print(info['n_steps'])
+        assert 750 < info['n_steps'] <= 1000
+
+
+def _test_NativeSys__band(NativeSys):
+    tend, k, y0 = 2, [4, 3], (5, 4, 2)
+    y = sp.symarray('y', len(k)+1)
+    dydt = decay_dydt_factory(k)
+    f = dydt(0, y)
+    odesys = NativeSys(zip(y, f), band=(1, 0))
+    xout, yout, info = odesys.integrate(tend, y0, integrator='native')
+    ref = np.array(bateman_full(y0, k+[0], xout-xout[0], exp=np.exp)).T
+    assert np.allclose(yout, ref)
+
+
+def _test_NativeSys__dep_by_name__single_varied(NativeSys):
+    tend, kf, y0 = 2, [4, 3], {'a': (5, 3, 7, 9, 1, 6, 11), 'b': 4, 'c': 2}
+    y = sp.symarray('y', len(kf)+1)
+    dydt = decay_dydt_factory(kf)
+    f = dydt(0, y)
+    odesys = NativeSys(zip(y, f), names='a b c'.split(), dep_by_name=True)
+    xout, yout, info = odesys.integrate(tend, y0, integrator='native')
+    for idx in range(len(y0['a'])):
+        assert info[idx]['success']
+        assert xout[idx].size == yout[idx].shape[0] and yout[idx].shape[1] == 3
+        ref = np.array(bateman_full([y0[k][idx] if k == 'a' else y0[k] for k in odesys.names],
+                                    kf+[0], xout[idx]-xout[idx][0], exp=np.exp)).T
+        assert np.allclose(yout[idx], ref)

@@ -25,6 +25,7 @@ namespace anyode_parallel {
                 capture_exception();
             }
         }
+        bool holds_exception() { return m_exc != nullptr; }
     };
 }
 

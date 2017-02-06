@@ -12,25 +12,29 @@ from libcpp.vector cimport vector
 from libcpp.string cimport string
 
 cimport numpy as cnp
-from odesys_anyode cimport OdeSys
-from odesys_util cimport adaptive_return
+from odesys_anyode_iterative cimport OdeSys
 from cvodes_cxx cimport lmm_from_name, iter_type_from_name
 from cvodes_anyode_parallel cimport multi_predefined, multi_adaptive
 
 import numpy as np
 
+from odesys_util cimport adaptive_return
 
-cdef list _as_dict(vector[unordered_map[string, int]] nfos,
+
+cdef dict _as_dict(unordered_map[string, int] nfo,
+                   unordered_map[string, double] nfo_dbl,
+                   unordered_map[string, vector[double]] nfo_vecdbl,
+                   unordered_map[string, vector[int]] nfo_vecint,
                    root_indices, root_out=None, mode=None):
-    py_nfos = []
-    for idx in range(nfos.size()):
-        dct = {str(k.decode('utf-8')): v for k, v in dict(nfos[idx]).items()}
-        dct['root_indices'] = root_indices[idx]
-        if root_out is not None:
-            dct['root_out'] = root_out[idx]
-        dct['mode'] = mode
-        py_nfos.append(dct)
-    return py_nfos
+    dct = {str(k.decode('utf-8')): v for k, v in dict(nfo).items()}
+    dct.update({str(k.decode('utf-8')): v for k, v in dict(nfo_dbl).items()})
+    dct.update({str(k.decode('utf-8')): np.array(v, dtype=np.float64) for k, v in dict(nfo_vecdbl).items()})
+    dct.update({str(k.decode('utf-8')): np.array(v, dtype=int) for k, v in dict(nfo_vecint).items()})
+    dct['root_indices'] = root_indices
+    if root_out is not None:
+        dct['root_out'] = root_out
+    dct['mode'] = mode
+    return dct
 
 
 def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
@@ -39,28 +43,75 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                        vector[double] atol,
                        double rtol,
-                       double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
+                       dx0,
+                       dx_min=None,
+                       dx_max=None,
                        long int mxsteps=0,
                        str iter_type='undecided', int linear_solver=0, str method='BDF',
-                       bool with_jacobian=True):
+                       bool with_jacobian=True, bool return_on_root=False,
+                       int autorestart=0, bool return_on_error=False,
+                       bool record_rhs_xvals=False, bool record_jac_xvals=False,
+                       bool record_order=False, bool record_fpe=False,
+                       double get_dx_max_factor=-1.0, bool error_outside_bounds=False):
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
-        vector[unordered_map[string, int]] nfos
+        list nfos = []
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
         vector[pair[pair[vector[double], vector[double]], vector[int]]] result
+        int maxl=0
+        double eps_lin=0.0
+        unsigned nderiv=0,
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
+    if dx0 is None:
+        _dx0 = np.zeros(y0.shape[0])
+    else:
+        _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
+        if _dx0.size == 1:
+            _dx0 = _dx0*np.ones(y0.shape[0])
+    if _dx0.size < y0.shape[0]:
+        raise ValueError('dx0 too short')
+
+    if dx_min is None:
+        _dx_min = np.zeros(y0.shape[0])
+    else:
+        _dx_min = np.ascontiguousarray(dx_min, dtype=np.float64)
+        if _dx_min.size == 1:
+            _dx_min = _dx_min*np.ones(y0.shape[0])
+    if _dx_min.size < y0.shape[0]:
+        raise ValueError('dx_min too short')
+
+    if dx_max is None:
+        _dx_max = np.zeros(y0.shape[0])
+    else:
+        _dx_max = np.ascontiguousarray(dx_max, dtype=np.float64)
+        if _dx_max.size == 1:
+            _dx_max = _dx_max*np.ones(y0.shape[0])
+    if _dx_max.size < y0.shape[0]:
+        raise ValueError('dx_max too short')
+
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
+        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
+                                     atol, rtol, get_dx_max_factor, error_outside_bounds))
+        systems[idx].record_rhs_xvals = record_rhs_xvals
+        systems[idx].record_jac_xvals = record_jac_xvals
+        systems[idx].record_order = record_order
+        systems[idx].record_fpe = record_fpe
+
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
-        dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver)
+        &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
+        maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error
+    )
 
     xout, yout = [], []
     for idx in range(y0.shape[0]):
@@ -69,12 +120,16 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         _yout = np.asarray(result[idx].first.second)
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
         root_indices.push_back(result[idx].second)
-        nfos.push_back(systems[idx].last_integration_info)
+        nfos.append(_as_dict(systems[idx].last_integration_info,
+                             systems[idx].last_integration_info_dbl,
+                             systems[idx].last_integration_info_vecdbl,
+                             systems[idx].last_integration_info_vecint,
+                             root_indices[idx], root_out=None, mode='adaptive'))
         del systems[idx]
 
     yout_arr = [np.asarray(_) for _ in yout]
 
-    return (xout, yout, _as_dict(nfos, root_indices, root_out=None, mode='adaptive'))
+    return xout, yout, nfos
 
 
 def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
@@ -82,39 +137,85 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
                          vector[double] atol,
                          double rtol,
-                         double dx0=0.0, double dx_min=0.0, double dx_max=0.0,
+                         dx0,
+                         dx_min=None,
+                         dx_max=None,
                          long int mxsteps=0,
                          str iter_type='undecided', int linear_solver=0, str method='BDF',
-                         bool with_jacobian=True):
+                         bool with_jacobian=True, int autorestart=0, bool return_on_error=False,
+                         bool record_rhs_xvals=False, bool record_jac_xvals=False,
+                         bool record_order=False, bool record_fpe=False,
+                         double get_dx_max_factor=0.0, bool error_outside_bounds=False):
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
         vector[vector[double]] root_out
-        vector[unordered_map[string, int]] nfos
+        list nfos = []
         cnp.ndarray[cnp.float64_t, ndim=3, mode='c'] yout
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
         vector[pair[vector[int], vector[double]]] result
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
+        int maxl = 0
+        double eps_lin = 0.0
+        unsigned nderiv = 0
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
+    if dx0 is None:
+        _dx0 = np.zeros(y0.shape[0])
+    else:
+        _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
+        if _dx0.size == 1:
+            _dx0 = _dx0*np.ones(y0.shape[0])
+    if _dx0.size < y0.shape[0]:
+        raise ValueError('dx0 too short')
+
+    if dx_min is None:
+        _dx_min = np.zeros(y0.shape[0])
+    else:
+        _dx_min = np.ascontiguousarray(dx_min, dtype=np.float64)
+        if _dx_min.size == 1:
+            _dx_min = _dx_min*np.ones(y0.shape[0])
+    if _dx_min.size < y0.shape[0]:
+        raise ValueError('dx_min too short')
+
+    if dx_max is None:
+        _dx_max = np.zeros(y0.shape[0])
+    else:
+        _dx_max = np.ascontiguousarray(dx_max, dtype=np.float64)
+        if _dx_max.size == 1:
+            _dx_max = _dx_max*np.ones(y0.shape[0])
+    if _dx_max.size < y0.shape[0]:
+        raise ValueError('dx_max too short')
+
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0]))
+        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
+                                     atol, rtol, get_dx_max_factor, error_outside_bounds))
+        systems[idx].record_rhs_xvals = record_rhs_xvals
+        systems[idx].record_jac_xvals = record_jac_xvals
+        systems[idx].record_order = record_order
+        systems[idx].record_fpe = record_fpe
+
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeSys](
-        systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data, <double *>yout.data,
-        mxsteps, dx0, dx_min, dx_max, with_jacobian, iter_type_from_name(_iter_t), linear_solver)
+        systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data,
+        <double *>yout.data, mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian,
+        iter_type_from_name(_iter_t), linear_solver, maxl, eps_lin, nderiv, autorestart)
 
     for idx in range(y0.shape[0]):
         root_indices.push_back(result[idx].first)
         root_out.push_back(result[idx].second)
-        nfos.push_back(systems[idx].last_integration_info)
+        nfos.append(_as_dict(systems[idx].last_integration_info,
+                             systems[idx].last_integration_info_dbl,
+                             systems[idx].last_integration_info_vecdbl,
+                             systems[idx].last_integration_info_vecint,
+                             root_indices, root_out, mode='predefined'))
         del systems[idx]
 
     yout_arr = np.asarray(yout)
-    return (
-        yout,
-        _as_dict(nfos, root_indices, root_out, mode='predefined')
-    )
+    return yout, nfos

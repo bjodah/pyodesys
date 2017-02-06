@@ -1,5 +1,5 @@
 {% set name = "pyodesys" %}
-{% set version = "0.7.0.git" %}
+{% set version = "0.7.1.git" %}
 
 package:
   name: {{ name|lower }}

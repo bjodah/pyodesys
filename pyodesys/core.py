@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Core functionality from OdeSys.
+Core functionality for ODESys.
 
 Note that it is possible to use new custom ODE integrators with pyodesys by
 providing a module with two functions named ``integrate_adaptive`` and
@@ -10,6 +10,7 @@ providing a module with two functions named ``integrate_adaptive`` and
 from __future__ import absolute_import, division, print_function
 
 
+from collections import defaultdict
 import os
 import warnings
 
@@ -17,12 +18,17 @@ import numpy as np
 
 from .util import _ensure_4args, _default
 from .plotting import plot_result, plot_phase_plane
+from .results import Result
 
 
-class OdeSys(object):
+class RecoverableError(Exception):
+    pass
+
+
+class ODESys(object):
     """ Object representing an ODE system.
 
-    ``OdeSys`` provides unified interface to:
+    ``ODESys`` provides unified interface to:
 
     - scipy.integarte.ode
     - pygslodeiv2
@@ -40,17 +46,35 @@ class OdeSys(object):
     f : callback
         first derivatives of dependent variables (y) with respect to
         dependent variable (x). Signature is any of:
-            - rhs(x, y[:]) --> f[:]
-            - rhs(x, y[:], p[:]) --> f[:]
-            - rhs(x, y[:], p[:], backend=math) --> f[:]
+            - ``rhs(x, y[:]) -> f[:]``
+            - ``rhs(x, y[:], p[:]) -> f[:]``
+            - ``rhs(x, y[:], p[:], backend=math) -> f[:]``
     jac : callback
         Jacobian matrix (dfdy). Required for implicit methods.
     dfdx : callback
-        Signature dfdx(x, y[:], p[:]) -> out[:] (used by e.g. GSL)
+        Signature ``dfdx(x, y[:], p[:]) -> out[:]`` (used by e.g. GSL)
+    first_step_cb : callback
+        Signature ``step1st(x, y[:], p[:]) -> dx0`` (pass first_step==0 to use).
+        This is available for ``cvode``, ``odeint`` & ``gsl``, but not for ``scipy``.
+    roots_cb : callback
+        Signature ``roots_cb(x, y[:], p[:]=(), backend=math) -> discr[:]``.
+    nroots : int
+        Length of return vector from ``roots_cb``.
     band : tuple of 2 integers or None (default: None)
         If jacobian is banded: number of sub- and super-diagonals
-    names : iterable of strings (default: None)
-        names of variables, e.g. used for plotting
+    names : iterable of strings (default : None)
+        Names of variables, used for referencing dependent variables by name
+        and for labels in plots.
+    param_names : iterable of strings (default: None)
+        Names of the parameters, used for referencing parameters by name.
+    dep_by_name : bool
+        When ``True`` :meth:`integrate` expects a dictionary as input for y0.
+    par_by_name : bool
+        When ``True`` :meth:`integrate` expects a dictionary as input for params.
+    latex_names : iterable of strings (default : None)
+        Names of variables in LaTeX format (e.g. for labels in plots).
+    latex_param_names : iterable of strings (default : None)
+        Names of parameters in LaTeX format (e.g. for labels in plots).
     pre_processors : iterable of callables (optional)
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:].
         When modifying: insert at beginning.
@@ -58,27 +82,42 @@ class OdeSys(object):
         signature: f(x2[:], y2[:, :], params2[:]) -> x1[:], y1[:, :],
         params1[:]
         When modifying: insert at end.
+    append_iv :  bool
+        If ``True`` params[:] passed to :attr:`f_cb`, :attr:`jac_cb` will contain
+        initial values of y.
+    autonomous_interface : bool (optional)
+        If given, sets the :attr:`autonomous` to indicate whether
+        the system appears autonomous or not upon call to :meth:`integrate`.
 
     Attributes
     ----------
     f_cb : callback
-        for evaluating the vector of derivatives
-    j_cb : callback
-        for evaluating the Jacobian matrix of f
+        For evaluating the vector of derivatives.
+    j_cb : callback or None
+        For evaluating the Jacobian matrix of f.
+    dfdx_cb : callback or None
+        For evaluating the second order derivatives.
+    first_step_cb : callback or None
+        For calculating the first step based on x0, y0 & p.
     roots_cb : callback
     nroots : int
     names : iterable of strings
-    internal_xout : 1D array of floats
-        internal values of dependent variable before post-processing
-    internal_yout : 2D (or higher) array of floats
-        internal values of dependent variable before post-processing
-    internal_params : 1D array of floats
-        internal parameter values before post-processing
-
+    param_names : iterable of strings
+    description : str
+    dep_by_name : bool
+    par_by_name : bool
+    latex_names : iterable of str
+    latex_param_names : iterable of str
+    pre_processors : iterable of callbacks
+    post_processors : iterable of callbacks
+    append_iv : bool
+    autonomous_interface : bool or None
+        Indicates whether the system appears autonomous upon call to
+        :meth:`integrate`. ``None`` indicates that it is unknown.
 
     Examples
     --------
-    >>> odesys = OdeSys(lambda x, y, p: p[0]*x + p[1]*y[0]*y[0])
+    >>> odesys = ODESys(lambda x, y, p: p[0]*x + p[1]*y[0]*y[0])
     >>> yout, info = odesys.predefined([1], [0, .2, .5], [2, 1])
     >>> print(info['success'])
     True
@@ -86,29 +125,76 @@ class OdeSys(object):
 
     Notes
     -----
-    banded jacobians are supported by "scipy" and "cvode" integrators
+    Banded jacobians are supported by "scipy" and "cvode" integrators.
 
     """
 
-    def __init__(self, f, jac=None, dfdx=None, roots=None, nroots=None,
-                 band=None, names=None, description=None, pre_processors=None,
-                 post_processors=None):
+    def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
+                 band=None, names=None, param_names=None, description=None, dep_by_name=False,
+                 par_by_name=False, latex_names=None, latex_param_names=None, pre_processors=None,
+                 post_processors=None, append_iv=False, autonomous_interface=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
-        self.roots_cb = roots
-        self.nroots = nroots
+        self.first_step_cb = first_step_cb
+        self.roots_cb = roots_cb
+        self.nroots = nroots or 0
         if band is not None:
             if not band[0] >= 0 or not band[1] >= 0:
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
         self.names = names
+        self.param_names = param_names
         self.description = description
+        self.dep_by_name = dep_by_name
+        self.par_by_name = par_by_name
+        self.latex_names = latex_names
+        self.latex_param_names = latex_param_names
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
+        self.append_iv = append_iv
+        if hasattr(self, 'autonomous_interface'):
+            if autonomous_interface is not None and autonomous_interface != self.autonomous_interface:
+                raise ValueError("Got conflicting autonomous_interface infomation.")
+        else:
+            if (autonomous_interface is None and getattr(self, 'autonomous_exprs', False) and
+               len(self.post_processors) == 0 and len(self.pre_processors) == 0):
+                self.autonomous_interface = True
+            else:
+                self.autonomous_interface = autonomous_interface
+
+        if self.autonomous_interface not in (True, False, None):
+            raise ValueError("autonomous_interface needs to be a boolean value or None.")
+
+        if len(kwargs) > 0:
+            raise ValueError("Unknown kwargs: %s" % str(kwargs))
+
+    @staticmethod
+    def _array_from_dict(d, keys):
+        vals = [d[k] for k in keys]
+        lens = [len(v) for v in vals if hasattr(v, '__len__') and getattr(v, 'ndim', 1) > 0]
+        if len(lens) == 0:
+            return vals, True
+        else:
+            if not all(l == lens[0] for l in lens):
+                raise ValueError("Mixed lenghts in dictionary.")
+            out = np.empty((lens[0], len(vals)))
+            for idx, v in enumerate(vals):
+                out[:, idx] = v
+            return out, False
 
     def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
+        if self.dep_by_name and isinstance(y0, dict):
+            y0, tp_y0 = self._array_from_dict(y0, self.names)
+        else:
+            tp_y0 = False  # `quantities`-array-work-around (losing units if merely glanced at..)
+
+        if self.par_by_name and isinstance(params, dict):
+            params, tp_p = self._array_from_dict(params, self.param_names)
+        else:
+            tp_p = False
+
         try:
             nx = len(xout)
             if nx == 1:
@@ -118,7 +204,8 @@ class OdeSys(object):
 
         for pre_processor in self.pre_processors:
             xout, y0, params = pre_processor(xout, y0, params)
-        return np.atleast_1d(xout), np.atleast_1d(y0), np.atleast_1d(params)
+        _x, _y, _p = np.atleast_1d(xout), np.atleast_1d(y0), np.atleast_1d(params)
+        return _x, _y.T if tp_y0 else _y, _p.T if tp_p else _p
 
     def post_process(self, xout, yout, params):
         """ Transforms internal values to output, used internally. """
@@ -176,8 +263,9 @@ class OdeSys(object):
         return yout, info
 
     def integrate(self, x, y0, params=(), **kwargs):
-        """
-        Integrate the system of ordinary differential equations.
+        """ Integrate the system of ordinary differential equations.
+
+        Solves the initial value problem (IVP).
 
         Parameters
         ----------
@@ -221,25 +309,45 @@ class OdeSys(object):
             yout : array of the dependent variable(s) for the different values of x
             info : dict ('nfev' is guaranteed to be a key)
         """
-        intern_x, intern_y0, intern_p = self.pre_process(x, y0, params)
-        intern_x = intern_x.squeeze()
-        intern_y0 = np.atleast_1d(intern_y0.squeeze())
+        _intern_x, _intern_y0, _intern_p = self.pre_process(x, y0, params)
+        intern_x = _intern_x.squeeze()
+        intern_y0 = np.atleast_1d(_intern_y0)
+        if self.append_iv:
+            intern_p = np.concatenate((_intern_p, intern_y0), axis=-1)
+        else:
+            intern_p = _intern_p
         if hasattr(self, 'ny'):
             if intern_y0.shape[-1] != self.ny:
                 raise ValueError("Incorrect shape of intern_y0")
+        if isinstance(kwargs.get('atol', None), dict):
+            kwargs['atol'] = [kwargs['atol'][k] for k in self.names]
         integrator = kwargs.pop('integrator', None)
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
+
+        if intern_y0.ndim == 1 and intern_p.ndim == 2:
+            # repeat y based on p
+            intern_y0 = np.tile(intern_y0, (intern_p.shape[0], 1))
+        elif intern_y0.ndim == 2 and intern_p.ndim == 1:
+            # repeat p based on p
+            intern_p = np.tile(intern_p, (intern_y0.shape[0], 1))
+
+        if intern_x.ndim == 1 and intern_y0.ndim == 2:
+            # repeat x based on y
+            intern_x = np.tile(intern_x, (intern_y0.shape[0], 1))
 
         ndims = (intern_x.ndim, intern_y0.ndim, intern_p.ndim)
         if ndims == (1, 1, 1):
             twodim = False
         elif ndims == (2, 2, 2):
             twodim = True
+            if not intern_x.shape[0] == intern_y0.shape[0] == intern_p.shape[0]:
+                raise ValueError("Inconsistent shape[0] in x, y, p: (%d, %d, %d)" % (
+                    intern_x.shape[0], intern_y0.shape[0], intern_p.shape[0]))
         else:
             raise ValueError("Mixed number of dimensions")
 
-        args = map(np.atleast_2d, (intern_x, intern_y0, intern_p))
+        args = tuple(map(np.atleast_2d, (intern_x, intern_y0, intern_p)))
 
         if isinstance(integrator, str):
             nfo = getattr(self, '_integrate_' + integrator)(*args, **kwargs)
@@ -252,15 +360,18 @@ class OdeSys(object):
             if nfo[0]['mode'] == 'predefined':
                 _xout = np.array([d['internal_xout'] for d in nfo])
                 _yout = np.array([d['internal_yout'] for d in nfo])
+                _params = np.array([d['internal_params'] for d in nfo])
             else:
                 _xout = [d['internal_xout'] for d in nfo]
                 _yout = [d['internal_yout'] for d in nfo]
+                _params = [d['internal_params'] for d in nfo]
         else:
             _xout = nfo[0]['internal_xout']
             _yout = nfo[0]['internal_yout']
-            self._internal = _xout.copy(), _yout.copy(), intern_p
+            _params = intern_p  # nfo[0]['internal_params']
+            self._internal = _xout.copy(), _yout.copy(), _params.copy()
             nfo = nfo[0]
-        return self.post_process(_xout, _yout, intern_p)[:2] + (nfo,)
+        return Result(*(self.post_process(_xout, _yout, _params) + (nfo, self)))
 
     def _integrate_scipy(self, intern_xout, intern_y0, intern_p,
                          atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
@@ -315,8 +426,7 @@ class OdeSys(object):
 
             r = ode(rhs, jac=jac if with_jacobian else None)
             if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
-                raise ValueError("lband and uband set locally (set `band` at"
-                                 " initialization instead)")
+                raise ValueError("lband and uband set locally (set `band` at initialization instead)")
             if self.band is not None:
                 kwargs['lband'], kwargs['uband'] = self.band
             r.set_integrator(name, atol=atol, rtol=rtol, **kwargs)
@@ -362,6 +472,7 @@ class OdeSys(object):
             info = {
                 'internal_xout': _xout,
                 'internal_yout': _yout,
+                'internal_params': intern_p,
                 'success': r.successful(),
                 'nfev': rhs.ncall,
                 'name': name,
@@ -373,45 +484,57 @@ class OdeSys(object):
         return results
 
     def _integrate(self, adaptive, predefined, intern_xout, intern_y0, intern_p,
-                   atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
+                   atol=1e-8, rtol=1e-8, first_step=0.0, with_jacobian=None,
                    force_predefined=False, **kwargs):
         nx = intern_xout.shape[-1]
         results = []
         for _xout, _y0, _p in zip(intern_xout, intern_y0, intern_p):
-            if first_step is None:
-                first_step = 1e-14 + abs(_xout[0])*1e-14  # arbitrary, heur.
             new_kwargs = dict(dx0=first_step, atol=atol,
                               rtol=rtol, check_indexing=False)
             new_kwargs.update(kwargs)
 
             def _f(x, y, fout):
-                if len(_p) > 0:
-                    fout[:] = self.f_cb(x, y, _p)
-                else:
-                    fout[:] = self.f_cb(x, y)
+                try:
+                    if len(_p) > 0:
+                        fout[:] = np.asarray(self.f_cb(x, y, _p))
+                    else:
+                        fout[:] = np.asarray(self.f_cb(x, y))
+                except RecoverableError:
+                    return 1  # recoverable error
 
             if with_jacobian is None:
                 raise ValueError("Need to pass with_jacobian")
             elif with_jacobian is True:
                 def _j(x, y, jout, dfdx_out=None, fy=None):
                     if len(_p) > 0:
-                        jout[:, :] = self.j_cb(x, y, _p)
+                        jout[:, :] = np.asarray(self.j_cb(x, y, _p))
                     else:
-                        jout[:, :] = self.j_cb(x, y)
+                        jout[:, :] = np.asarray(self.j_cb(x, y))
                     if dfdx_out is not None:
                         if len(_p) > 0:
-                            dfdx_out[:] = self.dfdx_cb(x, y, _p)
+                            dfdx_out[:] = np.asarray(self.dfdx_cb(x, y, _p))
                         else:
-                            dfdx_out[:] = self.dfdx_cb(x, y)
+                            dfdx_out[:] = np.asarray(self.dfdx_cb(x, y))
             else:
                 _j = None
+
+            if self.first_step_cb is not None:
+                def _first_step(x, y):
+                    if len(_p) > 0:
+                        return self.first_step_cb(x, y, _p)
+                    else:
+                        return self.first_step_cb(x, y)
+                if 'dx0cb' in new_kwargs:
+                    raise ValueError("cannot override dx0cb")
+                else:
+                    new_kwargs['dx0cb'] = _first_step
 
             if self.roots_cb is not None:
                 def _roots(x, y, out):
                     if len(_p) > 0:
-                        out[:] = self.roots_cb(x, y, _p)
+                        out[:] = np.asarray(self.roots_cb(x, y, _p))
                     else:
-                        out[:] = self.roots_cb(x, y)
+                        out[:] = np.asarray(self.roots_cb(x, y))
                 if 'roots' in new_kwargs:
                     raise ValueError("cannot override roots")
                 else:
@@ -428,11 +551,12 @@ class OdeSys(object):
 
             info['internal_xout'] = _xout
             info['internal_yout'] = yout
+            info['internal_params'] = _p
             results.append(info)
         return results
 
     def _integrate_gsl(self, *args, **kwargs):
-        """ Do not use directly (use ``integrate('gsl', ...)``).
+        """ Do not use directly (use ``integrate(..., integrator='gsl')``).
 
         Uses `GNU Scientific Library <http://www.gnu.org/software/gsl/>`_
         (via `pygslodeiv2 <https://pypi.python.org/pypi/pygslodeiv2>`_)
@@ -460,7 +584,7 @@ class OdeSys(object):
                                *args, **kwargs)
 
     def _integrate_odeint(self, *args, **kwargs):
-        """ Do not use directly (use ``integrate('odeint', ...)``).
+        """ Do not use directly (use ``integrate(..., integrator='odeint')``).
 
         Uses `Boost.Numeric.Odeint <http://www.odeint.com>`_
         (via `pyodeint <https://pypi.python.org/pypi/pyodeint>`_) to integrate
@@ -474,7 +598,7 @@ class OdeSys(object):
                                *args, **kwargs)
 
     def _integrate_cvode(self, *args, **kwargs):
-        """ Do not use directly (use ``integrate('cvode', ...)``).
+        """ Do not use directly (use ``integrate(..., integrator='cvode')``).
 
         Uses CVode from CVodes in
         `SUNDIALS <https://computation.llnl.gov/casc/sundials/>`_
@@ -498,19 +622,25 @@ class OdeSys(object):
         if 'x' in kwargs or 'y' in kwargs or 'params' in kwargs:
             raise ValueError("x and y from internal_xout and internal_yout")
 
-        if 'post_processors' not in kwargs:
-            kwargs['post_processors'] = self.post_processors
+        _internal = getattr(self, '_internal', [None]*3)
+        x, y, p = (_default(internal_xout, _internal[0]),
+                   _default(internal_yout, _internal[1]),
+                   _default(internal_params, _internal[2]))
+        for post_processor in self.post_processors:
+            x, y, p = post_processor(x, y, p)
 
         if 'names' not in kwargs:
             kwargs['names'] = getattr(self, 'names', None)
-
-        return cb(_default(internal_xout, self._internal[0]),
-                  _default(internal_yout, self._internal[1]),
-                  _default(internal_params, self._internal[2]), **kwargs)
+        else:
+            if 'indices' not in kwargs and getattr(self, 'names', None) is not None:
+                kwargs['indices'] = [self.names.index(n) for n in kwargs['names']]
+                kwargs['names'] = self.names
+        return cb(x, y, **kwargs)
 
     def plot_result(self, **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
+        This method will be deprecated. Please use :meth:`Result.plot`.
         See :func:`pyodesys.plotting.plot_result`
         """
         return self._plot(plot_result, **kwargs)
@@ -518,6 +648,7 @@ class OdeSys(object):
     def plot_phase_plane(self, indices=None, **kwargs):
         """ Plots a phase portrait from last integration.
 
+        This method will be deprecated. Please use :meth:`Result.plot_phase_plane`.
         See :func:`pyodesys.plotting.plot_phase_plane`
         """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
@@ -528,8 +659,9 @@ class OdeSys(object):
         return svd(J, compute_uv=False)
 
     def stiffness(self, xyp=None, eigenvals_cb=None):
-        """ Running stiffness ratio from last integration.
+        """ [DEPRECATED] Use :meth:`Result.stiffness`, stiffness ration
 
+        Running stiffness ratio from last integration.
         Calculate sittness ratio, i.e. the ratio between the largest and
         smallest absolute eigenvalue of the jacobian matrix. The user may
         supply their own routine for calculating the eigenvalues, or they
@@ -563,3 +695,107 @@ class OdeSys(object):
 
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
+
+
+def _new_x(xout, x, guaranteed_autonomous):
+    if guaranteed_autonomous:
+        return 0, abs(x[-1] - xout[-1])  # rounding
+    else:
+        return xout[-1], x[-1]
+
+
+def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
+    """ Auto-switching between formulations of ODE system.
+
+    In case one has a formulation of a system of ODEs which is preferential in
+    the beginning of the intergration this function allows the user to run the
+    integration with this system where it takes a user-specified maximum number
+    of steps before switching to another formulation (unless final value of the
+    independent variables has been reached). Number of systems used i returned
+    as ``nsys`` in info dict.
+
+    Parameters
+    ----------
+    odes : iterable of :class:`OdeSy` instances
+    kw : dict mapping kwarg to iterables of same legnth as ``odes``
+    x : array_like
+    y0 : array_like
+    params : array_like
+    \*\*kwargs:
+        See :meth:`ODESys.integrate`
+
+    Notes
+    -----
+    Plays particularly well with :class:`symbolic.TransformedSys`.
+
+    """
+    x_arr = np.asarray(x)
+    if x_arr.shape[-1] > 2:
+        raise NotImplementedError("Only adaptive support return_on_error for now")
+    multimode = False if x_arr.ndim < 2 else x_arr.shape[0]
+    nfo_keys = ('nfev', 'njev', 'time_cpu', 'time_wall')
+
+    next_autonomous = getattr(odes[0], 'autonomous_interface', False) == True  # noqa (np.True_)
+    if multimode:
+        tot_x = [np.array([0] if next_autonomous else [x[_][0]]) for _ in range(multimode)]
+        tot_y = [np.asarray([y0[_]]) for _ in range(multimode)]
+        tot_nfo = [defaultdict(int) for _ in range(multimode)]
+        glob_x = [_[0] for _ in x] if next_autonomous else [0.0]*multimode
+    else:
+        tot_x, tot_y, tot_nfo = np.array([0 if next_autonomous else x[0]]), np.asarray([y0]), defaultdict(int)
+        glob_x = x[0] if next_autonomous else 0.0
+
+    for oi in range(len(odes)):
+        if oi < len(odes) - 1:
+            next_autonomous = getattr(odes[oi+1], 'autonomous_interface', False) == True  # noqa (np.True_)
+        _int_kw = kwargs.copy()
+        for k, v in kw.items():
+            _int_kw[k] = v[oi]
+        xout, yout, nfo = odes[oi].integrate(x, y0, params, **_int_kw)
+
+        if multimode:
+            for idx in range(multimode):
+                tot_x[idx] = np.concatenate((tot_x[idx], xout[idx][1:] + glob_x[idx]))
+                tot_y[idx] = np.concatenate((tot_y[idx], yout[idx][1:, :]))
+                for k in nfo_keys:
+                    if k in nfo[idx]:
+                        tot_nfo[idx][k] += nfo[idx][k]
+                tot_nfo[idx]['success'] = nfo[idx]['success']
+        else:
+            tot_x = np.concatenate((tot_x, xout[1:] + glob_x))
+            tot_y = np.concatenate((tot_y, yout[1:, :]))
+            for k in nfo_keys:
+                if k in nfo:
+                    tot_nfo[k] += nfo[k]
+            tot_nfo['success'] = nfo['success']
+
+        if multimode:
+            if all([d['success'] for d in nfo]):
+                break
+        else:
+            if nfo['success']:
+                break
+        if oi < len(odes) - 1:
+            if multimode:
+                _x, y0 = [], []
+                for idx in range(multimode):
+                    _x.append(_new_x(xout[idx], x[idx], next_autonomous))
+                    y0.append(yout[idx][-1, :])
+                    if next_autonomous:
+                        glob_x[idx] += xout[idx][-1]
+                x = _x
+            else:
+                x = _new_x(xout, x, next_autonomous)
+                y0 = yout[-1, :]
+                if next_autonomous:
+                    glob_x += xout[-1]
+    if multimode:  # don't return defaultdict
+        tot_nfo = [dict(nsys=oi+1, **_nfo) for _nfo in tot_nfo]
+    else:
+        tot_nfo = dict(nsys=oi+1, **tot_nfo)
+    return tot_x, tot_y, tot_nfo
+
+
+class OdeSys(ODESys):
+    """ DEPRECATED, use ODESys instead. """
+    pass
