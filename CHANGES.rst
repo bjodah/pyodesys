@@ -1,3 +1,7 @@
+v0.8.1
+======
+- Fix bug in PartiallySolvedSystem when passing linear_invariants to constructor.
+
 v0.8.0
 ======
 - New function ``core.integrate_chained`` for use with TransformedSys.
