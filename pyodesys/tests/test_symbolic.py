@@ -372,6 +372,7 @@ def test_scipy(name, forgive):
 
 
 # (dopri5, .2), (bs, .03) <-- works in boost 1.59
+@pytest.mark.slow
 @requires('sym', 'pyodeint')
 @pytest.mark.parametrize('method,forgive', zip(
     'rosenbrock4 dopri5 bs'.split(), (.2, .2, .04)))
@@ -400,6 +401,7 @@ def _gsl(tout, method, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
+@pytest.mark.veryslow
 @requires('sym', 'pygslodeiv2')
 @pytest.mark.parametrize('method,forgive', zip(
     'msadams msbdf rkck bsimp'.split(), (5, 14, 0.2, 0.02)))
@@ -407,6 +409,7 @@ def test_gsl_predefined(method, forgive):
     _gsl([10**i for i in range(-14, 1)], method, forgive)
 
 
+@pytest.mark.veryslow
 @requires('sym', 'pygslodeiv2')
 @pytest.mark.parametrize('method,forgive', zip(
     'bsimp msadams msbdf rkck'.split(), (0.01, 4, 14, 0.21)))
@@ -426,6 +429,7 @@ def _cvode(tout, method, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('method,forgive', zip(
     'adams bdf'.split(), (2.4, 5.0)))
@@ -434,6 +438,7 @@ def test_cvode_predefined(method, forgive):
 
 
 # cvode performs significantly better than vode:
+@pytest.mark.slow
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('method,forgive', zip(
     'adams bdf'.split(), (2.4, 5)))
@@ -441,6 +446,7 @@ def test_cvode_adaptive(method, forgive):
     _cvode(1, method, forgive)
 
 
+@pytest.mark.veryslow
 @requires('sym', 'scipy')
 @pytest.mark.parametrize('n,forgive', [(4, 1), (17, 1), (42, 7)])
 def test_long_chain_dense(n, forgive):
@@ -453,6 +459,7 @@ def test_long_chain_dense(n, forgive):
     check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
+@pytest.mark.slow
 @requires('sym', 'scipy')
 @pytest.mark.parametrize('n', [29])  # something maxes out at 31
 def test_long_chain_banded_scipy(n):
@@ -484,6 +491,7 @@ def test_long_chain_banded_scipy(n):
     assert min_time_dens*2 > min_time_band  # (2x: fails sometimes due to load)
 
 
+@pytest.mark.veryslow
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('n', [29, 79])
 def test_long_chain_banded_cvode(n):
@@ -522,6 +530,7 @@ def _get_decay3(**kwargs):
         ], 3, 3, **kwargs)
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_no_diff_adaptive_chained_single(integrator):
@@ -540,6 +549,7 @@ def test_no_diff_adaptive_chained_single(integrator):
     assert np.allclose(yout2, ref)
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_no_diff_adaptive_chained_single__multimode(integrator):
@@ -597,6 +607,7 @@ def test_PartiallySolvedSystem__using_y(integrator):
     assert np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem_multiple_subs(integrator):
@@ -649,6 +660,7 @@ def _get_transf_part_system():
     return LogLogSys.from_other(partsys)
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem__symmetricsys(integrator):
@@ -662,6 +674,7 @@ def test_PartiallySolvedSystem__symmetricsys(integrator):
     assert np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
@@ -707,6 +720,7 @@ def _ref_nonlin(y0, k, t):
     return (x4*x8 + x5*x8 + x7*(x2 + x6))/(2*kf*(x6 + x7))
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
 def test_PartiallySolvedSystem__symmetricsys__nonlinear(integrator):
@@ -799,6 +813,7 @@ def test_SymbolicSys_from_callback__symcxx():
     _test_SymbolicSys_from_callback__backend('symcxx')
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator,method', [('cvode', 'adams'), ('gsl', 'msadams')])
 def test_integrate_chained(integrator, method):
@@ -865,6 +880,7 @@ def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
         assert tres[2]['nfev'] > 100
 
 
+@pytest.mark.veryslow
 @requires('sym', 'pycvodes', 'pygslodeiv2', 'pyodeint')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl', 'odeint'])
 def test_cetsa(integrator):
@@ -874,6 +890,7 @@ def test_cetsa(integrator):
         _test_cetsa(_cetsa.ys[0], _cetsa.ps[0], extra=True, integrator=integrator)
 
 
+@pytest.mark.veryslow
 @requires('sym', 'pycvodes', 'pygslodeiv2', 'pyodeint')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl', 'odeint'])
 def test_cetsa_multi(integrator):
@@ -954,6 +971,7 @@ def test_SymbolicSys__first_step_expr():
     assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
 
 
+@pytest.mark.slow
 @requires('sym', 'pygslodeiv2')
 def test_SymbolicSys__from_callback__first_step_expr():
     tend, k, y0 = 5, [1e23, 3], (.7, .0, .0)
@@ -1067,6 +1085,7 @@ def test_SymbolicSys__reference_parameters_using_symbols_from_callback(method):
                 assert np.allclose(yout[:, 0], 2*np.exp(-3*xout))
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('scaled', [False, True])
 def test_PartiallySolvedSystem__from_linear_invariants(scaled):
@@ -1165,6 +1184,7 @@ def test_PartiallySolvedSystem__roots(idx):
     check(psys)
 
 
+@pytest.mark.slow
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('idx1,idx2,scaled,b2', product([0, 1, 2], [0, 1, 2], [True, False], [None, 0]))
 def test_TransformedSys__roots(idx1, idx2, scaled, b2):

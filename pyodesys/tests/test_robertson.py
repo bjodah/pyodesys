@@ -18,6 +18,7 @@ from ._robertson import run_integration, get_ode_exprs
 _yref_1e11 = (0.2083340149701255e-7, 0.8333360770334713e-13, 0.9999999791665050)
 
 
+@pytest.mark.slow
 @requires('sym', 'sympy', 'pyodeint')
 def test_run_integration():
     xout, yout, info = run_integration(integrator='odeint')[:3]
@@ -101,6 +102,7 @@ def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
                        rtol=kw['rtol'])
 
 
+@pytest.mark.veryslow
 @requires('sym', 'sympy', 'pycvodes')
 def test_get_ode_exprs_symbolic():
     _test_goe(symbolic=True, logc=True, logt=False, zero_conc=1e-20,
@@ -126,6 +128,7 @@ def test_get_ode_exprs_symbolic():
                       first_step=1e-10)
 
 
+@pytest.mark.veryslow
 @requires('sym', 'sympy', 'pycvodes')
 def test_get_ode_exprs_ODESys():
     _test_goe(symbolic=False, logc=True, logt=False, zero_conc=1e-20,
@@ -150,6 +153,7 @@ def test_get_ode_exprs_ODESys():
                   atol=1e-13, rtol=1e-14, first_step=1e-14, extra_forgive=3)
 
 
+@pytest.mark.slow
 @requires('sym', 'sympy', 'pycvodes')
 @pytest.mark.parametrize('reduced_nsteps', [
     (0, [(1, 1705*1.01), (4988*1.01, 1), (200, 1633), (4988*0.69, 1705*0.69)]),  # pays off in steps!
@@ -187,6 +191,7 @@ def test_integrate_chained_robertson(reduced_nsteps):
         nfo['asdjklda']
 
 
+@pytest.mark.slow
 @requires('sym', 'sympy', 'pycvodes')
 def test_integrate_chained_multi_robertson():
     odes = logsys, linsys = [ODESys(*get_ode_exprs(l, l)) for l in [True, False]]

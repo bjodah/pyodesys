@@ -19,54 +19,64 @@ from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
 
 
+@pytest.mark.veryslow
 @requires('pycvodes')
 def test_NativeSys():
     _test_NativeSys(NativeSys, integrator='cvode')
 
 
+@pytest.mark.veryslow
 @requires('pycvodes')
 def test_NativeSys_two():
     _test_NativeSys_two(NativeSys)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_ScaledSys_NativeSys():
     _test_ScaledSys_NativeSys(NativeSys)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_symmetricsys_nativesys():
     _test_symmetricsys_nativesys(NativeSys)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_multiple_adaptive():
     _test_multiple_adaptive(NativeSys, nsteps=700)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_multiple_predefined():
     _test_multiple_predefined(NativeSys, atol=1e-10, rtol=1e-10)
 
 
+@pytest.mark.veryslow
 @requires('pycvodes')
 def test_multiple_adaptive_chained():
     _test_multiple_adaptive_chained(
         NativeSys, {'nsteps': (850, 1100), 'autorestart': (0, 3), 'return_on_error': (True, False)})
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 @pytest.mark.parametrize('multiple', [False, True])
 def test_PartiallySolved_symmetric_native(multiple):
     _test_PartiallySolved_symmetric_native(NativeSys, multiple, forgive=1e2)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 @pytest.mark.parametrize('multiple', [False, True])
 def test_PartiallySolved_symmetric_native_multi(multiple):
     _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple, forgive=1e2)
 
 
+@pytest.mark.veryslow
 @requires('pycvodes')
 @pytest.mark.parametrize('reduced', [0, 3])
 def test_chained_multi_native(reduced):
@@ -76,6 +86,7 @@ def test_chained_multi_native(reduced):
     )
 
 
+@pytest.mark.veryslow
 @requires('pycvodes')
 def test_chained_multi_native_nonnegative():
     _test_chained_multi_native(
@@ -89,22 +100,26 @@ def test_Decay_nonnegative():
     _test_Decay_nonnegative(NativeSys)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_NativeSys_first_step_expr__decay():
     _test_NativeSys__first_step_cb(NativeSys)
 
 
+@pytest.mark.veryslow
 @requires('pycvodes')
 def test_NativeSys_first_step_expr__source_code():
     _test_NativeSys__first_step_cb_source_code(NativeSys, -30, True, return_on_error=True, atol=1e-8, rtol=1e-8)
     _test_NativeSys__first_step_cb_source_code(NativeSys, -10, False, return_on_error=True, atol=1e-8, rtol=1e-8)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_roots():
     _test_NativeSys__roots(NativeSys)
 
 
+@pytest.mark.veryslow
 @requires('pycvodes')
 def test_chained_multi_native__dx_max_scalar():
     _test_chained_multi_native(
@@ -113,6 +128,7 @@ def test_chained_multi_native__dx_max_scalar():
     )
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_NativeSys_get_dx_max_source_code():
     _test_NativeSys__get_dx_max_source_code(NativeSys, atol=1e-8, rtol=1e-8, nsteps=1000)
@@ -124,11 +140,13 @@ def test_NativeSys__band():
     _test_NativeSys__band(NativeSys)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_NativeSys__dep_by_name__single_varied():
     _test_NativeSys__dep_by_name__single_varied(NativeSys)
 
 
+@pytest.mark.slow
 @requires('pycvodes')
 def test_NativeSys__roots():
     def f(t, y):
@@ -144,6 +162,7 @@ def test_NativeSys__roots():
     assert np.min(np.abs(xout - 1)) < 1e-11
 
 
+@pytest.mark.veryslow
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('idx', [0, 1, 2])
 def test_NativeSys__PartiallySolvedSystem__roots(idx):

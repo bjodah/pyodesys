@@ -14,6 +14,7 @@ except ImportError:
 tests = glob.glob(os.path.join(os.path.dirname(__file__), '../*.py'))
 
 
+@pytest.mark.veryslow
 @pytest.mark.skipif(sym is None, reason='package sym missing')
 @pytest.mark.parametrize('pypath', tests)
 def test_examples(pypath):
