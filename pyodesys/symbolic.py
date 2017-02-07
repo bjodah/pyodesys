@@ -912,6 +912,13 @@ class PartiallySolvedSystem(SymbolicSys):
         if 'upper_bounds' not in new_kw and getattr(self._ori_sys, 'upper_bounds', None) is not None:
             new_kw['upper_bounds'] = _skip(self.ori_analyt_idx_map, self._ori_sys.upper_bounds)
 
+        if kwargs.get('linear_invariants', None) is None:
+            if new_kw.get('linear_invariants', None) is not None:
+                if new_kw['linear_invariants'].shape[1] != self._ori_sys.ny:
+                    raise ValueError("Unexpected number of columns in original linear_invariants.")
+                new_kw['linear_invariants'] = new_kw['linear_invariants'][:, [i for i in range(self._ori_sys.ny)
+                                                                              if i not in self.ori_analyt_idx_map]]
+
         def partially_solved_pre_processor(x, y, p):
             if isinstance(y, dict) and not self.dep_by_name:
                 y = [y[k] for k in self._ori_sys.dep]

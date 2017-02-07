@@ -1095,6 +1095,11 @@ def test_PartiallySolvedSystem__from_linear_invariants(scaled):
     assert ps.ny == ss.ny - 1
     check_formulation(ps)
 
+    ps2 = PartiallySolvedSystem(ss, lambda x0, y0, p0, be: {
+        ss.dep[0]: y0[0]*be.exp(-p0[0]*(ss.indep-x0))})
+    assert ps2.ny == ss.ny - 1
+    check_formulation(ps2)
+
 
 @requires('sym', 'pyodeint')
 def test_PartiallySolvedSystem__by_name__from_linear_invariants():

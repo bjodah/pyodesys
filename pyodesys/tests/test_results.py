@@ -34,6 +34,7 @@ def test_Result_at__use_deriv():
     _test_sine(use_deriv=True)
 
 
+@requires('pycvodes')
 def test_Result_extend_by_integration():
     atol, rtol = 1e-8, 1e-8
     odesys = ODESys(sine, sine_jac, roots_cb=lambda x, y, p: [y[1]], nroots=1)
