@@ -1,0 +1,2489 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyodesys package &mdash; pyodesys 0.8.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="pyodesys 0.8.1 documentation" href="index.html"/>
+        <link rel="next" title="pyodesys.native package" href="pyodesys.native.html"/>
+        <link rel="prev" title="Welcome to pyodesys’s documentation!" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pyodesys
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.8.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">pyodesys package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyodesys.native.html">pyodesys.native package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pyodesys.core">pyodesys.core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pyodesys.integrators">pyodesys.integrators module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pyodesys.plotting">pyodesys.plotting module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pyodesys.results">pyodesys.results module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pyodesys.symbolic">pyodesys.symbolic module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pyodesys.util">pyodesys.util module</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">pyodesys</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>pyodesys package</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/bjodah/pyodesys/blob/v0.8.1/doc/pyodesys.rst" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-pyodesys">
+<span id="pyodesys-package"></span><h1>pyodesys package<a class="headerlink" href="#module-pyodesys" title="Permalink to this headline">¶</a></h1>
+<p>Straightforward numerical integration of ODE systems from SymPy.</p>
+<p>The <code class="docutils literal"><span class="pre">pyodesys</span></code> package for enables intuitive solving of systems
+of first order differential equations numerically. The system may be
+symbolically defined.</p>
+<p><code class="docutils literal"><span class="pre">pyodesys</span></code> ties computer algebra systems (like SymPy and symengine), and
+numerical solvers (such as ODEPACK in SciPy, CVode in sundials, GSL or odeint)
+together.</p>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pyodesys.native.html">pyodesys.native package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.native.html#pyodesys-native">pyodesys.native</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.native.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.native.html#module-pyodesys.native.cvode">pyodesys.native.cvode module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.native.html#module-pyodesys.native.gsl">pyodesys.native.gsl module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.native.html#module-pyodesys.native.odeint">pyodesys.native.odeint module</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pyodesys.core">
+<span id="pyodesys-core-module"></span><h2>pyodesys.core module<a class="headerlink" href="#module-pyodesys.core" title="Permalink to this headline">¶</a></h2>
+<p>Core functionality for ODESys.</p>
+<p>Note that it is possible to use new custom ODE integrators with pyodesys by
+providing a module with two functions named <code class="docutils literal"><span class="pre">integrate_adaptive</span></code> and
+<code class="docutils literal"><span class="pre">integrate_predefined</span></code>. See the <code class="docutils literal"><span class="pre">pyodesys.integrators</span></code> module for examples.</p>
+<dl class="class">
+<dt id="pyodesys.core.ODESys">
+<em class="property">class </em><code class="descclassname">pyodesys.core.</code><code class="descname">ODESys</code><span class="sig-paren">(</span><em>f</em>, <em>jac=None</em>, <em>dfdx=None</em>, <em>first_step_cb=None</em>, <em>roots_cb=None</em>, <em>nroots=None</em>, <em>band=None</em>, <em>names=None</em>, <em>param_names=None</em>, <em>description=None</em>, <em>dep_by_name=False</em>, <em>par_by_name=False</em>, <em>latex_names=None</em>, <em>latex_param_names=None</em>, <em>pre_processors=None</em>, <em>post_processors=None</em>, <em>append_iv=False</em>, <em>autonomous_interface=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Object representing an ODE system.</p>
+<p><code class="docutils literal"><span class="pre">ODESys</span></code> provides unified interface to:</p>
+<ul class="simple">
+<li>scipy.integarte.ode</li>
+<li>pygslodeiv2</li>
+<li>pyodeint</li>
+<li>pycvodes</li>
+</ul>
+<p>The numerical integration can be performed either in an <a class="reference internal" href="#pyodesys.core.ODESys.adaptive" title="pyodesys.core.ODESys.adaptive"><code class="xref py py-meth docutils literal"><span class="pre">adaptive()</span></code></a>
+or <a class="reference internal" href="#pyodesys.core.ODESys.predefined" title="pyodesys.core.ODESys.predefined"><code class="xref py py-meth docutils literal"><span class="pre">predefined()</span></code></a> mode. Where locations to report the solution is
+chosen by the stepper or the user respectively. For convenience in user
+code one may use <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a> which automatically chooses between
+the two based on the length of <code class="docutils literal"><span class="pre">xout</span></code> provided by the user.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>f</strong> : callback</p>
+<blockquote>
+<div><p>first derivatives of dependent variables (y) with respect to
+dependent variable (x). Signature is any of:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">rhs(x,</span> <span class="pre">y[:])</span> <span class="pre">-&gt;</span> <span class="pre">f[:]</span></code></li>
+<li><code class="docutils literal"><span class="pre">rhs(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:])</span> <span class="pre">-&gt;</span> <span class="pre">f[:]</span></code></li>
+<li><code class="docutils literal"><span class="pre">rhs(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:],</span> <span class="pre">backend=math)</span> <span class="pre">-&gt;</span> <span class="pre">f[:]</span></code></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<p><strong>jac</strong> : callback</p>
+<blockquote>
+<div><p>Jacobian matrix (dfdy). Required for implicit methods.</p>
+</div></blockquote>
+<p><strong>dfdx</strong> : callback</p>
+<blockquote>
+<div><p>Signature <code class="docutils literal"><span class="pre">dfdx(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:])</span> <span class="pre">-&gt;</span> <span class="pre">out[:]</span></code> (used by e.g. GSL)</p>
+</div></blockquote>
+<p><strong>first_step_cb</strong> : callback</p>
+<blockquote>
+<div><p>Signature <code class="docutils literal"><span class="pre">step1st(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:])</span> <span class="pre">-&gt;</span> <span class="pre">dx0</span></code> (pass first_step==0 to use).
+This is available for <code class="docutils literal"><span class="pre">cvode</span></code>, <code class="docutils literal"><span class="pre">odeint</span></code> &amp; <code class="docutils literal"><span class="pre">gsl</span></code>, but not for <code class="docutils literal"><span class="pre">scipy</span></code>.</p>
+</div></blockquote>
+<p><strong>roots_cb</strong> : callback</p>
+<blockquote>
+<div><p>Signature <code class="docutils literal"><span class="pre">roots_cb(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:]=(),</span> <span class="pre">backend=math)</span> <span class="pre">-&gt;</span> <span class="pre">discr[:]</span></code>.</p>
+</div></blockquote>
+<p><strong>nroots</strong> : int</p>
+<blockquote>
+<div><p>Length of return vector from <code class="docutils literal"><span class="pre">roots_cb</span></code>.</p>
+</div></blockquote>
+<p><strong>band</strong> : tuple of 2 integers or None (default: None)</p>
+<blockquote>
+<div><p>If jacobian is banded: number of sub- and super-diagonals</p>
+</div></blockquote>
+<p><strong>names</strong> : iterable of strings (default</p>
+<blockquote>
+<div><p>Names of variables, used for referencing dependent variables by name
+and for labels in plots.</p>
+</div></blockquote>
+<p><strong>param_names</strong> : iterable of strings (default: None)</p>
+<blockquote>
+<div><p>Names of the parameters, used for referencing parameters by name.</p>
+</div></blockquote>
+<p><strong>dep_by_name</strong> : bool</p>
+<blockquote>
+<div><p>When <code class="docutils literal"><span class="pre">True</span></code> <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a> expects a dictionary as input for y0.</p>
+</div></blockquote>
+<p><strong>par_by_name</strong> : bool</p>
+<blockquote>
+<div><p>When <code class="docutils literal"><span class="pre">True</span></code> <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a> expects a dictionary as input for params.</p>
+</div></blockquote>
+<p><strong>latex_names</strong> : iterable of strings (default</p>
+<blockquote>
+<div><p>Names of variables in LaTeX format (e.g. for labels in plots).</p>
+</div></blockquote>
+<p><strong>latex_param_names</strong> : iterable of strings (default</p>
+<blockquote>
+<div><p>Names of parameters in LaTeX format (e.g. for labels in plots).</p>
+</div></blockquote>
+<p><strong>pre_processors</strong> : iterable of callables (optional)</p>
+<blockquote>
+<div><p>signature: f(x1[:], y1[:], params1[:]) -&gt; x2[:], y2[:], params2[:].
+When modifying: insert at beginning.</p>
+</div></blockquote>
+<p><strong>post_processors</strong> : iterable of callables (optional)</p>
+<blockquote>
+<div><p>signature: f(x2[:], y2[:, :], params2[:]) -&gt; x1[:], y1[:, :],
+params1[:]
+When modifying: insert at end.</p>
+</div></blockquote>
+<p><strong>append_iv</strong> :  bool</p>
+<blockquote>
+<div><p>If <code class="docutils literal"><span class="pre">True</span></code> params[:] passed to <code class="xref py py-attr docutils literal"><span class="pre">f_cb</span></code>, <code class="xref py py-attr docutils literal"><span class="pre">jac_cb</span></code> will contain
+initial values of y.</p>
+</div></blockquote>
+<p><strong>autonomous_interface</strong> : bool (optional)</p>
+<blockquote class="last">
+<div><p>If given, sets the <code class="xref py py-attr docutils literal"><span class="pre">autonomous</span></code> to indicate whether
+the system appears autonomous or not upon call to <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Banded jacobians are supported by &#8220;scipy&#8221; and &#8220;cvode&#8221; integrators.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">odesys</span> <span class="o">=</span> <span class="n">ODESys</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">yout</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">odesys</span><span class="o">.</span><span class="n">predefined</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">.</span><span class="mi">2</span><span class="p">,</span> <span class="o">.</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;success&#39;</span><span class="p">])</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="87%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>f_cb</td>
+<td>(callback) For evaluating the vector of derivatives.</td>
+</tr>
+<tr class="row-even"><td>j_cb</td>
+<td>(callback or None) For evaluating the Jacobian matrix of f.</td>
+</tr>
+<tr class="row-odd"><td>dfdx_cb</td>
+<td>(callback or None) For evaluating the second order derivatives.</td>
+</tr>
+<tr class="row-even"><td>first_step_cb</td>
+<td>(callback or None) For calculating the first step based on x0, y0 &amp; p.</td>
+</tr>
+<tr class="row-odd"><td>roots_cb</td>
+<td>(callback)</td>
+</tr>
+<tr class="row-even"><td>nroots</td>
+<td>(int)</td>
+</tr>
+<tr class="row-odd"><td>names</td>
+<td>(iterable of strings)</td>
+</tr>
+<tr class="row-even"><td>param_names</td>
+<td>(iterable of strings)</td>
+</tr>
+<tr class="row-odd"><td>description</td>
+<td>(str)</td>
+</tr>
+<tr class="row-even"><td>dep_by_name</td>
+<td>(bool)</td>
+</tr>
+<tr class="row-odd"><td>par_by_name</td>
+<td>(bool)</td>
+</tr>
+<tr class="row-even"><td>latex_names</td>
+<td>(iterable of str)</td>
+</tr>
+<tr class="row-odd"><td>latex_param_names</td>
+<td>(iterable of str)</td>
+</tr>
+<tr class="row-even"><td>pre_processors</td>
+<td>(iterable of callbacks)</td>
+</tr>
+<tr class="row-odd"><td>post_processors</td>
+<td>(iterable of callbacks)</td>
+</tr>
+<tr class="row-even"><td>append_iv</td>
+<td>(bool)</td>
+</tr>
+<tr class="row-odd"><td>autonomous_interface</td>
+<td>(bool or None) Indicates whether the system appears autonomous upon call to <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>. <code class="docutils literal"><span class="pre">None</span></code> indicates that it is unknown.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.core.ODESys.adaptive" title="pyodesys.core.ODESys.adaptive"><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code></a>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code></a>(x,&nbsp;y0[,&nbsp;params])</td>
+<td>Integrate the system of ordinary differential equations.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.core.ODESys.plot_phase_plane" title="pyodesys.core.ODESys.plot_phase_plane"><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code></a>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.core.ODESys.plot_result" title="pyodesys.core.ODESys.plot_result"><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code></a>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.core.ODESys.post_process" title="pyodesys.core.ODESys.post_process"><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code></a>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.core.ODESys.pre_process" title="pyodesys.core.ODESys.pre_process"><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code></a>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td>Transforms input to internal values, used internally.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.core.ODESys.predefined" title="pyodesys.core.ODESys.predefined"><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code></a>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.core.ODESys.stiffness" title="pyodesys.core.ODESys.stiffness"><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code></a>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="pyodesys.core.ODESys.adaptive">
+<code class="descname">adaptive</code><span class="sig-paren">(</span><em>y0</em>, <em>x0</em>, <em>xend</em>, <em>params=()</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys.adaptive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys.adaptive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integrate with integrator chosen output.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>integrator</strong> : str</p>
+<blockquote>
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+<p><strong>y0</strong> : array_like</p>
+<blockquote>
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+<p><strong>x0</strong> : float</p>
+<blockquote>
+<div><p>Initial value of the independent variable.</p>
+</div></blockquote>
+<p><strong>xend</strong> : float</p>
+<blockquote>
+<div><p>Final value of the independent variable.</p>
+</div></blockquote>
+<p><strong>params</strong> : array_like</p>
+<blockquote>
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+<p><strong>**kwargs :</strong></p>
+<blockquote>
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Same as <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.core.ODESys.integrate">
+<code class="descname">integrate</code><span class="sig-paren">(</span><em>x</em>, <em>y0</em>, <em>params=()</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys.integrate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys.integrate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integrate the system of ordinary differential equations.</p>
+<p>Solves the initial value problem (IVP).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : array_like or pair (start and final time) or float</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>if float:</dt>
+<dd><p class="first last">make it a pair: (0, x)</p>
+</dd>
+<dt>if pair or length-2 array:</dt>
+<dd><p class="first last">initial and final value of the independent variable</p>
+</dd>
+<dt>if array_like:</dt>
+<dd><p class="first last">values of independent variable report at</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>y0</strong> : array_like</p>
+<blockquote>
+<div><p>Initial values at x[0] for the dependent variables.</p>
+</div></blockquote>
+<p><strong>params</strong> : array_like (default: tuple())</p>
+<blockquote>
+<div><p>Value of parameters passed to user-supplied callbacks.</p>
+</div></blockquote>
+<p><strong>integrator</strong> : str or None</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>Name of integrator, one of:</dt>
+<dd><ul class="first last simple">
+<li>&#8216;scipy&#8217;: <code class="xref py py-meth docutils literal"><span class="pre">_integrate_scipy()</span></code></li>
+<li>&#8216;gsl&#8217;: <code class="xref py py-meth docutils literal"><span class="pre">_integrate_gsl()</span></code></li>
+<li>&#8216;odeint&#8217;: <code class="xref py py-meth docutils literal"><span class="pre">_integrate_odeint()</span></code></li>
+<li>&#8216;cvode&#8217;:  <code class="xref py py-meth docutils literal"><span class="pre">_integrate_cvode()</span></code></li>
+</ul>
+</dd>
+</dl>
+<p>See respective method for more information.
+If <code class="docutils literal"><span class="pre">None</span></code>: <code class="docutils literal"><span class="pre">os.environ.get('PYODESYS_INTEGRATOR',</span> <span class="pre">'scipy')</span></code></p>
+</div></blockquote>
+<p><strong>atol</strong> : float</p>
+<blockquote>
+<div><p>Absolute tolerance</p>
+</div></blockquote>
+<p><strong>rtol</strong> : float</p>
+<blockquote>
+<div><p>Relative tolerance</p>
+</div></blockquote>
+<p><strong>with_jacobian</strong> : bool or None (default)</p>
+<blockquote>
+<div><p>Whether to use the jacobian. When <code class="docutils literal"><span class="pre">None</span></code> the choice is
+done automatically (only used when required). This matters
+when jacobian is derived at runtime (high computational cost).</p>
+</div></blockquote>
+<p><strong>force_predefined</strong> : bool (default: False)</p>
+<blockquote>
+<div><p>override behaviour of <code class="docutils literal"><span class="pre">len(x)</span> <span class="pre">==</span> <span class="pre">2</span></code> =&gt; <a class="reference internal" href="#pyodesys.core.ODESys.adaptive" title="pyodesys.core.ODESys.adaptive"><code class="xref py py-meth docutils literal"><span class="pre">adaptive()</span></code></a></p>
+</div></blockquote>
+<p><strong>**kwargs:</strong></p>
+<blockquote>
+<div><p>Additional keyword arguments for <code class="docutils literal"><span class="pre">_integrate_$(integrator)</span></code>.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Length 3 tuple: (x, yout, info)</p>
+<blockquote class="last">
+<div><p>x : array of values of the independent variable
+yout : array of the dependent variable(s) for the different values of x
+info : dict (&#8216;nfev&#8217; is guaranteed to be a key)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.core.ODESys.plot_phase_plane">
+<code class="descname">plot_phase_plane</code><span class="sig-paren">(</span><em>indices=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys.plot_phase_plane"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys.plot_phase_plane" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots a phase portrait from last integration.</p>
+<p>This method will be deprecated. Please use <code class="xref py py-meth docutils literal"><span class="pre">Result.plot_phase_plane()</span></code>.
+See <a class="reference internal" href="#pyodesys.plotting.plot_phase_plane" title="pyodesys.plotting.plot_phase_plane"><code class="xref py py-func docutils literal"><span class="pre">pyodesys.plotting.plot_phase_plane()</span></code></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.core.ODESys.plot_result">
+<code class="descname">plot_result</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys.plot_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys.plot_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the integrated dependent variables from last integration.</p>
+<p>This method will be deprecated. Please use <code class="xref py py-meth docutils literal"><span class="pre">Result.plot()</span></code>.
+See <a class="reference internal" href="#pyodesys.plotting.plot_result" title="pyodesys.plotting.plot_result"><code class="xref py py-func docutils literal"><span class="pre">pyodesys.plotting.plot_result()</span></code></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.core.ODESys.post_process">
+<code class="descname">post_process</code><span class="sig-paren">(</span><em>xout</em>, <em>yout</em>, <em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys.post_process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys.post_process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms internal values to output, used internally.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.core.ODESys.pre_process">
+<code class="descname">pre_process</code><span class="sig-paren">(</span><em>xout</em>, <em>y0</em>, <em>params=()</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys.pre_process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys.pre_process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms input to internal values, used internally.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.core.ODESys.predefined">
+<code class="descname">predefined</code><span class="sig-paren">(</span><em>y0</em>, <em>xout</em>, <em>params=()</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys.predefined"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys.predefined" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integrate with user chosen output.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>integrator</strong> : str</p>
+<blockquote>
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+<p><strong>y0</strong> : array_like</p>
+<blockquote>
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+<p><strong>xout</strong> : array_like</p>
+<p><strong>params</strong> : array_like</p>
+<blockquote>
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+<p><strong>**kwargs:</strong></p>
+<blockquote>
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a></p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>Length 2 tuple</strong> : (yout, info)</p>
+<blockquote class="last">
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.core.ODESys.stiffness">
+<code class="descname">stiffness</code><span class="sig-paren">(</span><em>xyp=None</em>, <em>eigenvals_cb=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#ODESys.stiffness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.ODESys.stiffness" title="Permalink to this definition">¶</a></dt>
+<dd><p>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</p>
+<p>Running stiffness ratio from last integration.
+Calculate sittness ratio, i.e. the ratio between the largest and
+smallest absolute eigenvalue of the jacobian matrix. The user may
+supply their own routine for calculating the eigenvalues, or they
+will be calculated from the SVD (singular value decomposition).
+Note that calculating the SVD for any but the smallest Jacobians may
+prove to be prohibitively expensive.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>xyp</strong> : length 3 tuple (default: None)</p>
+<blockquote>
+<div><p>internal_xout, internal_yout, internal_params, taken
+from last integration if not specified.</p>
+</div></blockquote>
+<p><strong>eigenvals_cb</strong> : callback (optional)</p>
+<blockquote class="last">
+<div><p>Signature (x, y, p) (internal variables), when not provided an
+internal routine will use <code class="docutils literal"><span class="pre">self.j_cb</span></code> and <code class="docutils literal"><span class="pre">scipy.linalg.svd</span></code>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.core.OdeSys">
+<em class="property">class </em><code class="descclassname">pyodesys.core.</code><code class="descname">OdeSys</code><span class="sig-paren">(</span><em>f</em>, <em>jac=None</em>, <em>dfdx=None</em>, <em>first_step_cb=None</em>, <em>roots_cb=None</em>, <em>nroots=None</em>, <em>band=None</em>, <em>names=None</em>, <em>param_names=None</em>, <em>description=None</em>, <em>dep_by_name=False</em>, <em>par_by_name=False</em>, <em>latex_names=None</em>, <em>latex_param_names=None</em>, <em>pre_processors=None</em>, <em>post_processors=None</em>, <em>append_iv=False</em>, <em>autonomous_interface=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#OdeSys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.OdeSys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyodesys.core.ODESys" title="pyodesys.core.ODESys"><code class="xref py py-class docutils literal"><span class="pre">pyodesys.core.ODESys</span></code></a></p>
+<p>DEPRECATED, use ODESys instead.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code>(x,&nbsp;y0[,&nbsp;params])</td>
+<td>Integrate the system of ordinary differential equations.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td>Transforms input to internal values, used internally.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="exception">
+<dt id="pyodesys.core.RecoverableError">
+<em class="property">exception </em><code class="descclassname">pyodesys.core.</code><code class="descname">RecoverableError</code><a class="reference internal" href="_modules/pyodesys/core.html#RecoverableError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.RecoverableError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.core.integrate_chained">
+<code class="descclassname">pyodesys.core.</code><code class="descname">integrate_chained</code><span class="sig-paren">(</span><em>odes</em>, <em>kw</em>, <em>x</em>, <em>y0</em>, <em>params=()</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/core.html#integrate_chained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.core.integrate_chained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Auto-switching between formulations of ODE system.</p>
+<p>In case one has a formulation of a system of ODEs which is preferential in
+the beginning of the intergration this function allows the user to run the
+integration with this system where it takes a user-specified maximum number
+of steps before switching to another formulation (unless final value of the
+independent variables has been reached). Number of systems used i returned
+as <code class="docutils literal"><span class="pre">nsys</span></code> in info dict.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>odes</strong> : iterable of <code class="xref py py-class docutils literal"><span class="pre">OdeSy</span></code> instances</p>
+<p><strong>kw</strong> : dict mapping kwarg to iterables of same legnth as <code class="docutils literal"><span class="pre">odes</span></code></p>
+<p><strong>x</strong> : array_like</p>
+<p><strong>y0</strong> : array_like</p>
+<p><strong>params</strong> : array_like</p>
+<p><strong>**kwargs:</strong></p>
+<blockquote class="last">
+<div><p>See <a class="reference internal" href="#pyodesys.core.ODESys.integrate" title="pyodesys.core.ODESys.integrate"><code class="xref py py-meth docutils literal"><span class="pre">ODESys.integrate()</span></code></a></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Plays particularly well with <code class="xref py py-class docutils literal"><span class="pre">symbolic.TransformedSys</span></code>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyodesys.integrators">
+<span id="pyodesys-integrators-module"></span><h2>pyodesys.integrators module<a class="headerlink" href="#module-pyodesys.integrators" title="Permalink to this headline">¶</a></h2>
+<p>This module is for demonstration purposes only and the integrators here
+are not meant for production use. Consider them provisional, i.e., API here
+may break without prior deprecation.</p>
+<dl class="class">
+<dt id="pyodesys.integrators.EulerBackward_example_integrator">
+<em class="property">class </em><code class="descclassname">pyodesys.integrators.</code><code class="descname">EulerBackward_example_integrator</code><a class="reference internal" href="_modules/pyodesys/integrators.html#EulerBackward_example_integrator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.EulerBackward_example_integrator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="64%" />
+<col width="36%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>integrate_adaptive</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.integrators.EulerBackward_example_integrator.integrate_predefined" title="pyodesys.integrators.EulerBackward_example_integrator.integrate_predefined"><code class="xref py py-obj docutils literal"><span class="pre">integrate_predefined</span></code></a>(rhs,&nbsp;jac,&nbsp;y0,&nbsp;xout,&nbsp;...)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="pyodesys.integrators.EulerBackward_example_integrator.integrate_adaptive">
+<code class="descname">integrate_adaptive</code><em class="property"> = None</em><a class="headerlink" href="#pyodesys.integrators.EulerBackward_example_integrator.integrate_adaptive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="pyodesys.integrators.EulerBackward_example_integrator.integrate_predefined">
+<em class="property">static </em><code class="descname">integrate_predefined</code><span class="sig-paren">(</span><em>rhs</em>, <em>jac</em>, <em>y0</em>, <em>xout</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/integrators.html#EulerBackward_example_integrator.integrate_predefined"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.EulerBackward_example_integrator.integrate_predefined" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyodesys.integrators.EulerBackward_example_integrator.with_jacobian">
+<code class="descname">with_jacobian</code><em class="property"> = True</em><a class="headerlink" href="#pyodesys.integrators.EulerBackward_example_integrator.with_jacobian" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.integrators.EulerForward_example_integrator">
+<em class="property">class </em><code class="descclassname">pyodesys.integrators.</code><code class="descname">EulerForward_example_integrator</code><a class="reference internal" href="_modules/pyodesys/integrators.html#EulerForward_example_integrator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.EulerForward_example_integrator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="64%" />
+<col width="36%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>integrate_adaptive</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.integrators.EulerForward_example_integrator.integrate_predefined" title="pyodesys.integrators.EulerForward_example_integrator.integrate_predefined"><code class="xref py py-obj docutils literal"><span class="pre">integrate_predefined</span></code></a>(rhs,&nbsp;jac,&nbsp;y0,&nbsp;xout,&nbsp;...)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="pyodesys.integrators.EulerForward_example_integrator.integrate_adaptive">
+<code class="descname">integrate_adaptive</code><em class="property"> = None</em><a class="headerlink" href="#pyodesys.integrators.EulerForward_example_integrator.integrate_adaptive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="pyodesys.integrators.EulerForward_example_integrator.integrate_predefined">
+<em class="property">static </em><code class="descname">integrate_predefined</code><span class="sig-paren">(</span><em>rhs</em>, <em>jac</em>, <em>y0</em>, <em>xout</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/integrators.html#EulerForward_example_integrator.integrate_predefined"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.EulerForward_example_integrator.integrate_predefined" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyodesys.integrators.EulerForward_example_integrator.with_jacobian">
+<code class="descname">with_jacobian</code><em class="property"> = False</em><a class="headerlink" href="#pyodesys.integrators.EulerForward_example_integrator.with_jacobian" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.integrators.Midpoint_example_integrator">
+<em class="property">class </em><code class="descclassname">pyodesys.integrators.</code><code class="descname">Midpoint_example_integrator</code><a class="reference internal" href="_modules/pyodesys/integrators.html#Midpoint_example_integrator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.Midpoint_example_integrator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="64%" />
+<col width="36%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>integrate_adaptive</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.integrators.Midpoint_example_integrator.integrate_predefined" title="pyodesys.integrators.Midpoint_example_integrator.integrate_predefined"><code class="xref py py-obj docutils literal"><span class="pre">integrate_predefined</span></code></a>(rhs,&nbsp;jac,&nbsp;y0,&nbsp;xout,&nbsp;...)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="pyodesys.integrators.Midpoint_example_integrator.integrate_adaptive">
+<code class="descname">integrate_adaptive</code><em class="property"> = None</em><a class="headerlink" href="#pyodesys.integrators.Midpoint_example_integrator.integrate_adaptive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="pyodesys.integrators.Midpoint_example_integrator.integrate_predefined">
+<em class="property">static </em><code class="descname">integrate_predefined</code><span class="sig-paren">(</span><em>rhs</em>, <em>jac</em>, <em>y0</em>, <em>xout</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/integrators.html#Midpoint_example_integrator.integrate_predefined"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.Midpoint_example_integrator.integrate_predefined" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyodesys.integrators.Midpoint_example_integrator.with_jacobian">
+<code class="descname">with_jacobian</code><em class="property"> = False</em><a class="headerlink" href="#pyodesys.integrators.Midpoint_example_integrator.with_jacobian" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.integrators.RK4_example_integrator">
+<em class="property">class </em><code class="descclassname">pyodesys.integrators.</code><code class="descname">RK4_example_integrator</code><a class="reference internal" href="_modules/pyodesys/integrators.html#RK4_example_integrator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.RK4_example_integrator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>This is an example of how to implement a custom integrator.
+It uses fixed step size and is usually not useful for real problems.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.integrators.RK4_example_integrator.integrate_adaptive" title="pyodesys.integrators.RK4_example_integrator.integrate_adaptive"><code class="xref py py-obj docutils literal"><span class="pre">integrate_adaptive</span></code></a>(rhs,&nbsp;jac,&nbsp;y0,&nbsp;x0,&nbsp;xend,&nbsp;...)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.integrators.RK4_example_integrator.integrate_predefined" title="pyodesys.integrators.RK4_example_integrator.integrate_predefined"><code class="xref py py-obj docutils literal"><span class="pre">integrate_predefined</span></code></a>(rhs,&nbsp;jac,&nbsp;y0,&nbsp;xout,&nbsp;...)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="staticmethod">
+<dt id="pyodesys.integrators.RK4_example_integrator.integrate_adaptive">
+<em class="property">static </em><code class="descname">integrate_adaptive</code><span class="sig-paren">(</span><em>rhs</em>, <em>jac</em>, <em>y0</em>, <em>x0</em>, <em>xend</em>, <em>dx0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/integrators.html#RK4_example_integrator.integrate_adaptive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.RK4_example_integrator.integrate_adaptive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="pyodesys.integrators.RK4_example_integrator.integrate_predefined">
+<em class="property">static </em><code class="descname">integrate_predefined</code><span class="sig-paren">(</span><em>rhs</em>, <em>jac</em>, <em>y0</em>, <em>xout</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/integrators.html#RK4_example_integrator.integrate_predefined"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.RK4_example_integrator.integrate_predefined" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyodesys.integrators.RK4_example_integrator.with_jacobian">
+<code class="descname">with_jacobian</code><em class="property"> = False</em><a class="headerlink" href="#pyodesys.integrators.RK4_example_integrator.with_jacobian" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.integrators.Trapezoidal_example_integrator">
+<em class="property">class </em><code class="descclassname">pyodesys.integrators.</code><code class="descname">Trapezoidal_example_integrator</code><a class="reference internal" href="_modules/pyodesys/integrators.html#Trapezoidal_example_integrator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.Trapezoidal_example_integrator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="64%" />
+<col width="36%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>integrate_adaptive</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.integrators.Trapezoidal_example_integrator.integrate_predefined" title="pyodesys.integrators.Trapezoidal_example_integrator.integrate_predefined"><code class="xref py py-obj docutils literal"><span class="pre">integrate_predefined</span></code></a>(rhs,&nbsp;jac,&nbsp;y0,&nbsp;xout,&nbsp;...)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="pyodesys.integrators.Trapezoidal_example_integrator.integrate_adaptive">
+<code class="descname">integrate_adaptive</code><em class="property"> = None</em><a class="headerlink" href="#pyodesys.integrators.Trapezoidal_example_integrator.integrate_adaptive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="pyodesys.integrators.Trapezoidal_example_integrator.integrate_predefined">
+<em class="property">static </em><code class="descname">integrate_predefined</code><span class="sig-paren">(</span><em>rhs</em>, <em>jac</em>, <em>y0</em>, <em>xout</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/integrators.html#Trapezoidal_example_integrator.integrate_predefined"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.integrators.Trapezoidal_example_integrator.integrate_predefined" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyodesys.integrators.Trapezoidal_example_integrator.with_jacobian">
+<code class="descname">with_jacobian</code><em class="property"> = True</em><a class="headerlink" href="#pyodesys.integrators.Trapezoidal_example_integrator.with_jacobian" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyodesys.plotting">
+<span id="pyodesys-plotting-module"></span><h2>pyodesys.plotting module<a class="headerlink" href="#module-pyodesys.plotting" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pyodesys.plotting.info_vlines">
+<code class="descclassname">pyodesys.plotting.</code><code class="descname">info_vlines</code><span class="sig-paren">(</span><em>ax</em>, <em>xout</em>, <em>info</em>, <em>vline_colors=('maroon'</em>, <em>'purple')</em>, <em>vline_keys=('steps'</em>, <em>'rhs_xvals'</em>, <em>'jac_xvals')</em>, <em>post_proc=None</em>, <em>alpha=None</em>, <em>fpes=None</em>, <em>every=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/plotting.html#info_vlines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.plotting.info_vlines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot vertical lines in the background</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>ax</strong> : axes</p>
+<p><strong>xout</strong> : array_like</p>
+<p><strong>info</strong> : dict</p>
+<p><strong>vline_colors</strong> : iterable of str</p>
+<p><strong>vline_keys</strong> : iterable of str</p>
+<blockquote>
+<div><p>Choose from <code class="docutils literal"><span class="pre">'steps',</span> <span class="pre">'rhs_xvals',</span> <span class="pre">'jac_xvals',</span>
+<span class="pre">'fe_underflow',</span> <span class="pre">'fe_overflow',</span> <span class="pre">'fe_invalid',</span> <span class="pre">'fe_divbyzero'</span></code>.</p>
+</div></blockquote>
+<p><strong>vline_post_proc</strong> : callable</p>
+<p class="last"><strong>alpha</strong> : float</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.plotting.plot_phase_plane">
+<code class="descclassname">pyodesys.plotting.</code><code class="descname">plot_phase_plane</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>indices=None</em>, <em>plot=None</em>, <em>names=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/plotting.html#plot_phase_plane"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.plotting.plot_phase_plane" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the phase portrait of two dependent variables</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x: array_like</strong></p>
+<blockquote>
+<div><p>Values of the independent variable.</p>
+</div></blockquote>
+<p><strong>y: array_like</strong></p>
+<blockquote>
+<div><p>Values of the dependent variables.</p>
+</div></blockquote>
+<p><strong>indices: pair of integers (default: None)</strong></p>
+<blockquote>
+<div><p>What dependent variable to plot for (None =&gt; (0, 1)).</p>
+</div></blockquote>
+<p><strong>plot: callable (default: None)</strong></p>
+<blockquote>
+<div><p>Uses <code class="docutils literal"><span class="pre">matplotlib.pyplot.plot</span></code> if <code class="docutils literal"><span class="pre">None</span></code></p>
+</div></blockquote>
+<p><strong>names: iterable of strings</strong></p>
+<blockquote>
+<div><p>Labels for x and y axis.</p>
+</div></blockquote>
+<p><strong>**kwargs:</strong></p>
+<blockquote class="last">
+<div><p>Keyword arguemtns passed to <code class="docutils literal"><span class="pre">plot()</span></code>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.plotting.plot_result">
+<code class="descclassname">pyodesys.plotting.</code><code class="descname">plot_result</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>indices=None</em>, <em>plot=None</em>, <em>plot_kwargs_cb=None</em>, <em>ax=None</em>, <em>ls=('-'</em>, <em>'--'</em>, <em>':'</em>, <em>'-.')</em>, <em>c=('k'</em>, <em>'r'</em>, <em>'g'</em>, <em>'b'</em>, <em>'c'</em>, <em>'m'</em>, <em>'y')</em>, <em>m=('o'</em>, <em>'v'</em>, <em>'8'</em>, <em>'s'</em>, <em>'p'</em>, <em>'x'</em>, <em>'+'</em>, <em>'d'</em>, <em>'s')</em>, <em>m_lim=-1</em>, <em>lines=None</em>, <em>interpolate=None</em>, <em>interp_from_deriv=None</em>, <em>names=None</em>, <em>latex_names=None</em>, <em>xlabel=None</em>, <em>ylabel=None</em>, <em>xscale=None</em>, <em>yscale=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/plotting.html#plot_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.plotting.plot_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the depepndent variables vs. the independent variable</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : array_like</p>
+<blockquote>
+<div><p>Values of the independent variable.</p>
+</div></blockquote>
+<p><strong>y</strong> : array_like</p>
+<blockquote>
+<div><p>Values of the independent variable. This must hold
+<code class="docutils literal"><span class="pre">y.shape[0]</span> <span class="pre">==</span> <span class="pre">len(x)</span></code>, plot_results will draw
+<code class="docutils literal"><span class="pre">y.shape[1]</span></code> lines. If <code class="docutils literal"><span class="pre">interpolate</span> <span class="pre">!=</span> <span class="pre">None</span></code>
+y is expected two be three dimensional, otherwise two dimensional.</p>
+</div></blockquote>
+<p><strong>indices</strong> : iterable of integers</p>
+<blockquote>
+<div><p>What indices to plot (default: None =&gt; all).</p>
+</div></blockquote>
+<p><strong>plot</strong> : callback (default: None)</p>
+<blockquote>
+<div><p>If None, use <code class="docutils literal"><span class="pre">matplotlib.pyplot.plot</span></code>.</p>
+</div></blockquote>
+<p><strong>plot_kwargs_cb</strong> : callback(int) -&gt; dict</p>
+<blockquote>
+<div><p>Keyword arguments for plot for each index (0:len(y)-1).</p>
+</div></blockquote>
+<p><strong>ax</strong> : Axes</p>
+<p><strong>ls</strong> : iterable</p>
+<blockquote>
+<div><p>Linestyles to cycle through (only used if plot and plot_kwargs_cb
+are both None).</p>
+</div></blockquote>
+<p><strong>c</strong> : iterable</p>
+<blockquote>
+<div><p>Colors to cycle through (only used if plot and plot_kwargs_cb
+are both None).</p>
+</div></blockquote>
+<p><strong>m</strong> : iterable</p>
+<blockquote>
+<div><p>Markers to cycle through (only used if plot and plot_kwargs_cb
+are both None and m_lim &gt; 0).</p>
+</div></blockquote>
+<p><strong>m_lim</strong> : int (default: -1)</p>
+<blockquote>
+<div><p>Upper limit (exclusive, number of points) for using markers instead of
+lines.</p>
+</div></blockquote>
+<p><strong>lines</strong> : None</p>
+<blockquote>
+<div><p>default: draw between markers unless we are interpolating as well.</p>
+</div></blockquote>
+<p><strong>interpolate</strong> : bool or int (default: None)</p>
+<blockquote>
+<div><p>Density-multiplier for grid of independent variable when interpolating
+if True =&gt; 20. negative integer signifies log-spaced grid.</p>
+</div></blockquote>
+<p><strong>interp_from_deriv</strong> : callback (default: None)</p>
+<blockquote class="last">
+<div><p>When <code class="docutils literal"><span class="pre">None</span></code>: <code class="docutils literal"><span class="pre">scipy.interpolate.BPoly.from_derivatives</span></code></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.plotting.right_hand_ylabels">
+<code class="descclassname">pyodesys.plotting.</code><code class="descname">right_hand_ylabels</code><span class="sig-paren">(</span><em>ax</em>, <em>labels</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/plotting.html#right_hand_ylabels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.plotting.right_hand_ylabels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-pyodesys.results">
+<span id="pyodesys-results-module"></span><h2>pyodesys.results module<a class="headerlink" href="#module-pyodesys.results" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyodesys.results.Result">
+<em class="property">class </em><code class="descclassname">pyodesys.results.</code><code class="descname">Result</code><span class="sig-paren">(</span><em>xout</em>, <em>yout</em>, <em>params</em>, <em>info</em>, <em>odesys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.results.Result.at" title="pyodesys.results.Result.at"><code class="xref py py-obj docutils literal"><span class="pre">at</span></code></a>(x[,&nbsp;use_deriv,&nbsp;xdata,&nbsp;ydata])</td>
+<td>Returns interpolated result at a given time and an interpolation error-estimate</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.results.Result.between" title="pyodesys.results.Result.between"><code class="xref py py-obj docutils literal"><span class="pre">between</span></code></a>(lower,&nbsp;upper[,&nbsp;xdata,&nbsp;ydata])</td>
+<td>Get results inside span for independent variable</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.results.Result.copy" title="pyodesys.results.Result.copy"><code class="xref py py-obj docutils literal"><span class="pre">copy</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.results.Result.extend_by_integration" title="pyodesys.results.Result.extend_by_integration"><code class="xref py py-obj docutils literal"><span class="pre">extend_by_integration</span></code></a>(xend[,&nbsp;params,&nbsp;...])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.results.Result.plot" title="pyodesys.results.Result.plot"><code class="xref py py-obj docutils literal"><span class="pre">plot</span></code></a>([info_vlines_kw,&nbsp;between])</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.results.Result.plot_invariant_violations" title="pyodesys.results.Result.plot_invariant_violations"><code class="xref py py-obj docutils literal"><span class="pre">plot_invariant_violations</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.results.Result.plot_phase_plane" title="pyodesys.results.Result.plot_phase_plane"><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code></a>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.results.Result.stiffness" title="pyodesys.results.Result.stiffness"><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code></a>([xyp,&nbsp;eigenvals_cb])</td>
+<td>Running stiffness ratio from last integration.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="pyodesys.results.Result.at">
+<code class="descname">at</code><span class="sig-paren">(</span><em>x</em>, <em>use_deriv=False</em>, <em>xdata=None</em>, <em>ydata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result.at"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result.at" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns interpolated result at a given time and an interpolation error-estimate</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.results.Result.between">
+<code class="descname">between</code><span class="sig-paren">(</span><em>lower</em>, <em>upper</em>, <em>xdata=None</em>, <em>ydata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result.between"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result.between" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get results inside span for independent variable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.results.Result.copy">
+<code class="descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.results.Result.extend_by_integration">
+<code class="descname">extend_by_integration</code><span class="sig-paren">(</span><em>xend</em>, <em>params=None</em>, <em>odesys=None</em>, <em>autonomous=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result.extend_by_integration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result.extend_by_integration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.results.Result.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>info_vlines_kw=None</em>, <em>between=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the integrated dependent variables from last integration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>info_vlines_kw</strong> : dict</p>
+<blockquote>
+<div><p>Keyword arguments passed to <a class="reference internal" href="#pyodesys.plotting.info_vlines" title="pyodesys.plotting.info_vlines"><code class="xref py py-func docutils literal"><span class="pre">plotting.info_vlines()</span></code></a>,
+an empty dict will be used if <cite>True</cite>. Need to pass <cite>ax</cite> when given.</p>
+</div></blockquote>
+<p><strong>indices</strong> : iterable of int</p>
+<p><strong>between</strong> : length 2 tuple</p>
+<p><strong>names</strong> : iterable of str</p>
+<p><strong>**kwargs:</strong></p>
+<blockquote class="last">
+<div><p>See <a class="reference internal" href="#pyodesys.plotting.plot_result" title="pyodesys.plotting.plot_result"><code class="xref py py-func docutils literal"><span class="pre">pyodesys.plotting.plot_result()</span></code></a></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.results.Result.plot_invariant_violations">
+<code class="descname">plot_invariant_violations</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result.plot_invariant_violations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result.plot_invariant_violations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.results.Result.plot_phase_plane">
+<code class="descname">plot_phase_plane</code><span class="sig-paren">(</span><em>indices=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result.plot_phase_plane"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result.plot_phase_plane" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots a phase portrait from last integration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>indices</strong> : iterable of int</p>
+<p><strong>names</strong> : iterable of str</p>
+<p><strong>**kwargs:</strong></p>
+<blockquote class="last">
+<div><p>See <a class="reference internal" href="#pyodesys.plotting.plot_phase_plane" title="pyodesys.plotting.plot_phase_plane"><code class="xref py py-func docutils literal"><span class="pre">pyodesys.plotting.plot_phase_plane()</span></code></a></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.results.Result.stiffness">
+<code class="descname">stiffness</code><span class="sig-paren">(</span><em>xyp=None</em>, <em>eigenvals_cb=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/results.html#Result.stiffness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.results.Result.stiffness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Running stiffness ratio from last integration.</p>
+<p>Calculate sittness ratio, i.e. the ratio between the largest and
+smallest absolute eigenvalue of the jacobian matrix. The user may
+supply their own routine for calculating the eigenvalues, or they
+will be calculated from the SVD (singular value decomposition).
+Note that calculating the SVD for any but the smallest Jacobians may
+prove to be prohibitively expensive.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>xyp</strong> : length 3 tuple (default: None)</p>
+<blockquote>
+<div><p>internal_xout, internal_yout, internal_params, taken
+from last integration if not specified.</p>
+</div></blockquote>
+<p><strong>eigenvals_cb</strong> : callback (optional)</p>
+<blockquote class="last">
+<div><p>Signature (x, y, p) (internal variables), when not provided an
+internal routine will use <code class="docutils literal"><span class="pre">self.j_cb</span></code> and <code class="docutils literal"><span class="pre">scipy.linalg.svd</span></code>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyodesys.symbolic">
+<span id="pyodesys-symbolic-module"></span><h2>pyodesys.symbolic module<a class="headerlink" href="#module-pyodesys.symbolic" title="Permalink to this headline">¶</a></h2>
+<p>This module contains a subclass of ODESys which allows the user to generate
+auxiliary expressions from a canonical set of symbolic expressions. Subclasses
+are also provided for dealing with variable transformations and partially
+solved systems.</p>
+<dl class="class">
+<dt id="pyodesys.symbolic.PartiallySolvedSystem">
+<em class="property">class </em><code class="descclassname">pyodesys.symbolic.</code><code class="descname">PartiallySolvedSystem</code><span class="sig-paren">(</span><em>original_system</em>, <em>analytic_factory</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#PartiallySolvedSystem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.PartiallySolvedSystem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">pyodesys.symbolic.SymbolicSys</span></code></a></p>
+<p>Use analytic expressions for some dependent variables</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>original_system</strong> : SymbolicSys</p>
+<p><strong>analytic_factory</strong> : callable</p>
+<blockquote>
+<div><p>User provided callback for expressing analytic solutions to a set of
+dependent variables in <code class="docutils literal"><span class="pre">original_system</span></code>. The callback should have
+the signature: <code class="docutils literal"><span class="pre">my_factory(x0,</span> <span class="pre">y0,</span> <span class="pre">p0,</span> <span class="pre">backend)</span> <span class="pre">-&gt;</span> <span class="pre">dict</span></code>, where the returned
+dictionary maps dependent variabels (from <code class="docutils literal"><span class="pre">original_system.dep</span></code>)
+to new expressions in remaining variables and initial conditions.</p>
+</div></blockquote>
+<p><strong>**kwargs</strong> : dict</p>
+<blockquote class="last">
+<div><p>Keyword arguments passed onto <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">odesys</span> <span class="o">=</span> <span class="n">SymbolicSys</span><span class="o">.</span><span class="n">from_callback</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="p">[</span>
+<span class="gp">... </span>        <span class="o">-</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">... </span>    <span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dep0</span> <span class="o">=</span> <span class="n">odesys</span><span class="o">.</span><span class="n">dep</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">partsys</span> <span class="o">=</span> <span class="n">PartiallySolvedSystem</span><span class="p">(</span><span class="n">odesys</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">be</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="n">dep0</span><span class="p">:</span> <span class="n">y0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">be</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">p0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">odesys</span><span class="o">.</span><span class="n">indep</span><span class="o">-</span><span class="n">x0</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">partsys</span><span class="o">.</span><span class="n">exprs</span><span class="p">)</span>  
+<span class="go">(_Dummy_29*p_0*exp(-p_0*(-_Dummy_28 + x)) - p_1*y_1,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y0</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">partsys</span><span class="o">.</span><span class="n">integrate</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">y0</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">integrator</span><span class="o">=</span><span class="s1">&#39;scipy&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;success&#39;</span><span class="p">],</span> <span class="n">yout</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="go">(True, 2)</span>
+</pre></div>
+</div>
+<p class="rubric">Attributes</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="26%" />
+<col width="74%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>free_names</td>
+<td>(list of str)</td>
+</tr>
+<tr class="row-even"><td>analytic_exprs</td>
+<td>(list of expressions)</td>
+</tr>
+<tr class="row-odd"><td>analytic_cb</td>
+<td>(callback)</td>
+</tr>
+<tr class="row-even"><td>original_dep</td>
+<td>(dependent variable of original system)</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariant_names</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariants</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">analytic_stiffness</span></code>([xyp])</td>
+<td>Running stiffness ratio from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">from_callback</span></code>(rhs[,&nbsp;ny,&nbsp;nparams,&nbsp;...])</td>
+<td>Create an instance from a callback.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.PartiallySolvedSystem.from_linear_invariants" title="pyodesys.symbolic.PartiallySolvedSystem.from_linear_invariants"><code class="xref py py-obj docutils literal"><span class="pre">from_linear_invariants</span></code></a>(ori_sys[,&nbsp;preferred])</td>
+<td>Reformulates the ODE system in fewer variables.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">from_other</span></code>(ori,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx</span></code>()</td>
+<td>Calculates 2nd derivatives of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx_callback</span></code>()</td>
+<td>Generate a callback for evaluating derivative of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_f_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating <code class="docutils literal"><span class="pre">self.exprs</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_first_step_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_invariants_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_j_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating the jacobian.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_jac</span></code>()</td>
+<td>Derives the jacobian from <code class="docutils literal"><span class="pre">self.exprs</span></code> and <code class="docutils literal"><span class="pre">self.dep</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_roots_callback</span></code>()</td>
+<td>Generate a callback for evaluating <code class="docutils literal"><span class="pre">self.roots</span></code></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.PartiallySolvedSystem.integrate" title="pyodesys.symbolic.PartiallySolvedSystem.integrate"><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code></a>(*args,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">jacobian_singular</span></code>()</td>
+<td>Returns True if Jacobian is singular, else False.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="pyodesys.symbolic.PartiallySolvedSystem.from_linear_invariants">
+<em class="property">classmethod </em><code class="descname">from_linear_invariants</code><span class="sig-paren">(</span><em>ori_sys</em>, <em>preferred=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#PartiallySolvedSystem.from_linear_invariants"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.PartiallySolvedSystem.from_linear_invariants" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reformulates the ODE system in fewer variables.</p>
+<p>Given linear invariant equations one can always reduce the number
+of dependent variables in the system by the rank of the matrix describing
+this linear system.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>ori_sys</strong> : <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a> instance</p>
+<p><strong>preferred</strong> : iterable of preferred dependent variables</p>
+<blockquote>
+<div><p>Due to numerical rounding it is preferable to choose the variables
+which are expected to be of the largest magnitude during integration.</p>
+</div></blockquote>
+<p><strong>**kwargs :</strong></p>
+<blockquote class="last">
+<div><p>Keyword arguments passed on to constructor.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.PartiallySolvedSystem.integrate">
+<code class="descname">integrate</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#PartiallySolvedSystem.integrate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.PartiallySolvedSystem.integrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.symbolic.ScaledSys">
+<em class="property">class </em><code class="descclassname">pyodesys.symbolic.</code><code class="descname">ScaledSys</code><span class="sig-paren">(</span><em>dep_exprs</em>, <em>indep=None</em>, <em>dep_scaling=1</em>, <em>indep_scaling=1</em>, <em>params=()</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#ScaledSys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.ScaledSys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyodesys.symbolic.TransformedSys" title="pyodesys.symbolic.TransformedSys"><code class="xref py py-class docutils literal"><span class="pre">pyodesys.symbolic.TransformedSys</span></code></a></p>
+<p>Transformed system where the variables have been scaled linearly.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dep_exprs</strong> : iterable of (symbol, expression)-pairs</p>
+<blockquote>
+<div><p>see <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a></p>
+</div></blockquote>
+<p><strong>indep</strong> : Symbol</p>
+<blockquote>
+<div><p>see <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a></p>
+</div></blockquote>
+<p><strong>dep_scaling</strong> : number (&gt;0) or iterable of numbers</p>
+<blockquote>
+<div><p>scaling of the dependent variables (default: 1)</p>
+</div></blockquote>
+<p><strong>indep_scaling</strong> : number (&gt;0)</p>
+<blockquote>
+<div><p>scaling of the independent variable (default: 1)</p>
+</div></blockquote>
+<p><strong>params :</strong></p>
+<blockquote>
+<div><p>see <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a></p>
+</div></blockquote>
+<p><strong>**kwargs :</strong></p>
+<blockquote class="last">
+<div><p>Keyword arguments passed onto <a class="reference internal" href="#pyodesys.symbolic.TransformedSys" title="pyodesys.symbolic.TransformedSys"><code class="xref py py-class docutils literal"><span class="pre">TransformedSys</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">sympy</span> <span class="k">import</span> <span class="n">Symbol</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">Symbol</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scaled1</span> <span class="o">=</span> <span class="n">ScaledSys</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="o">*</span><span class="n">x</span><span class="p">)],</span> <span class="n">dep_scaling</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scaled1</span><span class="o">.</span><span class="n">exprs</span> <span class="o">==</span> <span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="mi">1000</span><span class="p">,)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scaled2</span> <span class="o">=</span> <span class="n">ScaledSys</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span><span class="p">)],</span> <span class="n">dep_scaling</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scaled2</span><span class="o">.</span><span class="n">exprs</span> <span class="o">==</span> <span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span><span class="o">/</span><span class="mi">1000000</span><span class="p">,)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">autonomous_exprs</span></code></td>
+<td>Whether the expressions for the dependent variables are autonomous.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">ny</span></code></td>
+<td>Number of dependent variables in the system.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariant_names</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariants</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">analytic_stiffness</span></code>([xyp])</td>
+<td>Running stiffness ratio from last integration.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.ScaledSys.from_callback" title="pyodesys.symbolic.ScaledSys.from_callback"><code class="xref py py-obj docutils literal"><span class="pre">from_callback</span></code></a>(cb[,&nbsp;ny,&nbsp;nparams,&nbsp;...])</td>
+<td>Create an instance from a callback.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">from_other</span></code>(ori,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx</span></code>()</td>
+<td>Calculates 2nd derivatives of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx_callback</span></code>()</td>
+<td>Generate a callback for evaluating derivative of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_f_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating <code class="docutils literal"><span class="pre">self.exprs</span></code>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_first_step_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_invariants_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_j_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating the jacobian.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_jac</span></code>()</td>
+<td>Derives the jacobian from <code class="docutils literal"><span class="pre">self.exprs</span></code> and <code class="docutils literal"><span class="pre">self.dep</span></code>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_roots_callback</span></code>()</td>
+<td>Generate a callback for evaluating <code class="docutils literal"><span class="pre">self.roots</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code>(x,&nbsp;y0[,&nbsp;params])</td>
+<td>Integrate the system of ordinary differential equations.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">jacobian_singular</span></code>()</td>
+<td>Returns True if Jacobian is singular, else False.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="pyodesys.symbolic.ScaledSys.from_callback">
+<em class="property">classmethod </em><code class="descname">from_callback</code><span class="sig-paren">(</span><em>cb</em>, <em>ny=None</em>, <em>nparams=None</em>, <em>dep_scaling=1</em>, <em>indep_scaling=1</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#ScaledSys.from_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.ScaledSys.from_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an instance from a callback.</p>
+<p>Analogous to <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.from_callback" title="pyodesys.symbolic.SymbolicSys.from_callback"><code class="xref py py-func docutils literal"><span class="pre">SymbolicSys.from_callback()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>cb</strong> : callable</p>
+<blockquote>
+<div><p>Signature rhs(x, y[:], p[:]) -&gt; f[:]</p>
+</div></blockquote>
+<p><strong>ny</strong> : int</p>
+<blockquote>
+<div><p>length of y</p>
+</div></blockquote>
+<p><strong>nparams</strong> : int</p>
+<blockquote>
+<div><p>length of p</p>
+</div></blockquote>
+<p><strong>dep_scaling</strong> : number (&gt;0) or iterable of numbers</p>
+<blockquote>
+<div><p>scaling of the dependent variables (default: 1)</p>
+</div></blockquote>
+<p><strong>indep_scaling: number (&gt;0)</strong></p>
+<blockquote>
+<div><p>scaling of the independent variable (default: 1)</p>
+</div></blockquote>
+<p><strong>**kwargs :</strong></p>
+<blockquote class="last">
+<div><p>Keyword arguments passed onto <a class="reference internal" href="#pyodesys.symbolic.ScaledSys" title="pyodesys.symbolic.ScaledSys"><code class="xref py py-class docutils literal"><span class="pre">ScaledSys</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">odesys</span> <span class="o">=</span> <span class="n">ScaledSys</span><span class="o">.</span><span class="n">from_callback</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dep_scaling</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">odesys</span><span class="o">.</span><span class="n">exprs</span>
+<span class="go">(p_0*y_0**2/10,)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.symbolic.SymbolicSys">
+<em class="property">class </em><code class="descclassname">pyodesys.symbolic.</code><code class="descname">SymbolicSys</code><span class="sig-paren">(</span><em>dep_exprs</em>, <em>indep=None</em>, <em>params=None</em>, <em>jac=True</em>, <em>dfdx=True</em>, <em>first_step_expr=None</em>, <em>roots=None</em>, <em>backend=None</em>, <em>lower_bounds=None</em>, <em>upper_bounds=None</em>, <em>linear_invariants=None</em>, <em>nonlinear_invariants=None</em>, <em>linear_invariant_names=None</em>, <em>nonlinear_invariant_names=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyodesys.core.ODESys" title="pyodesys.core.ODESys"><code class="xref py py-class docutils literal"><span class="pre">pyodesys.core.ODESys</span></code></a></p>
+<p>ODE System from symbolic expressions</p>
+<p>Creates a <code class="xref py py-class docutils literal"><span class="pre">ODESys</span></code> instance
+from symbolic expressions. Jacboian and second derivatives
+are derived when needed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dep_exprs</strong> : iterable of (symbol, expression)-pairs</p>
+<p><strong>indep</strong> : Symbol</p>
+<blockquote>
+<div><p>Independent variable (default: None =&gt; autonomous system).</p>
+</div></blockquote>
+<p><strong>params</strong> : iterable of symbols</p>
+<blockquote>
+<div><p>Problem parameters.</p>
+</div></blockquote>
+<p><strong>jac</strong> : ImmutableMatrix or bool (default: True)</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>if True:</dt>
+<dd><p class="first last">calculate jacobian from exprs</p>
+</dd>
+<dt>if False:</dt>
+<dd><p class="first last">do not compute jacobian (use explicit steppers)</p>
+</dd>
+<dt>if instance of ImmutableMatrix:</dt>
+<dd><p class="first last">user provided expressions for the jacobian</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>dfdx</strong> : iterable of expressions</p>
+<blockquote>
+<div><p>Derivatives of <code class="xref py py-attr docutils literal"><span class="pre">exprs</span></code> with respect to :attr`indep`.</p>
+</div></blockquote>
+<p><strong>first_step_expr</strong> : expression</p>
+<blockquote>
+<div><p>Closed form expression for calculating the first step. Be sure to pass
+<code class="docutils literal"><span class="pre">first_step==0</span></code> to enable its use during integration. If not given,
+the solver default behavior will be invoked.</p>
+</div></blockquote>
+<p><strong>roots</strong> : iterable of expressions</p>
+<blockquote>
+<div><p>Equations to look for root&#8217;s for during integration
+(currently available through cvode).</p>
+</div></blockquote>
+<p><strong>backend</strong> : str or sym.Backend</p>
+<blockquote>
+<div><p>See documentation of <a class="reference external" href="http://bjodah.github.io/sym/latest/sym.html#module-sym.backend">sym.Backend</a>.</p>
+</div></blockquote>
+<p><strong>lower_bounds</strong> : array_like</p>
+<blockquote>
+<div><p>Convenience option setting magnitude constraint. (requires integrator with
+support for recoverable errors)</p>
+</div></blockquote>
+<p><strong>upper_bounds</strong> : array_like</p>
+<blockquote>
+<div><p>Convenience option setting magnitude constraint. (requires integrator with
+support for recoverable errors)</p>
+</div></blockquote>
+<p><strong>linear_invariants</strong> : Matrix</p>
+<blockquote>
+<div><p>Matrix specifing linear combinations of dependent variables that</p>
+</div></blockquote>
+<p><strong>nonlinear_invariants</strong> : iterable of expressions</p>
+<blockquote>
+<div><p>Iterable collection of expressions of nonlinear invariants.</p>
+</div></blockquote>
+<p><strong>**kwargs:</strong></p>
+<blockquote class="last">
+<div><p>See <code class="xref py py-class docutils literal"><span class="pre">ODESys</span></code></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.ny" title="pyodesys.symbolic.SymbolicSys.ny"><code class="xref py py-obj docutils literal"><span class="pre">ny</span></code></a></td>
+<td>Number of dependent variables in the system.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="91%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>dep</td>
+<td>(tuple of symbols) Dependent variables.</td>
+</tr>
+<tr class="row-even"><td>exprs</td>
+<td>(tuple of expressions) Expressions for the derivatives of the dependent variables (<code class="xref py py-attr docutils literal"><span class="pre">dep</span></code>) with respect to the independent variable (<code class="xref py py-attr docutils literal"><span class="pre">indep</span></code>).</td>
+</tr>
+<tr class="row-odd"><td>indep</td>
+<td>(Symbol or None) Independent variable (<code class="docutils literal"><span class="pre">None</span></code> indicates autonomous system).</td>
+</tr>
+<tr class="row-even"><td>params</td>
+<td>(iterable of symbols) Problem parameters.</td>
+</tr>
+<tr class="row-odd"><td>first_step_expr</td>
+<td>(expression) Closed form expression for how to compute the first step.</td>
+</tr>
+<tr class="row-even"><td>roots</td>
+<td>(iterable of expressions or None) Roots to report for during integration.</td>
+</tr>
+<tr class="row-odd"><td>be</td>
+<td>(module) Symbolic backend, e.g. <code class="docutils literal"><span class="pre">sympy</span></code> or <code class="docutils literal"><span class="pre">symcxx</span></code>.</td>
+</tr>
+<tr class="row-even"><td>be</td>
+<td>(module) Symbolic backend.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.all_invariant_names" title="pyodesys.symbolic.SymbolicSys.all_invariant_names"><code class="xref py py-obj docutils literal"><span class="pre">all_invariant_names</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.all_invariants" title="pyodesys.symbolic.SymbolicSys.all_invariants"><code class="xref py py-obj docutils literal"><span class="pre">all_invariants</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.analytic_stiffness" title="pyodesys.symbolic.SymbolicSys.analytic_stiffness"><code class="xref py py-obj docutils literal"><span class="pre">analytic_stiffness</span></code></a>([xyp])</td>
+<td>Running stiffness ratio from last integration.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.from_callback" title="pyodesys.symbolic.SymbolicSys.from_callback"><code class="xref py py-obj docutils literal"><span class="pre">from_callback</span></code></a>(rhs[,&nbsp;ny,&nbsp;nparams,&nbsp;...])</td>
+<td>Create an instance from a callback.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.from_other" title="pyodesys.symbolic.SymbolicSys.from_other"><code class="xref py py-obj docutils literal"><span class="pre">from_other</span></code></a>(ori,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.get_dfdx" title="pyodesys.symbolic.SymbolicSys.get_dfdx"><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx</span></code></a>()</td>
+<td>Calculates 2nd derivatives of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.get_dfdx_callback" title="pyodesys.symbolic.SymbolicSys.get_dfdx_callback"><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx_callback</span></code></a>()</td>
+<td>Generate a callback for evaluating derivative of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.get_f_ty_callback" title="pyodesys.symbolic.SymbolicSys.get_f_ty_callback"><code class="xref py py-obj docutils literal"><span class="pre">get_f_ty_callback</span></code></a>()</td>
+<td>Generates a callback for evaluating <code class="docutils literal"><span class="pre">self.exprs</span></code>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.get_first_step_callback" title="pyodesys.symbolic.SymbolicSys.get_first_step_callback"><code class="xref py py-obj docutils literal"><span class="pre">get_first_step_callback</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.get_invariants_callback" title="pyodesys.symbolic.SymbolicSys.get_invariants_callback"><code class="xref py py-obj docutils literal"><span class="pre">get_invariants_callback</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.get_j_ty_callback" title="pyodesys.symbolic.SymbolicSys.get_j_ty_callback"><code class="xref py py-obj docutils literal"><span class="pre">get_j_ty_callback</span></code></a>()</td>
+<td>Generates a callback for evaluating the jacobian.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.get_jac" title="pyodesys.symbolic.SymbolicSys.get_jac"><code class="xref py py-obj docutils literal"><span class="pre">get_jac</span></code></a>()</td>
+<td>Derives the jacobian from <code class="docutils literal"><span class="pre">self.exprs</span></code> and <code class="docutils literal"><span class="pre">self.dep</span></code>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.get_roots_callback" title="pyodesys.symbolic.SymbolicSys.get_roots_callback"><code class="xref py py-obj docutils literal"><span class="pre">get_roots_callback</span></code></a>()</td>
+<td>Generate a callback for evaluating <code class="docutils literal"><span class="pre">self.roots</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code>(x,&nbsp;y0[,&nbsp;params])</td>
+<td>Integrate the system of ordinary differential equations.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.jacobian_singular" title="pyodesys.symbolic.SymbolicSys.jacobian_singular"><code class="xref py py-obj docutils literal"><span class="pre">jacobian_singular</span></code></a>()</td>
+<td>Returns True if Jacobian is singular, else False.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.pre_process" title="pyodesys.symbolic.SymbolicSys.pre_process"><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code></a>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.all_invariant_names">
+<code class="descname">all_invariant_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.all_invariant_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.all_invariant_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.all_invariants">
+<code class="descname">all_invariants</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.all_invariants"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.all_invariants" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.analytic_stiffness">
+<code class="descname">analytic_stiffness</code><span class="sig-paren">(</span><em>xyp=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.analytic_stiffness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.analytic_stiffness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Running stiffness ratio from last integration.</p>
+<p>Calculate sittness ratio, i.e. the ratio between the largest and
+smallest absolute eigenvalue of the (analytic) jacobian matrix.</p>
+<p>See <code class="xref py py-meth docutils literal"><span class="pre">ODESys.stiffness()</span></code> for more info.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pyodesys.symbolic.SymbolicSys.autonomous_exprs">
+<code class="descname">autonomous_exprs</code><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.autonomous_exprs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the expressions for the dependent variables are autonomous.</p>
+<p>Note that the system may still behave as an autonomous system on the interface
+of <code class="xref py py-meth docutils literal"><span class="pre">integrate()</span></code> due to use of pre-/post-processors.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="pyodesys.symbolic.SymbolicSys.from_callback">
+<em class="property">classmethod </em><code class="descname">from_callback</code><span class="sig-paren">(</span><em>rhs</em>, <em>ny=None</em>, <em>nparams=None</em>, <em>first_step_factory=None</em>, <em>roots_cb=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.from_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.from_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an instance from a callback.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>rhs</strong> : callbable</p>
+<blockquote>
+<div><p>Signature <code class="docutils literal"><span class="pre">rhs(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:],</span> <span class="pre">backend=math)</span> <span class="pre">-&gt;</span> <span class="pre">f[:]</span></code>.</p>
+</div></blockquote>
+<p><strong>ny</strong> : int</p>
+<blockquote>
+<div><p>Length of <code class="docutils literal"><span class="pre">y</span></code> in <code class="docutils literal"><span class="pre">rhs</span></code>.</p>
+</div></blockquote>
+<p><strong>nparams</strong> : int</p>
+<blockquote>
+<div><p>Length of <code class="docutils literal"><span class="pre">p</span></code> in <code class="docutils literal"><span class="pre">rhs</span></code>.</p>
+</div></blockquote>
+<p><strong>first_step_factory</strong> : callabble</p>
+<blockquote>
+<div><p>Signature <code class="docutils literal"><span class="pre">step1st(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:])</span> <span class="pre">-&gt;</span> <span class="pre">dx0</span></code>.</p>
+</div></blockquote>
+<p><strong>roots_cb</strong> : callable</p>
+<blockquote>
+<div><p>Callback with signature <code class="docutils literal"><span class="pre">roots(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:],</span> <span class="pre">backend=math)</span> <span class="pre">-&gt;</span> <span class="pre">r[:]</span></code>.</p>
+</div></blockquote>
+<p><strong>dep_by_name</strong> : bool</p>
+<blockquote>
+<div><p>Make <code class="docutils literal"><span class="pre">y</span></code> passed to <code class="docutils literal"><span class="pre">rhs</span></code> a dict (keys from <code class="xref py py-attr docutils literal"><span class="pre">names</span></code>) and convert
+its return value from dict to array.</p>
+</div></blockquote>
+<p><strong>par_by_name</strong> : bool</p>
+<blockquote>
+<div><p>Make <code class="docutils literal"><span class="pre">p</span></code> passed to <code class="docutils literal"><span class="pre">rhs</span></code> a dict (keys from <code class="xref py py-attr docutils literal"><span class="pre">param_names</span></code>).</p>
+</div></blockquote>
+<p><strong>**kwargs :</strong></p>
+<blockquote>
+<div><p>Keyword arguments passed onto <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An instance of <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">decay</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">rate</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="s1">&#39;Po-210&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Po-210&#39;</span><span class="p">:</span> <span class="o">-</span><span class="n">rate</span><span class="p">,</span> <span class="s1">&#39;Pb-206&#39;</span><span class="p">:</span> <span class="n">rate</span><span class="p">}</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">odesys</span> <span class="o">=</span> <span class="n">SymbolicSys</span><span class="o">.</span><span class="n">from_callback</span><span class="p">(</span><span class="n">decay</span><span class="p">,</span> <span class="n">dep_by_name</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Po-210&#39;</span><span class="p">,</span> <span class="s1">&#39;Pb-206&#39;</span><span class="p">),</span> <span class="n">nparams</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">odesys</span><span class="o">.</span><span class="n">integrate</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">138.4</span><span class="o">*</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">],</span> <span class="p">{</span><span class="s1">&#39;Po-210&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Pb-206&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span> <span class="p">[</span><span class="mf">5.798e-8</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="p">;</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">yout</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">rtol</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="pyodesys.symbolic.SymbolicSys.from_other">
+<em class="property">classmethod </em><code class="descname">from_other</code><span class="sig-paren">(</span><em>ori</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.from_other"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.from_other" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.get_dfdx">
+<code class="descname">get_dfdx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.get_dfdx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.get_dfdx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates 2nd derivatives of <code class="docutils literal"><span class="pre">self.exprs</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.get_dfdx_callback">
+<code class="descname">get_dfdx_callback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.get_dfdx_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.get_dfdx_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a callback for evaluating derivative of <code class="docutils literal"><span class="pre">self.exprs</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.get_f_ty_callback">
+<code class="descname">get_f_ty_callback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.get_f_ty_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.get_f_ty_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a callback for evaluating <code class="docutils literal"><span class="pre">self.exprs</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.get_first_step_callback">
+<code class="descname">get_first_step_callback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.get_first_step_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.get_first_step_callback" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.get_invariants_callback">
+<code class="descname">get_invariants_callback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.get_invariants_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.get_invariants_callback" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.get_j_ty_callback">
+<code class="descname">get_j_ty_callback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.get_j_ty_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.get_j_ty_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a callback for evaluating the jacobian.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.get_jac">
+<code class="descname">get_jac</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.get_jac"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.get_jac" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derives the jacobian from <code class="docutils literal"><span class="pre">self.exprs</span></code> and <code class="docutils literal"><span class="pre">self.dep</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.get_roots_callback">
+<code class="descname">get_roots_callback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.get_roots_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.get_roots_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a callback for evaluating <code class="docutils literal"><span class="pre">self.roots</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.jacobian_singular">
+<code class="descname">jacobian_singular</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.jacobian_singular"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.jacobian_singular" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if Jacobian is singular, else False.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pyodesys.symbolic.SymbolicSys.ny">
+<code class="descname">ny</code><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.ny" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of dependent variables in the system.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.symbolic.SymbolicSys.pre_process">
+<code class="descname">pre_process</code><span class="sig-paren">(</span><em>xout</em>, <em>y0</em>, <em>params=()</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#SymbolicSys.pre_process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.SymbolicSys.pre_process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.symbolic.TransformedSys">
+<em class="property">class </em><code class="descclassname">pyodesys.symbolic.</code><code class="descname">TransformedSys</code><span class="sig-paren">(</span><em>dep_exprs</em>, <em>indep=None</em>, <em>dep_transf=None</em>, <em>indep_transf=None</em>, <em>params=()</em>, <em>exprs_process_cb=None</em>, <em>check_transforms=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#TransformedSys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.TransformedSys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">pyodesys.symbolic.SymbolicSys</span></code></a></p>
+<p>SymbolicSys with variable transformations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dep_exprs</strong> : iterable of pairs</p>
+<blockquote>
+<div><p>see <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a></p>
+</div></blockquote>
+<p><strong>indep</strong> : Symbol</p>
+<blockquote>
+<div><p>see <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a></p>
+</div></blockquote>
+<p><strong>dep_transf</strong> : iterable of (expression, expression) pairs</p>
+<blockquote>
+<div><p>pairs of (forward, backward) transformations for the dependents
+variables</p>
+</div></blockquote>
+<p><strong>indep_transf</strong> : pair of expressions</p>
+<blockquote>
+<div><p>forward and backward transformation of the independent variable</p>
+</div></blockquote>
+<p><strong>params :</strong></p>
+<blockquote>
+<div><p>see <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a></p>
+</div></blockquote>
+<p><strong>exprs_process_cb</strong> : callbable</p>
+<blockquote>
+<div><p>Post processing of the expressions (signature: <code class="docutils literal"><span class="pre">f(exprs)</span> <span class="pre">-&gt;</span> <span class="pre">exprs</span></code>)
+for the derivatives of the dependent variables after transformation
+have been applied.</p>
+</div></blockquote>
+<p><strong>check_transforms</strong> : bool</p>
+<blockquote>
+<div><p>Passed as keyword argument <code class="docutils literal"><span class="pre">check</span></code> to <a class="reference internal" href="#pyodesys.util.transform_exprs_dep" title="pyodesys.util.transform_exprs_dep"><code class="xref py py-func docutils literal"><span class="pre">util.transform_exprs_dep()</span></code></a> and
+<a class="reference internal" href="#pyodesys.util.transform_exprs_indep" title="pyodesys.util.transform_exprs_indep"><code class="xref py py-func docutils literal"><span class="pre">util.transform_exprs_indep()</span></code></a>.</p>
+</div></blockquote>
+<p><strong>**kwargs :</strong></p>
+<blockquote class="last">
+<div><p>Keyword arguments passed onto <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">SymbolicSys</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">autonomous_exprs</span></code></td>
+<td>Whether the expressions for the dependent variables are autonomous.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">ny</span></code></td>
+<td>Number of dependent variables in the system.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariant_names</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariants</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">analytic_stiffness</span></code>([xyp])</td>
+<td>Running stiffness ratio from last integration.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.symbolic.TransformedSys.from_callback" title="pyodesys.symbolic.TransformedSys.from_callback"><code class="xref py py-obj docutils literal"><span class="pre">from_callback</span></code></a>(cb[,&nbsp;ny,&nbsp;nparams,&nbsp;...])</td>
+<td>Create an instance from a callback.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">from_other</span></code>(ori,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx</span></code>()</td>
+<td>Calculates 2nd derivatives of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx_callback</span></code>()</td>
+<td>Generate a callback for evaluating derivative of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_f_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating <code class="docutils literal"><span class="pre">self.exprs</span></code>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_first_step_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_invariants_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_j_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating the jacobian.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_jac</span></code>()</td>
+<td>Derives the jacobian from <code class="docutils literal"><span class="pre">self.exprs</span></code> and <code class="docutils literal"><span class="pre">self.dep</span></code>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_roots_callback</span></code>()</td>
+<td>Generate a callback for evaluating <code class="docutils literal"><span class="pre">self.roots</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code>(x,&nbsp;y0[,&nbsp;params])</td>
+<td>Integrate the system of ordinary differential equations.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">jacobian_singular</span></code>()</td>
+<td>Returns True if Jacobian is singular, else False.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="pyodesys.symbolic.TransformedSys.from_callback">
+<em class="property">classmethod </em><code class="descname">from_callback</code><span class="sig-paren">(</span><em>cb</em>, <em>ny=None</em>, <em>nparams=None</em>, <em>dep_transf_cbs=None</em>, <em>indep_transf_cbs=None</em>, <em>roots_cb=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#TransformedSys.from_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.TransformedSys.from_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an instance from a callback.</p>
+<p>Analogous to <a class="reference internal" href="#pyodesys.symbolic.SymbolicSys.from_callback" title="pyodesys.symbolic.SymbolicSys.from_callback"><code class="xref py py-func docutils literal"><span class="pre">SymbolicSys.from_callback()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>cb</strong> : callable</p>
+<blockquote>
+<div><p>Signature <code class="docutils literal"><span class="pre">rhs(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:])</span> <span class="pre">-&gt;</span> <span class="pre">f[:]</span></code></p>
+</div></blockquote>
+<p><strong>ny</strong> : int</p>
+<blockquote>
+<div><p>length of y</p>
+</div></blockquote>
+<p><strong>nparams</strong> : int</p>
+<blockquote>
+<div><p>length of p</p>
+</div></blockquote>
+<p><strong>dep_transf_cbs</strong> : iterable of pairs callables</p>
+<blockquote>
+<div><p>callables should have the signature <code class="docutils literal"><span class="pre">f(yi)</span> <span class="pre">-&gt;</span> <span class="pre">expression</span></code> in yi</p>
+</div></blockquote>
+<p><strong>indep_transf_cbs</strong> : pair of callbacks</p>
+<blockquote>
+<div><p>callables should have the signature <code class="docutils literal"><span class="pre">f(x)</span> <span class="pre">-&gt;</span> <span class="pre">expression</span></code> in x</p>
+</div></blockquote>
+<p><strong>roots_cb</strong> : callable</p>
+<blockquote>
+<div><p>Callback with signature <code class="docutils literal"><span class="pre">roots(x,</span> <span class="pre">y[:],</span> <span class="pre">p[:],</span> <span class="pre">backend=math)</span> <span class="pre">-&gt;</span> <span class="pre">r[:]</span></code>.
+Callback should return untransformed roots.</p>
+</div></blockquote>
+<p><strong>**kwargs :</strong></p>
+<blockquote class="last">
+<div><p>Keyword arguments passed onto <a class="reference internal" href="#pyodesys.symbolic.TransformedSys" title="pyodesys.symbolic.TransformedSys"><code class="xref py py-class docutils literal"><span class="pre">TransformedSys</span></code></a>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.symbolic.get_logexp">
+<code class="descclassname">pyodesys.symbolic.</code><code class="descname">get_logexp</code><span class="sig-paren">(</span><em>a=1</em>, <em>b=0</em>, <em>a2=None</em>, <em>b2=None</em>, <em>backend=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#get_logexp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.get_logexp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility function for use with :func:symmetricsys.</p>
+<p>Creates a pair of callbacks for logarithmic transformation
+(including scaling and shifting): <code class="docutils literal"><span class="pre">u</span> <span class="pre">=</span> <span class="pre">ln(a*x</span> <span class="pre">+</span> <span class="pre">b)</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>a</strong> : number</p>
+<blockquote>
+<div><p>Scaling (forward).</p>
+</div></blockquote>
+<p><strong>b</strong> : number</p>
+<blockquote>
+<div><p>Shift (forward).</p>
+</div></blockquote>
+<p><strong>a2</strong> : number</p>
+<blockquote>
+<div><p>Scaling (backward).</p>
+</div></blockquote>
+<p><strong>b2</strong> : number</p>
+<blockquote>
+<div><p>Shift (backward).</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Pair of callbacks.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.symbolic.symmetricsys">
+<code class="descclassname">pyodesys.symbolic.</code><code class="descname">symmetricsys</code><span class="sig-paren">(</span><em>dep_tr=None</em>, <em>indep_tr=None</em>, <em>SuperClass=&lt;class 'pyodesys.symbolic.TransformedSys'&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/symbolic.html#symmetricsys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.symbolic.symmetricsys" title="Permalink to this definition">¶</a></dt>
+<dd><p>A factory function for creating symmetrically transformed systems.</p>
+<p>Creates a new subclass which applies the same transformation for each dependent variable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dep_tr</strong> : pair of callables (default: None)</p>
+<blockquote>
+<div><p>Forward and backward transformation callbacks to be applied to the
+dependent variables.</p>
+</div></blockquote>
+<p><strong>indep_tr</strong> : pair of callables (default: None)</p>
+<blockquote>
+<div><p>Forward and backward transformation to be applied to the
+independent variable.</p>
+</div></blockquote>
+<p><strong>SuperClass</strong> : class</p>
+<p><strong>**kwargs :</strong></p>
+<blockquote>
+<div><p>Default keyword arguments for the TransformedSys subclass.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Subclass of SuperClass (by default <a class="reference internal" href="#pyodesys.symbolic.TransformedSys" title="pyodesys.symbolic.TransformedSys"><code class="xref py py-class docutils literal"><span class="pre">TransformedSys</span></code></a>).</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sympy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logexp</span> <span class="o">=</span> <span class="p">(</span><span class="n">sympy</span><span class="o">.</span><span class="n">log</span><span class="p">,</span> <span class="n">sympy</span><span class="o">.</span><span class="n">exp</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">psimp</span><span class="p">(</span><span class="n">exprs</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="p">[</span><span class="n">sympy</span><span class="o">.</span><span class="n">powsimp</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">expand</span><span class="p">(),</span> <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">exprs</span><span class="p">]</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">LogLogSys</span> <span class="o">=</span> <span class="n">symmetricsys</span><span class="p">(</span><span class="n">logexp</span><span class="p">,</span> <span class="n">logexp</span><span class="p">,</span> <span class="n">exprs_process_cb</span><span class="o">=</span><span class="n">psimp</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mysys</span> <span class="o">=</span> <span class="n">LogLogSys</span><span class="o">.</span><span class="n">from_callback</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mysys</span><span class="o">.</span><span class="n">exprs</span>
+<span class="go">(-exp(x_0), -exp(x_0) + exp(x_0 + y_0 - y_1))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyodesys.util">
+<span id="pyodesys-util-module"></span><h2>pyodesys.util module<a class="headerlink" href="#module-pyodesys.util" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyodesys.util.MissingImport">
+<em class="property">class </em><code class="descclassname">pyodesys.util.</code><code class="descname">MissingImport</code><span class="sig-paren">(</span><em>modname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/util.html#MissingImport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.util.MissingImport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(*args,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.util.check_transforms">
+<code class="descclassname">pyodesys.util.</code><code class="descname">check_transforms</code><span class="sig-paren">(</span><em>fw</em>, <em>bw</em>, <em>symbs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/util.html#check_transforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.util.check_transforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify validity of a pair of forward and backward transformations</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>fw: expression</strong></p>
+<blockquote>
+<div><p>forward transformation</p>
+</div></blockquote>
+<p><strong>bw: expression</strong></p>
+<blockquote>
+<div><p>backward transformation</p>
+</div></blockquote>
+<p><strong>symbs: iterable of symbols</strong></p>
+<blockquote class="last">
+<div><p>the variables that are transformed</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.util.import_">
+<code class="descclassname">pyodesys.util.</code><code class="descname">import_</code><span class="sig-paren">(</span><em>modname</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/util.html#import_"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.util.import_" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.util.requires">
+<em class="property">class </em><code class="descclassname">pyodesys.util.</code><code class="descname">requires</code><span class="sig-paren">(</span><em>*reqs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/util.html#requires"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.util.requires" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Conditional skipping (on requirements) of tests in pytest</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@requires</span><span class="p">(</span><span class="s1">&#39;numpy&#39;</span><span class="p">,</span> <span class="s1">&#39;scipy&#39;</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span> <span class="nf">test_sqrt</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+<span class="gp">... </span>    <span class="kn">from</span> <span class="nn">scipy.special</span> <span class="k">import</span> <span class="n">zeta</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="n">zeta</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@requires</span><span class="p">(</span><span class="s1">&#39;numpy&gt;=1.9.0&#39;</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span> <span class="nf">test_nanmedian</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">... </span>    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+<span class="gp">... </span>    <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(cb)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.util.requires.eq" title="pyodesys.util.requires.eq"><code class="xref py py-obj docutils literal"><span class="pre">eq</span></code></a></td>
+<td>eq(a, b) &#8211; Same as a==b.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.util.requires.ge" title="pyodesys.util.requires.ge"><code class="xref py py-obj docutils literal"><span class="pre">ge</span></code></a></td>
+<td>ge(a, b) &#8211; Same as a&gt;=b.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.util.requires.gt" title="pyodesys.util.requires.gt"><code class="xref py py-obj docutils literal"><span class="pre">gt</span></code></a></td>
+<td>gt(a, b) &#8211; Same as a&gt;b.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.util.requires.le" title="pyodesys.util.requires.le"><code class="xref py py-obj docutils literal"><span class="pre">le</span></code></a></td>
+<td>le(a, b) &#8211; Same as a&lt;=b.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.util.requires.lt" title="pyodesys.util.requires.lt"><code class="xref py py-obj docutils literal"><span class="pre">lt</span></code></a></td>
+<td>lt(a, b) &#8211; Same as a&lt;b.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#pyodesys.util.requires.ne" title="pyodesys.util.requires.ne"><code class="xref py py-obj docutils literal"><span class="pre">ne</span></code></a></td>
+<td>ne(a, b) &#8211; Same as a!=b.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="pyodesys.util.requires.eq">
+<code class="descname">eq</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyodesys.util.requires.eq" title="Permalink to this definition">¶</a></dt>
+<dd><p>eq(a, b) &#8211; Same as a==b.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.util.requires.ge">
+<code class="descname">ge</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyodesys.util.requires.ge" title="Permalink to this definition">¶</a></dt>
+<dd><p>ge(a, b) &#8211; Same as a&gt;=b.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.util.requires.gt">
+<code class="descname">gt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyodesys.util.requires.gt" title="Permalink to this definition">¶</a></dt>
+<dd><p>gt(a, b) &#8211; Same as a&gt;b.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.util.requires.le">
+<code class="descname">le</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyodesys.util.requires.le" title="Permalink to this definition">¶</a></dt>
+<dd><p>le(a, b) &#8211; Same as a&lt;=b.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.util.requires.lt">
+<code class="descname">lt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyodesys.util.requires.lt" title="Permalink to this definition">¶</a></dt>
+<dd><p>lt(a, b) &#8211; Same as a&lt;b.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyodesys.util.requires.ne">
+<code class="descname">ne</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyodesys.util.requires.ne" title="Permalink to this definition">¶</a></dt>
+<dd><p>ne(a, b) &#8211; Same as a!=b.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.util.stack_1d_on_left">
+<code class="descclassname">pyodesys.util.</code><code class="descname">stack_1d_on_left</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/util.html#stack_1d_on_left"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.util.stack_1d_on_left" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stack a 1D array on the left side of a 2D array</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x: 1D array</strong></p>
+<p><strong>y: 2D array</strong></p>
+<blockquote class="last">
+<div><p>Requirement: <code class="docutils literal"><span class="pre">shape[0]</span> <span class="pre">==</span> <span class="pre">x.size</span></code></p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.util.transform_exprs_dep">
+<code class="descclassname">pyodesys.util.</code><code class="descname">transform_exprs_dep</code><span class="sig-paren">(</span><em>fw</em>, <em>bw</em>, <em>dep_exprs</em>, <em>check=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/util.html#transform_exprs_dep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.util.transform_exprs_dep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform y[:] in dydx</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>fw: expression</strong></p>
+<blockquote>
+<div><p>forward transformation</p>
+</div></blockquote>
+<p><strong>bw: expression</strong></p>
+<blockquote>
+<div><p>backward transformation</p>
+</div></blockquote>
+<p><strong>dep_exprs: iterable of (symbol, expression) pairs</strong></p>
+<blockquote>
+<div><p>pairs of (dependent variable, derivative expressions),
+i.e. (y, dydx) pairs</p>
+</div></blockquote>
+<p><strong>check: bool (default: True)</strong></p>
+<blockquote>
+<div><p>whether to verification of the analytic correctness should
+be performed</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">List of transformed expressions for dydx</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.util.transform_exprs_indep">
+<code class="descclassname">pyodesys.util.</code><code class="descname">transform_exprs_indep</code><span class="sig-paren">(</span><em>fw</em>, <em>bw</em>, <em>dep_exprs</em>, <em>indep</em>, <em>check=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/util.html#transform_exprs_indep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.util.transform_exprs_indep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform x in dydx</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>fw: expression</strong></p>
+<blockquote>
+<div><p>forward transformation</p>
+</div></blockquote>
+<p><strong>bw: expression</strong></p>
+<blockquote>
+<div><p>backward transformation</p>
+</div></blockquote>
+<p><strong>dep_exprs: iterable of (symbol, expression) pairs</strong></p>
+<blockquote>
+<div><p>pairs of (dependent variable, derivative expressions)</p>
+</div></blockquote>
+<p><strong>check: bool (default: True)</strong></p>
+<blockquote>
+<div><p>whether to verification of the analytic correctness should
+be performed</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">List of transformed expressions for dydx</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="pyodesys.native.html" class="btn btn-neutral float-right" title="pyodesys.native package" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Welcome to pyodesys’s documentation!" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Bjoern I. Dahlgren &lt;bjodah@gmail.com&gt;.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.8.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
