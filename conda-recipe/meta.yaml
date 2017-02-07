@@ -30,6 +30,7 @@ test:
     - python
     - pytest
     - scipy
+    - boost
     - pyodeint
     - pygslodeiv2
     - pycvodes
