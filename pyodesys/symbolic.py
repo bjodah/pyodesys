@@ -190,7 +190,8 @@ class SymbolicSys(ODESys):
             self.autonomous_interface = self.autonomous_exprs
 
     def all_invariants(self):
-        return (([] if self.linear_invariants is None else (self.linear_invariants * self.dep).tolist()) +
+        return (([] if self.linear_invariants is None else (
+            self.linear_invariants * self.be.Matrix(len(self.dep), 1, self.dep)).T.tolist()[0]) +
                 ([] if self.nonlinear_invariants is None else self.nonlinear_invariants))
 
     def all_invariant_names(self):
