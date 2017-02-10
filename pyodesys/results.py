@@ -152,7 +152,7 @@ class Result(object):
 
         return cb(x, y, **kwargs)
 
-    def plot(self, info_vlines_kw=None, between=None, **kwargs):
+    def plot(self, info_vlines_kw=None, between=None, deriv=False, **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
         Parameters
@@ -162,6 +162,8 @@ class Result(object):
             an empty dict will be used if `True`. Need to pass `ax` when given.
         indices : iterable of int
         between : length 2 tuple
+        deriv : bool
+            Plot derivatives.
         names : iterable of str
         \*\*kwargs:
             See :func:`pyodesys.plotting.plot_result`
@@ -176,6 +178,10 @@ class Result(object):
             info_vlines(kwargs['ax'], self.xout, self.info, **info_vlines_kw)
             self._plot(plot_result, plot_kwargs_cb=lambda *args, **kwargs:
                        dict(c='w', ls='-', linewidth=7, alpha=.4), **kwargs)
+        if deriv:
+            if 'y' in kwargs:
+                raise ValueError("Cannot give both deriv=True and y.")
+            kwargs['y'] = self.odesys.f_cb(self.xout, self.yout, self.params)
         return self._plot(plot_result, **kwargs)
 
     def plot_phase_plane(self, indices=None, **kwargs):
@@ -191,11 +197,13 @@ class Result(object):
         """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
 
-    def plot_invariant_violations(self):
+    def plot_invariant_violations(self, **kwargs):
         invar = self.odesys.get_invariants_callback()
-        abs_viol = invar(self.xout, self.yout, self.params)
+        viol = invar(self._internal('xout'), self._internal('yout'), self._internal('params'))
+        abs_viol = np.abs(viol - viol[0, :])
         invar_names = self.odesys.all_invariant_names()
-        return self._plot(plot_result, y=abs_viol, names=invar_names)
+        return self._plot(plot_result, x=self._internal('xout'), y=abs_viol, names=invar_names,
+                          latex_names=kwargs.pop('latex_names', invar_names), indices=None, **kwargs)
 
     def extend_by_integration(self, xend, params=None, odesys=None, autonomous=None, **kwargs):
         odesys = odesys or self.odesys
