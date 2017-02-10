@@ -1012,7 +1012,8 @@ class PartiallySolvedSystem(SymbolicSys):
             }
 
         ori_li_nms = ori_sys.linear_invariant_names or []
-        new_lin_invar = [row for ri, row in enumerate(A.tolist()) if ri not in list(zip(*row_tgt))[0]]
+        new_lin_invar = [[cell for ci, cell in enumerate(row) if ci not in list(zip(*row_tgt))[1]]
+                         for ri, row in enumerate(A.tolist()) if ri not in list(zip(*row_tgt))[0]]
         new_lin_i_nms = [nam for ri, nam in enumerate(ori_li_nms) if ri not in list(zip(*row_tgt))[0]]
         return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar or None,
                    linear_invariant_names=new_lin_i_nms or None, **kwargs)

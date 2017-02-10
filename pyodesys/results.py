@@ -163,7 +163,7 @@ class Result(object):
         indices : iterable of int
         between : length 2 tuple
         deriv : bool
-            Plot derivatives.
+            Plot derivatives (internal variables).
         names : iterable of str
         \*\*kwargs:
             See :func:`pyodesys.plotting.plot_result`
@@ -181,7 +181,7 @@ class Result(object):
         if deriv:
             if 'y' in kwargs:
                 raise ValueError("Cannot give both deriv=True and y.")
-            kwargs['y'] = self.odesys.f_cb(self.xout, self.yout, self.params)
+            kwargs['y'] = self.odesys.f_cb(self._internal('xout'), self._internal('yout'), self._internal('params'))
         return self._plot(plot_result, **kwargs)
 
     def plot_phase_plane(self, indices=None, **kwargs):
