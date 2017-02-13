@@ -317,8 +317,6 @@ class ODESys(object):
             info : dict ('nfev' is guaranteed to be a key)
         """
         _intern_x, _intern_y0, _intern_p = self.pre_process(x, y0, params)
-        print(_intern_p)#DO-NOT-MERGE!
-        print(_intern_p.shape)#DO-NOT-MERGE!
         intern_x = _intern_x.squeeze()
         intern_y0 = np.atleast_1d(_intern_y0)
         if self.append_iv:
@@ -355,6 +353,10 @@ class ODESys(object):
                     intern_x.shape[0], intern_y0.shape[0], intern_p.shape[0]))
         else:
             raise ValueError("Mixed number of dimensions")
+
+        print('params=', params)#DO-NOT-MERGE!
+        print('intern_p=', intern_p)#DO-NOT-MERGE!
+        print('intern_p.shape=', intern_p.shape)#DO-NOT-MERGE!
 
         args = tuple(map(np.atleast_2d, (intern_x, intern_y0, intern_p)))
 
@@ -484,7 +486,7 @@ class ODESys(object):
             info = {
                 'internal_xout': _xout,
                 'internal_yout': _yout,
-                'internal_params': intern_p,
+                'internal_params': _p,
                 'success': r.successful(),
                 'nfev': rhs.ncall,
                 'name': name,
