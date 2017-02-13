@@ -178,21 +178,27 @@ class ODESys(object):
         else:
             if not all(l == lens[0] for l in lens):
                 raise ValueError("Mixed lenghts in dictionary.")
-            out = np.empty((lens[0], len(vals)))
+            out = np.empty((lens[0], len(vals)), dtype=object)
             for idx, v in enumerate(vals):
-                out[:, idx] = v
+                if getattr(v, 'ndim', -1) == 0:
+                    for j in range(lens[0]):
+                        out[j, idx] = v
+                else:
+                    out[:, idx] = v
             return out, False
 
     def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
         if self.dep_by_name and isinstance(y0, dict):
-            y0, tp_y0 = self._array_from_dict(y0, self.names)
+            _y0, tp_y0 = self._array_from_dict(y0, self.names)
         else:
+            _y0 = y0
             tp_y0 = False  # `quantities`-array-work-around (losing units if merely glanced at..)
 
         if self.par_by_name and isinstance(params, dict):
-            params, tp_p = self._array_from_dict(params, self.param_names)
+            _params, tp_p = self._array_from_dict(params, self.param_names)
         else:
+            _params = params
             tp_p = False
 
         try:
@@ -203,8 +209,8 @@ class ODESys(object):
             xout = (0*xout, xout)
 
         for pre_processor in self.pre_processors:
-            xout, y0, params = pre_processor(xout, y0, params)
-        _x, _y, _p = np.atleast_1d(xout), np.atleast_1d(y0), np.atleast_1d(params)
+            xout, _y0, _params = pre_processor(xout, _y0, _params)
+        _x, _y, _p = np.atleast_1d(xout), np.atleast_1d(_y0), np.atleast_1d(_params)
         return _x, _y.T if tp_y0 else _y, _p.T if tp_p else _p
 
     def post_process(self, xout, yout, params):
@@ -306,10 +312,13 @@ class ODESys(object):
         -------
         Length 3 tuple: (x, yout, info)
             x : array of values of the independent variable
-            yout : array of the dependent variable(s) for the different values of x
+            yout : array of the dependent variable(s) for the different
+                values of x.
             info : dict ('nfev' is guaranteed to be a key)
         """
         _intern_x, _intern_y0, _intern_p = self.pre_process(x, y0, params)
+        print(_intern_p)#DO-NOT-MERGE!
+        print(_intern_p.shape)#DO-NOT-MERGE!
         intern_x = _intern_x.squeeze()
         intern_y0 = np.atleast_1d(_intern_y0)
         if self.append_iv:
@@ -357,21 +366,24 @@ class ODESys(object):
                                   integrator.integrate_predefined,
                                   *args, **kwargs)
         if twodim:
-            if nfo[0]['mode'] == 'predefined':
-                _xout = np.array([d['internal_xout'] for d in nfo])
-                _yout = np.array([d['internal_yout'] for d in nfo])
-                _params = np.array([d['internal_params'] for d in nfo])
-            else:
-                _xout = [d['internal_xout'] for d in nfo]
-                _yout = [d['internal_yout'] for d in nfo]
-                _params = [d['internal_params'] for d in nfo]
+            # if nfo[0]['mode'] == 'predefined':
+            #     _xout = np.array([d['internal_xout'] for d in nfo])
+            #     _yout = np.array([d['internal_yout'] for d in nfo])
+            #     _params = np.array([d['internal_params'] for d in nfo])
+            # else:
+            _xout = [d['internal_xout'] for d in nfo]
+            _yout = [d['internal_yout'] for d in nfo]
+            _params = [d['internal_params'] for d in nfo]
+            res = [Result(*(self.post_process(_xout[i], _yout[i], _params[i]) + (nfo[i], self)))
+                   for i in range(len(nfo))]
         else:
             _xout = nfo[0]['internal_xout']
             _yout = nfo[0]['internal_yout']
             _params = intern_p  # nfo[0]['internal_params']
             self._internal = _xout.copy(), _yout.copy(), _params.copy()
             nfo = nfo[0]
-        return Result(*(self.post_process(_xout, _yout, _params) + (nfo, self)))
+            res = Result(*(self.post_process(_xout, _yout, _params) + (nfo, self)))
+        return res
 
     def _integrate_scipy(self, intern_xout, intern_y0, intern_p,
                          atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
@@ -751,49 +763,49 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
         _int_kw = kwargs.copy()
         for k, v in kw.items():
             _int_kw[k] = v[oi]
-        xout, yout, nfo = odes[oi].integrate(x, y0, params, **_int_kw)
+        res = odes[oi].integrate(x, y0, params, **_int_kw)
 
         if multimode:
             for idx in range(multimode):
-                tot_x[idx] = np.concatenate((tot_x[idx], xout[idx][1:] + glob_x[idx]))
-                tot_y[idx] = np.concatenate((tot_y[idx], yout[idx][1:, :]))
+                tot_x[idx] = np.concatenate((tot_x[idx], res[idx].xout[1:] + glob_x[idx]))
+                tot_y[idx] = np.concatenate((tot_y[idx], res[idx].yout[1:, :]))
                 for k in nfo_keys:
-                    if k in nfo[idx]:
-                        tot_nfo[idx][k] += nfo[idx][k]
-                tot_nfo[idx]['success'] = nfo[idx]['success']
+                    if k in res[idx].info:
+                        tot_nfo[idx][k] += res[idx].info[k]
+                tot_nfo[idx]['success'] = res[idx].info['success']
         else:
-            tot_x = np.concatenate((tot_x, xout[1:] + glob_x))
-            tot_y = np.concatenate((tot_y, yout[1:, :]))
+            tot_x = np.concatenate((tot_x, res.xout[1:] + glob_x))
+            tot_y = np.concatenate((tot_y, res.yout[1:, :]))
             for k in nfo_keys:
-                if k in nfo:
-                    tot_nfo[k] += nfo[k]
-            tot_nfo['success'] = nfo['success']
+                if k in res.info:
+                    tot_nfo[k] += res.info[k]
+            tot_nfo['success'] = res.info['success']
 
         if multimode:
-            if all([d['success'] for d in nfo]):
+            if all([r.info['success'] for r in res]):
                 break
         else:
-            if nfo['success']:
+            if res.info['success']:
                 break
         if oi < len(odes) - 1:
             if multimode:
                 _x, y0 = [], []
                 for idx in range(multimode):
-                    _x.append(_new_x(xout[idx], x[idx], next_autonomous))
-                    y0.append(yout[idx][-1, :])
+                    _x.append(_new_x(res[idx].xout, x[idx], next_autonomous))
+                    y0.append(res[idx].yout[-1, :])
                     if next_autonomous:
-                        glob_x[idx] += xout[idx][-1]
+                        glob_x[idx] += res[idx].xout[-1]
                 x = _x
             else:
-                x = _new_x(xout, x, next_autonomous)
-                y0 = yout[-1, :]
+                x = _new_x(res.xout, x, next_autonomous)
+                y0 = res.yout[-1, :]
                 if next_autonomous:
-                    glob_x += xout[-1]
+                    glob_x += res.xout[-1]
     if multimode:  # don't return defaultdict
-        tot_nfo = [dict(nsys=oi+1, **_nfo) for _nfo in tot_nfo]
+        return [Result(tot_x[idx], tot_y[idx], res[idx].params, tot_nfo[idx], odes[0])
+                for idx in range(len(odes))]
     else:
-        tot_nfo = dict(nsys=oi+1, **tot_nfo)
-    return tot_x, tot_y, tot_nfo
+        return Result(tot_x, tot_y, res.params, tot_nfo, odes[0])
 
 
 class OdeSys(ODESys):

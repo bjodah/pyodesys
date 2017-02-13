@@ -85,7 +85,7 @@ class Result(object):
                 res, err = res_poly, np.abs(res_poly - res_cub)
             else:
                 res_lin = avgy + yspan/xspan*(x - avgx)
-                res, err = res_cub, np.abs(res_cub - res_lin)
+                res, err = res_cub, np.abs(res_cub - np.asarray(res_lin))
 
         return res, err
 

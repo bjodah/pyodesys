@@ -560,9 +560,8 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
     _k = [3.5, 2.5, 1.5]
     k = [_k]*4
     res1 = odesys.integrate(tout, y0, k, integrator=integrator, first_step=1e-14)
-    for xout1, yout1, info1 in zip(*res1):
-        assert np.allclose(xout1 - xout1[0], res1[0][0] - res1[0][0][0])
-        assert np.allclose(yout1, res1[1][0])
+    for res in res1:
+        xout1, yout1, info1 = res.xout, res.yout, res.info
         ref = np.array(bateman_full(_y0, _k, xout1 - xout1[0], exp=np.exp)).T
         assert info1['success']
         assert xout1.size > 10
@@ -570,7 +569,8 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
         assert np.allclose(yout1, ref)
 
     res2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator, first_step=1e-14)
-    for xout2, yout2, info2 in zip(*res2):
+    for res in res2:
+        xout2, yout2, info2 = res.xout, res.yout, res.info
         assert info1['success']
         assert xout2.size == xout1.size
         assert np.allclose(yout2, ref)
@@ -681,12 +681,13 @@ def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
     trnsfsys = _get_transf_part_system()
     y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
     ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
-    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator=integrator, first_step=1e-14)
+    results = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator=integrator, first_step=1e-14)
     for i, (y0, k) in enumerate(zip(y0s, ks)):
-        ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
-        assert info[i]['success'] and info[i]['nfev'] > 10
-        assert info[i]['nfev'] > 1 and info[i]['time_cpu'] < 100
-        assert np.allclose(yout[i], ref) and np.allclose(np.sum(yout[i], axis=1), sum(y0))
+        xout, yout, info = results[i]
+        ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+        assert info['success'] and info['nfev'] > 10
+        assert info['nfev'] > 1 and info['time_cpu'] < 100
+        assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
 def _get_nonlin(**kwargs):
@@ -859,13 +860,13 @@ def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
 
     comb_res = integrate_chained([tsys, odesys], {'nsteps': [500*stepx, 20*stepx]}, tout, y0/molar_unitless, params,
                                  return_on_error=True, autorestart=2, **kwargs)
-    if isinstance(comb_res[2], dict):
-        assert comb_res[2]['success']
-        assert comb_res[2]['nfev'] > 10
+    if isinstance(comb_res, list):
+        for r in comb_res:
+            assert r.info['success']
+            assert r.info['nfev'] > 10
     else:
-        for d in comb_res[2]:
-            assert d['success']
-            assert d['nfev'] > 10
+        assert comb_res.info['success']
+        assert comb_res.info['nfev'] > 10
 
     if extra:
         with pytest.raises(RuntimeError):  # (failure)
@@ -874,10 +875,10 @@ def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
 
         res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1),
                                first_step=1e-14, **kwargs)
-        assert np.min(res[1][-1, :]) < -1e-6  # crazy! (failure of the linear formulation)
+        assert np.min(res.yout[-1, :]) < -1e-6  # crazy! (failure of the linear formulation)
         tres = tsys.integrate([t0, tend], y0/molar_unitless, params, nsteps=int(1345*1.1), **kwargs)
-        assert tres[2]['success'] is True
-        assert tres[2]['nfev'] > 100
+        assert tres.info['success'] is True
+        assert tres.info['nfev'] > 100
 
 
 @pytest.mark.veryslow
