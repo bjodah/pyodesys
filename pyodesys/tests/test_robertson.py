@@ -210,11 +210,12 @@ def test_integrate_chained_multi_robertson():
 
     for sys_iter, kw in [(odes, {'nsteps': [100, 1660], 'return_on_error': [True, False]}),
                          (odes[1:], {'nsteps': [1705*1.01]})]:
-        _x, _y, _nfo = integrate_chained(
+        results = integrate_chained(
             sys_iter, kw, [(zero_time, 1e11)]*3,
             [init_conc]*3, [k+init_conc]*3, integrator='cvode', atol=1e-10, rtol=1e-14, first_step=1e-14)
-        assert len(_x) == 3 and len(_y) == 3 and len(_nfo) == 3
-        for x, y, nfo in zip(_x, _y, _nfo):
+        assert len(results) == 3
+        for res in results:
+            x, y, nfo = res
             assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=0.02)
             assert nfo['success'] is True
             assert nfo['nfev'] > 100

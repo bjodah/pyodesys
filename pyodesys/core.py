@@ -354,10 +354,6 @@ class ODESys(object):
         else:
             raise ValueError("Mixed number of dimensions")
 
-        print('params=', params)#DO-NOT-MERGE!
-        print('intern_p=', intern_p)#DO-NOT-MERGE!
-        print('intern_p.shape=', intern_p.shape)#DO-NOT-MERGE!
-
         args = tuple(map(np.atleast_2d, (intern_x, intern_y0, intern_p)))
 
         if isinstance(integrator, str):
@@ -368,11 +364,6 @@ class ODESys(object):
                                   integrator.integrate_predefined,
                                   *args, **kwargs)
         if twodim:
-            # if nfo[0]['mode'] == 'predefined':
-            #     _xout = np.array([d['internal_xout'] for d in nfo])
-            #     _yout = np.array([d['internal_yout'] for d in nfo])
-            #     _params = np.array([d['internal_params'] for d in nfo])
-            # else:
             _xout = [d['internal_xout'] for d in nfo]
             _yout = [d['internal_yout'] for d in nfo]
             _params = [d['internal_params'] for d in nfo]
@@ -381,7 +372,7 @@ class ODESys(object):
         else:
             _xout = nfo[0]['internal_xout']
             _yout = nfo[0]['internal_yout']
-            _params = intern_p  # nfo[0]['internal_params']
+            _params = intern_p
             self._internal = _xout.copy(), _yout.copy(), _params.copy()
             nfo = nfo[0]
             res = Result(*(self.post_process(_xout, _yout, _params) + (nfo, self)))
@@ -804,9 +795,11 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
                 if next_autonomous:
                     glob_x += res.xout[-1]
     if multimode:  # don't return defaultdict
+        tot_nfo = [dict(nsys=oi+1, **_nfo) for _nfo in tot_nfo]
         return [Result(tot_x[idx], tot_y[idx], res[idx].params, tot_nfo[idx], odes[0])
-                for idx in range(len(odes))]
+                for idx in range(len(res))]
     else:
+        tot_nfo = dict(nsys=oi+1, **tot_nfo)
         return Result(tot_x, tot_y, res.params, tot_nfo, odes[0])
 
 

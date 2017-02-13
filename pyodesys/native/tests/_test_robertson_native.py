@@ -60,11 +60,12 @@ def _test_chained_multi_native(NativeSys, integrator='cvode', rtol_close=0.02, a
                 'nsteps': [1705*1.01*steps_fact]
             })
     ]:
-        _x, _y, _nfo = integrate_chained(
+        results = integrate_chained(
             sys_iter, kw, [(zero_time, tend)]*3,
             [init_conc]*3, [k]*3, integrator=integrator, atol=atol, rtol=rtol, **kwargs)
 
-        for x, y, nfo in zip(_x, _y, _nfo):
+        for res in results:
+            x, y, nfo = res
             assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=rtol_close)
             assert nfo['success'] == True  # noqa
             assert nfo['nfev'] > 100

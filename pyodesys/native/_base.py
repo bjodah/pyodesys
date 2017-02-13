@@ -14,6 +14,7 @@ import numpy as np
 import pkg_resources
 
 from ..symbolic import SymbolicSys
+from ..results import Result
 from .. import __version__
 
 try:

@@ -308,11 +308,11 @@ def test_par_by_name__multi():
         ref = np.array([[binom(p + idx, p)*(a/(a+1))**idx/(a+1)**(p+1) for idx in range(ny)]
                         for p in range(p_max + 1)])
         odesys = ODESys(*decay_factory(ny), param_names=params.keys(), par_by_name=True)
-        result = odesys.integrate(np.linspace(0, 1), [1] + [0]*(ny-1), params,
+        results = odesys.integrate(np.linspace(0, 1), [1] + [0]*(ny-1), params,
                                   integrator='odeint', method='rosenbrock4')
-        assert all(nfo['success'] for nfo in result.info)
-        assert result.xout.shape[-1] == 50
-        assert np.allclose(result.yout[:, -1, :], ref)
+        assert all(r.info['success'] for r in results)
+        assert all(r.xout.shape[-1] == 50 for r in results)
+        assert all(np.allclose(r.yout[-1, :], ref[i, ...]) for i, r in enumerate(results))
 
 
 @requires('pygslodeiv2')
