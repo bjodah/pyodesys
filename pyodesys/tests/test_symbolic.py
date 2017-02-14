@@ -571,7 +571,7 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
     res2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator, first_step=1e-14)
     for res in res2:
         xout2, yout2, info2 = res.xout, res.yout, res.info
-        assert info1['success']
+        assert info2['success']
         assert xout2.size == xout1.size
         assert np.allclose(yout2, ref)
 

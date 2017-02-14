@@ -309,7 +309,7 @@ def test_par_by_name__multi():
                         for p in range(p_max + 1)])
         odesys = ODESys(*decay_factory(ny), param_names=params.keys(), par_by_name=True)
         results = odesys.integrate(np.linspace(0, 1), [1] + [0]*(ny-1), params,
-                                  integrator='odeint', method='rosenbrock4')
+                                   integrator='odeint', method='rosenbrock4')
         assert all(r.info['success'] for r in results)
         assert all(r.xout.shape[-1] == 50 for r in results)
         assert all(np.allclose(r.yout[-1, :], ref[i, ...]) for i, r in enumerate(results))
@@ -425,7 +425,7 @@ def test_quantities_param_multi():
 
     def pp(x, y, p):
         return x, y, np.array([[item.rescale(1/pq.s).magnitude
-                       for item in p[:, idx]] for idx in range(1)]).T
+                                for item in p[:, idx]] for idx in range(1)]).T
 
     odesys = ODESys(sine, sine_jac, param_names=['k'],
                     par_by_name=True, pre_processors=[pp])
