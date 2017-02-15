@@ -132,7 +132,7 @@ class Result(object):
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
 
-    def _plot(self, cb, x=None, y=None, **kwargs):
+    def _plot(self, cb, x=None, y=None, legend=None, **kwargs):
         if x is None:
             x = self.xout
         if y is None:
@@ -149,8 +149,10 @@ class Result(object):
             _latex_names = getattr(self.odesys, 'latex_names', None)
             if _latex_names is not None and not all(ln is None for ln in _latex_names):
                 kwargs['latex_names'] = _latex_names
-
-        return cb(x, y, **kwargs)
+        if legend is None:
+            if kwargs['latex_names'] is not None or kwargs['names'] is not None:
+                legend = True
+        return cb(x, y, legend=legend, **kwargs)
 
     def plot(self, info_vlines_kw=None, between=None, deriv=False, **kwargs):
         """ Plots the integrated dependent variables from last integration.

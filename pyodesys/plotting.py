@@ -13,7 +13,7 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None, ax=None,
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, latex_names=None, xlabel=None, ylabel=None,
-                xscale=None, yscale=None):
+                xscale=None, yscale=None, legend=False):
     """
     Plot the depepndent variables vs. the independent variable
 
@@ -154,6 +154,12 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None, ax=None,
     if yscale is not None:
         (ax or plt.gca()).set_yscale(yscale)
 
+    if legend is True:
+        ax.legend()
+    elif legend in (None, False):
+        pass
+    else:
+        ax.legend(**legend)
 
 def plot_phase_plane(x, y, indices=None, plot=None, names=None, **kwargs):
     """ Plot the phase portrait of two dependent variables

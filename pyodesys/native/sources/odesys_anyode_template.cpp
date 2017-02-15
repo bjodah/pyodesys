@@ -43,7 +43,11 @@ int OdeSys::get_ny() const {
     return ${p_odesys.ny};
 }
 int OdeSys::get_nroots() const {
-    return ${p_odesys.nroots};
+%if isinstance(p_nroots, str):
+    ${p_nroots}
+%else:
+    return ${p_nroots};
+%endif
 }
 AnyODE::Status OdeSys::rhs(double x,
                            const double * const __restrict__ y,
@@ -175,9 +179,11 @@ double OdeSys::get_dx_max(double x, const double * const y) {
 }
 
 AnyODE::Status OdeSys::roots(double x, const double * const y, double * const out) {
-% if p_odesys.roots is None:
+% if p_roots is None:
     AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
     return AnyODE::Status::success;
+% elif isinstance(p_roots, str):
+    ${p_roots}
 % else:
     ${'' if any(p_odesys.indep in expr.free_symbols for expr in p_odesys.roots) else 'AnyODE::ignore(x);'}
 

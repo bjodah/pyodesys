@@ -203,6 +203,7 @@ class _NativeCodeBase(Cpp_Code):
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in roots_cses],
                 'exprs': map(_ccode, roots_exprs)
             },
+            p_nroots=self.odesys.nroots,
             p_get_dx_max=False
         )
         ns.update(self.namespace_default)

@@ -100,6 +100,10 @@ class SymbolicSys(ODESys):
         Matrix specifing linear combinations of dependent variables that
     nonlinear_invariants : iterable of expressions
         Iterable collection of expressions of nonlinear invariants.
+    steady_state_root : bool or float
+        Generate an expressions for roots which is the sum the smaller of
+        aboslute values of derivatives or relative derivatives subtracted by
+        the value of ``steady_state_root`` (default ``1e-10``).
     \*\*kwargs:
         See :py:class:`ODESys`
 
@@ -135,7 +139,7 @@ class SymbolicSys(ODESys):
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
                  linear_invariants=None, nonlinear_invariants=None,
-                 linear_invariant_names=None, nonlinear_invariant_names=None, **kwargs):
+                 linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
         if params is None:
@@ -145,8 +149,16 @@ class SymbolicSys(ODESys):
         self._jac = jac
         self._dfdx = dfdx
         self.first_step_expr = first_step_expr
-        self.roots = roots
         self.be = Backend(backend)
+        if steady_state_root:
+            if steady_state_root is True:
+                steady_state_root = 1e-10
+            if roots is not None:
+                raise ValueError("Cannot give both steady_state_root & roots")
+            roots = [sum([self.be.Min(self.be.Abs(expr),
+                                      self.be.Abs(expr)/dep) for dep, expr in
+                          zip(self.dep, self.exprs)]) - steady_state_root]
+        self.roots = roots
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
         if linear_invariants is not None:
