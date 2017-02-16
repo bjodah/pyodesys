@@ -37,7 +37,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        dx0, dx_max=None,
                        long int mxsteps=0, str method='rosenbrock4',
                        int autorestart=0,
-                       bool return_on_error=False):
+                       bool return_on_error=False,
+                       vector[double] special_settings):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
@@ -70,7 +71,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     [atol], rtol, 1.0, False))
+                                     [atol], rtol, 1.0, False, special_settings))
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
@@ -100,7 +101,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          dx0, dx_max=None,
                          long int mxsteps=0, str method='rosenbrock4',
                          int autorestart=0,
-                         bool return_on_error=False):
+                         bool return_on_error=False,
+                         vector[double] special_settings=[]):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
@@ -132,7 +134,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     [atol], rtol, 1.0, False))
+                                     [atol], rtol, 1.0, False, special_settings))
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     multi_predefined[OdeSys](

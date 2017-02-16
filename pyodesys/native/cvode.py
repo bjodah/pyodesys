@@ -12,7 +12,7 @@ else:
     from pycvodes import _config
 
 from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
-
+from .util import render_mako
 
 class NativeCvodeCode(_NativeCodeBase):
     wrapper_name = '_cvode_wrapper'
@@ -36,3 +36,11 @@ class NativeCvodeCode(_NativeCodeBase):
 class NativeCvodeSys(_NativeSysBase):
     _NativeCode = NativeCvodeCode
     _native_name = 'cvode'
+
+    def as_standalone(self, outdir='.'):
+        from pycompilation.compilation import src2obj, link
+        from pycodeexport.util import render_mako_template_to
+        f = render_mako_template_to(os.path.join(os.path.dirname(__file__), 'sources/standalone_template.cpp'),
+                                    'standalone.cpp', {'p_odesys': self})
+        objf = src2obj(f, **self._native.compile_kwargs)
+        return link([os.path.join(self._native._tempdir, self._native.obj_files[0]), objf], **self._native.compile_kwargs)

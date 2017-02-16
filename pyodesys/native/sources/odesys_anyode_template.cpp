@@ -25,9 +25,9 @@ namespace {  // anonymous namespace for user-defined helper functions
 using odesys_anyode::OdeSys;
 
 OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol,
-               double get_dx_max_factor, bool error_outside_bounds) :
+               double get_dx_max_factor, bool error_outside_bounds, std::vector<double> special_settings) :
     m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor),
-    m_error_outside_bounds(error_outside_bounds) {
+    m_error_outside_bounds(error_outside_bounds), m_special_settings(special_settings) {
     m_p.assign(params, params + ${len(p_odesys.params)});
     <% idx = 0 %>
   % for cse_token, cse_expr in p_common['cses']:
@@ -38,6 +38,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
    %endif
   % endfor
     use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${'true' if p_get_dx_max else 'false'} : false;
+    ${'\n    '.join(p_constructor_validation_snippets)}
 }
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};

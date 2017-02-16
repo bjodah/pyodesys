@@ -204,7 +204,8 @@ class _NativeCodeBase(Cpp_Code):
                 'exprs': map(_ccode, roots_exprs)
             },
             p_nroots=self.odesys.nroots,
-            p_get_dx_max=False
+            p_constructor_validation_snippets=[],
+            p_get_dx_max=False,
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)

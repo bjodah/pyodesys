@@ -52,7 +52,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        int autorestart=0, bool return_on_error=False,
                        bool record_rhs_xvals=False, bool record_jac_xvals=False,
                        bool record_order=False, bool record_fpe=False,
-                       double get_dx_max_factor=-1.0, bool error_outside_bounds=False):
+                       double get_dx_max_factor=-1.0, bool error_outside_bounds=False,
+                       vector[double] special_settings=[]):
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
@@ -99,7 +100,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     atol, rtol, get_dx_max_factor, error_outside_bounds))
+                                     atol, rtol, get_dx_max_factor, error_outside_bounds, special_settings))
         systems[idx].record_rhs_xvals = record_rhs_xvals
         systems[idx].record_jac_xvals = record_jac_xvals
         systems[idx].record_order = record_order
@@ -145,7 +146,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          bool with_jacobian=True, int autorestart=0, bool return_on_error=False,
                          bool record_rhs_xvals=False, bool record_jac_xvals=False,
                          bool record_order=False, bool record_fpe=False,
-                         double get_dx_max_factor=0.0, bool error_outside_bounds=False):
+                         double get_dx_max_factor=0.0, bool error_outside_bounds=False,
+                         vector[double] special_settings=[]):
     cdef:
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
@@ -194,7 +196,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     atol, rtol, get_dx_max_factor, error_outside_bounds))
+                                     atol, rtol, get_dx_max_factor, error_outside_bounds, special_settings))
         systems[idx].record_rhs_xvals = record_rhs_xvals
         systems[idx].record_jac_xvals = record_jac_xvals
         systems[idx].record_order = record_order
