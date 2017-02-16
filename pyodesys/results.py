@@ -150,7 +150,7 @@ class Result(object):
             if _latex_names is not None and not all(ln is None for ln in _latex_names):
                 kwargs['latex_names'] = _latex_names
         if legend is None:
-            if kwargs['latex_names'] is not None or kwargs['names'] is not None:
+            if kwargs.get('latex_names', None) is not None or kwargs['names'] is not None:
                 legend = True
         return cb(x, y, legend=legend, **kwargs)
 

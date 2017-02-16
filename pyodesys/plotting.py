@@ -7,7 +7,7 @@ from math import log
 import numpy as np
 
 
-def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None, ax=None,
+def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
                 ls=('-', '--', ':', '-.'),
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
@@ -56,11 +56,8 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None, ax=None,
     """
     import matplotlib.pyplot as plt
 
-    if plot is None:
-        if ax is None:
-            from matplotlib.pyplot import plot
-        else:
-            plot = ax.plot
+    if ax is None:
+        ax = plt.subplot(1, 1, 1)
     if plot_kwargs_cb is None:
         def plot_kwargs_cb(idx, lines=False, markers=False, labels=None):
 
@@ -96,10 +93,10 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None, ax=None,
         lines = interpolate in (None, False)
     markers = len(x) < m_lim
     for idx in indices:
-        plot(x, _y[:, idx], **plot_kwargs_cb(
+        ax.plot(x, _y[:, idx], **plot_kwargs_cb(
             idx, lines=lines, labels=latex_names or names))
         if markers:
-            plot(x, _y[:, idx], **plot_kwargs_cb(
+            ax.plot(x, _y[:, idx], **plot_kwargs_cb(
                 idx, lines=False, markers=markers, labels=latex_names or names))
 
     if xlabel is None:
@@ -145,7 +142,7 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None, ax=None,
             y2[:, idx] = interp_cb(x_plot)
 
         for idx in indices:
-            plot(x_plot, y2[:, idx], **plot_kwargs_cb(
+            ax.plot(x_plot, y2[:, idx], **plot_kwargs_cb(
                 idx, lines=True, markers=False))
         return x_plot, y2
 
@@ -160,6 +157,7 @@ def plot_result(x, y, indices=None, plot=None, plot_kwargs_cb=None, ax=None,
         pass
     else:
         ax.legend(**legend)
+
 
 def plot_phase_plane(x, y, indices=None, plot=None, names=None, **kwargs):
     """ Plot the phase portrait of two dependent variables
@@ -243,6 +241,7 @@ def info_vlines(ax, xout, info, vline_colors=('maroon', 'purple'),
             ln_np1 = log(len(vlines)+1)
             every = min(round((ln_np1 - 4)/log(2)), 1)
 
-        ax.vlines(vlines[::every], idx/nvk + 0.002, (idx+1)/nvk - 0.002, colors=vline_colors[idx % len(vline_colors)],
+        ax.vlines(vlines[::every], idx/nvk + 0.002, (idx+1)/nvk - 0.002,
+                  colors=vline_colors[idx % len(vline_colors)],
                   alpha=alpha, transform=ax.get_xaxis_transform())
     right_hand_ylabels(ax, [k[3] if k.startswith('fe_') else k[0] for k in vline_keys])
