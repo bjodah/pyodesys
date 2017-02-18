@@ -12,16 +12,16 @@ int main(int argc, char *argv[]){
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce help message")
-        ("atol", po::value<realtype>(), "absolute tolerance")
-        ("rtol", po::value<realtype>(), "relative tolerance")
-        ("mxsteps", po::value<int>(), "maximum number of steps")
-        ("lmm", po::value<std::string>(), "linear multistep method")
-        ("return_on_root", po::value<bool>(), "Return on root")
-        ("autorestart", po::value<int>(), "Autorestart (autonomous)")
-        ("return_on_error", po::value<bool>(), "Return on error")
-        ("get_dx_max_factor", po::value<realtype>(), "get_dx_max multiplicative factor")
-        ("error_outside_bounds", po::value<bool>(), "Return recoverable error to solver when outside bounds")
-        ("special_settings", po::value<std::string>(), "special settings (if customized)")
+        ("atol", po::value<realtype>()->default_value(1e-8), "absolute tolerance")
+        ("rtol", po::value<realtype>()->default_value(1e-8), "relative tolerance")
+        ("mxsteps", po::value<int>()->default_value(500), "maximum number of steps")
+        ("lmm", po::value<std::string>()->default_value("BDF"), "linear multistep method")
+        ("return_on_root", po::value<bool>()->default_value(false), "Return on root")
+        ("autorestart", po::value<int>()->default_value(0), "Autorestart (autonomous)")
+        ("return_on_error", po::value<bool>()->default_value(false), "Return on error")
+        ("get_dx_max_factor", po::value<realtype>()->default_value(1.0), "get_dx_max multiplicative factor")
+        ("error_outside_bounds", po::value<bool>()->default_value(false), "Return recoverable error to solver when outside bounds")
+        ("special_settings", po::value<std::string>()->default_value(""), "special settings2 (if customized)")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -43,13 +43,8 @@ int main(int argc, char *argv[]){
 
     std::vector<realtype> y0;
 
-#if defined(PYODESYS_ADAPTIVE)
-    std::vector<realtype> t0;
-    std::vector<realtype> tend;
-#else
     std::vector<realtype> tout;
     int nout=-1;
-#endif
     const long int mxsteps(vm["mxsteps"].as<int>());
 
     std::vector<realtype> dx0;
@@ -98,17 +93,9 @@ int main(int argc, char *argv[]){
         std::getline(linestream, item, ' ');
         dx_max.push_back(std::atof(item.c_str()));
 
-#if defined(PYODESYS_ADAPTIVE)
-        // y0[0] ... y0[n-1] dx0 dx_min dx_max t0 tend
-        std::getline(linestream, item, ' ');
-        t0.push_back(std::atof(item.c_str()));
-
-        std::getline(linestream, item, ' ');
-        tend.push_back(std::atof(item.c_str()));
-#else
         for (; std::getline(linestream, item, ' ');)
             tout.push_back(std::atof(item.c_str()));
-#endif
+
         if (nout == -1){
             nout = tout.size();
         }else if (static_cast<unsigned>(nout) != tout.size()){
@@ -119,18 +106,26 @@ int main(int argc, char *argv[]){
         systems.emplace_back(new odesys_anyode::OdeSys(&params[systems.size()*nparams], atol, rtol,
                                                        get_dx_max_factor, error_outside_bounds, special_settings));
     }
-#if defined(PYODESYS_ADAPTIVE)
-    auto xy_ri = cvodes_anyode_parallel::multi_adaptive(
-        systems, atol, rtol, lmm, &y0[0], &t0[0], &tend[0], mxsteps, &dx0[0],
-        &dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
-        eps_lin, nderiv, return_on_root, autorestart, return_on_error);
-#else
-    std::vector<double> yout(systems.size()*ny);
-    auto ri_ro = cvodes_anyode_parallel::multi_predefined(
-        systems, atol, rtol, lmm, &y0[0], nout, &tout[0], &yout[0], mxsteps, &dx0[0],
-        &dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
-        eps_lin, nderiv, autorestart, return_on_error);
-#endif
+    if (nout < 2){
+        std::cerr << "Got too few (" << nout << ") time points." << std::endl;
+    } else if (nout == 2) {
+        std::vector<realtype> t0;
+        std::vector<realtype> tend;
+        for (int idx=0; idx<systems.size(); ++idx){
+            t0.push_back(tout[2*idx]);
+            tend.push_back(tout[2*idx + 1]);
+        }
+        auto xy_ri = cvodes_anyode_parallel::multi_adaptive(
+		systems, atol, rtol, lmm, &y0[0], &t0[0], &tend[0], mxsteps, &dx0[0],
+		&dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
+		eps_lin, nderiv, return_on_root, autorestart, return_on_error);
+    } else {
+        std::vector<realtype> yout(systems.size()*ny);
+        auto ri_ro = cvodes_anyode_parallel::multi_predefined(
+		systems, atol, rtol, lmm, &y0[0], nout, &tout[0], &yout[0], mxsteps, &dx0[0],
+		&dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
+		eps_lin, nderiv, autorestart, return_on_error);
+    }
     for (auto& v : systems)
         delete v;
     return 0;
