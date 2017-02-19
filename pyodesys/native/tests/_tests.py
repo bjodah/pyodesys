@@ -4,19 +4,16 @@ from __future__ import print_function, absolute_import, division
 
 import numpy as np
 
-try:
-    import sympy as sp
-except ImportError:
-    sp = None
-
+from pyodesys.util import import_
 from pyodesys.core import integrate_chained
 from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys, PartiallySolvedSystem
-
 from pyodesys.tests.test_core import (
     vdp_f, _test_integrate_multiple_adaptive, _test_integrate_multiple_predefined, sine, decay
 )
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
 from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3, get_logexp
+
+sp = import_('sympy')
 
 
 def _test_NativeSys(NativeSys, **kwargs):

@@ -10,6 +10,7 @@ from operator import mul
 
 from pyodesys.symbolic import SymbolicSys
 
+
 def get_odesys(reac, prod, names, SymbSys, inact_reac=None, **kwargs):
     nr = len(reac)
     ns = len(names)

@@ -10,11 +10,8 @@ import numpy as np
 import pytest
 import time
 
-try:
-    import sympy as sp
-except ImportError:
-    sp = None
-
+from ..util import import_
+sp = import_('sympy')
 try:
     import sym
 except ImportError:

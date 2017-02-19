@@ -6,10 +6,9 @@ import subprocess
 import sys
 
 import pytest
-try:
-    import sym
-except ImportError:
-    sym = None
+from pyodesys.util import import_
+
+sym = import_('sym')
 
 tests = glob.glob(os.path.join(os.path.dirname(__file__), '../*.py'))
 

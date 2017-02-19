@@ -13,17 +13,13 @@ from itertools import repeat
 
 import numpy as np
 
-try:
-    from sym import Backend
-except ImportError:
-    class Backend(object):
-        def __call__(self, *args, **kwargs):
-            raise ImportError("Could not import package 'sym'.")
-
+from .util import import_
 from .core import ODESys, RecoverableError
 from .util import (
     transform_exprs_dep, transform_exprs_indep, _ensure_4args, _Wrapper
 )
+
+Backend = import_('sym', 'Backend')
 
 
 def _get_ny_nparams_from_kw(ny, nparams, kwargs):

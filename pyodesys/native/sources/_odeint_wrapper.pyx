@@ -38,7 +38,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        long int mxsteps=0, str method='rosenbrock4',
                        int autorestart=0,
                        bool return_on_error=False,
-                       vector[double] special_settings):
+                       vector[double] special_settings=[]):
     cdef:
         vector[OdeSys *] systems
         list nfos = []

@@ -225,38 +225,38 @@ class requires(object):
 
 class MissingImport(object):
 
-    def __init__(self, modname):
+    def __init__(self, modname, exc):
         self._modname = modname
+        self._exc = exc
 
     def __getattribute__(self, attr):
-        if attr == '_modname':
+        if attr in ('_modname', '_exc'):
             return object.__getattribute__(self, attr)
         else:
-            raise ImportError("Failed to import %s" % self._modname)
+            raise self._exc  # ImportError("Failed to import %s" % self._modname)
 
     def __call__(self, *args, **kwargs):
-        raise ImportError("Failed to import %s" % self._modname)
+        raise self._exc  # ImportError("Failed to import %s" % self._modname)
 
 
 def import_(modname, *args):
     if len(args) == 0:
         try:
             return __import__(modname)
-        except ImportError:
-            return MissingImport(modname)
+        except ImportError as e:
+            return MissingImport(modname, e)
 
     mods = []
     for arg in args:
-        mi = MissingImport(modname + '.' + arg)
         try:
             mod = __import__(modname, globals(), locals(), [arg])
-        except ImportError:
-            mods.append(mi)
+        except ImportError as e:
+            mods.append(MissingImport(modname + '.' + arg, e))
         else:
             try:
                 attr = getattr(mod, arg)
-            except AttributeError:
-                mods.append(mi)
+            except AttributeError as e:
+                mods.append(MissingImport(modname + '.' + arg, e))
             else:
                 mods.append(attr)
     return mods if len(args) > 1 else mods[0]

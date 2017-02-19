@@ -4,9 +4,10 @@
 #include <string>
 #include <boost/program_options.hpp>
 #include <cvodes_anyode_parallel.hpp>
-#include "odesys_anyode.hpp"
 
 namespace po = boost::program_options;
+
+${p_odesys_impl}
 
 int main(int argc, char *argv[]){
     po::options_description desc("Allowed options");
@@ -44,7 +45,7 @@ int main(int argc, char *argv[]){
     std::vector<realtype> y0;
 
     std::vector<realtype> tout;
-    int nout=-1;
+    int nout = -1;
     const long int mxsteps(vm["mxsteps"].as<int>());
 
     std::vector<realtype> dx0;
@@ -69,10 +70,14 @@ int main(int argc, char *argv[]){
         special_settings.push_back(std::atof(item.c_str()));
     }
     for (std::string line; std::getline(std::cin, line);){
+	// nt y0[0] ... y0[ny - 1] params[0] ... params[nparams - 1] t[0] ... t[nout - 1]
         if (line.size() == 0)
             break;
         std::string item;
         auto linestream = std::istringstream(line);
+
+	std::getline(linestream, item, ' ');
+	const int nt = std::atoi(item.c_str());
 
         for (int idx=0; idx<ny; ++idx){
             std::getline(linestream, item, ' ');
@@ -98,13 +103,14 @@ int main(int argc, char *argv[]){
 
         if (nout == -1){
             nout = tout.size();
-        }else if (static_cast<unsigned>(nout) != tout.size()){
+        }
+	if (tout.size() != nt or nt != nout){
             std::cerr << "Inconsistent length of tout" << std::endl;
             return 1;
         }
 
-        systems.emplace_back(new odesys_anyode::OdeSys(&params[systems.size()*nparams], atol, rtol,
-                                                       get_dx_max_factor, error_outside_bounds, special_settings));
+        systems.push_back(new odesys_anyode::OdeSys(&params[systems.size()*nparams], atol, rtol,
+						    get_dx_max_factor, error_outside_bounds, special_settings));
     }
     if (nout < 2){
         std::cerr << "Got too few (" << nout << ") time points." << std::endl;
@@ -115,12 +121,20 @@ int main(int argc, char *argv[]){
             t0.push_back(tout[2*idx]);
             tend.push_back(tout[2*idx + 1]);
         }
+        // std::cerr << "cvodes_anyode_parallel::multi_adaptive(" <<
+	// 	"systems, atol=" << atol.size() << ", rtol=" << rtol << ", lmm=" << static_cast<int>(lmm) << ", &y0[0]=" << &y0[0] << ", &t0[0]=" << &t0[0] << ", &tend[0]=" << &tend[0] << ", mxsteps=" << mxsteps << ", &dx0[0]=" << dx0[0] << ", &dx_min[0]=" <<
+	// 	dx_min[0] << ", &dx_max[0]=" << &dx_max[0] << ", with_jacobian=" << with_jacobian << ", iter_type=" << static_cast<int>(iter_type) << ", linear_solver=" << linear_solver << ", maxl=" << maxl << ", eps_lin=" <<
+	// 	eps_lin << ", nderiv=" << nderiv << ", return_on_root=" << return_on_root << ", autorestart=" << autorestart << ", return_on_error=" << return_on_error << ");" << std::endl;
         auto xy_ri = cvodes_anyode_parallel::multi_adaptive(
 		systems, atol, rtol, lmm, &y0[0], &t0[0], &tend[0], mxsteps, &dx0[0],
 		&dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
 		eps_lin, nderiv, return_on_root, autorestart, return_on_error);
     } else {
-        std::vector<realtype> yout(systems.size()*ny);
+        std::vector<realtype> yout(systems.size()*ny*nout);
+	// std::cerr << "cvodes_anyode_parallel::multi_predefined(systems, atol=" << atol.size() << ", rtol=" << rtol << ", lmm=" << static_cast<int>(lmm) << ", &y0[0]=" << &y0[0] << ", nout=" << nout << ", &tout[0]=" << &tout[0] << ", &yout[0]=" <<
+	// 	&yout[0] << ", mxsteps=" << mxsteps << ", &dx0[0]=" << &dx0[0] <<
+	// 	", &dx_min[0]=" << &dx_min[0] << ", &dx_max[0]=" << &dx_max[0] << ", with_jacobian=" << with_jacobian << ", iter_type=" << static_cast<int>(iter_type) << ", linear_solver=" << linear_solver << ", maxl=" << maxl << ",eps_lin=" << eps_lin << ", nderiv=" <<
+	// 	 nderiv << ", autorestart=" << autorestart << ", return_on_error=" << return_on_error << ");" << std::endl;
         auto ri_ro = cvodes_anyode_parallel::multi_predefined(
 		systems, atol, rtol, lmm, &y0[0], nout, &tout[0], &yout[0], mxsteps, &dx0[0],
 		&dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,

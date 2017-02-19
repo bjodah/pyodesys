@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-try:
-    import sympy as sp
-except ImportError:
-    sp = None
-
+from pyodesys.util import import_
 from pyodesys.core import integrate_chained
 from pyodesys.symbolic import SymbolicSys, PartiallySolvedSystem, symmetricsys, TransformedSys
 from pyodesys.tests._robertson import get_ode_exprs
+
+sp = import_('sympy')
 
 
 def _test_chained_multi_native(NativeSys, integrator='cvode', rtol_close=0.02, atol=1e-10,
