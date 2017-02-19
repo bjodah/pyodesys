@@ -50,7 +50,8 @@ def from_b64_gz_pkl(data, pop=('params',), **kwargs):
         kwargs['SymbSys'] = SymbolicSys
     if 'dep_by_name' not in kwargs:
         kwargs['dep_by_name'] = True
-    return get_odesys(**imported, **kwargs), popped
+    imported.update(kwargs)
+    return get_odesys(**imported), popped
 
 
 radiolysis1 = """

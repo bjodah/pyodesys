@@ -11,7 +11,6 @@ import pytest
 import time
 
 from ..util import import_
-sp = import_('sympy')
 try:
     import sym
 except ImportError:
@@ -27,6 +26,8 @@ from ..util import requires
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
 from . import _cetsa
+
+sp = import_('sympy')
 
 
 def identity(x):

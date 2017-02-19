@@ -4,10 +4,11 @@ from __future__ import (absolute_import, division, print_function)
 import math
 from collections import OrderedDict
 from ..util import import_
-sp = import_('sympy')
 import numpy as np
 
 from ..symbolic import SymbolicSys, TransformedSys, symmetricsys
+
+sp = import_('sympy')
 
 ys = [
     np.array([0.43976714474700634, 0.10031118340143896, 0.38147224769822524,

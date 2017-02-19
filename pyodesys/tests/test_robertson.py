@@ -4,7 +4,6 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 
 from ..util import import_
-sympy = import_('sympy')
 import pytest
 
 from .. import ODESys
@@ -13,6 +12,7 @@ from ..symbolic import SymbolicSys, PartiallySolvedSystem, symmetricsys
 from ..util import requires
 from ._robertson import run_integration, get_ode_exprs
 
+sympy = import_('sympy')
 _yref_1e11 = (0.2083340149701255e-7, 0.8333360770334713e-13, 0.9999999791665050)
 
 

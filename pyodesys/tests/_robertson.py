@@ -37,10 +37,11 @@ import math
 
 import numpy as np
 from ..util import import_
-sp = import_('sympy')
 
 from ..core import RecoverableError
 from ..symbolic import ScaledSys
+
+sp = import_('sympy')
 
 
 def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):

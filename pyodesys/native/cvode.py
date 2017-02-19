@@ -47,6 +47,4 @@ class NativeCvodeSys(_NativeSysBase):
         print(kw)
         objf = src2obj(f, **kw)
         kw['libraries'].append('boost_program_options')
-        return link([
-            #os.path.join(self._native._tempdir, self._native.obj_files[0]),
-            objf], **kw)
+        return link([objf], **kw)

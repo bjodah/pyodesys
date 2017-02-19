@@ -14,6 +14,7 @@ def render_mako(tmpl, **kwargs):
         sys.stderr.write(text_error_template().render())
         raise
 
+
 def parse_standalone_output(lines):
     outs = []
     tout, yout, params = None, None, None
@@ -29,4 +30,4 @@ def parse_standalone_output(lines):
                 items = line.split()
                 tout.append(items[0])
                 yout.append(items[1:])
-    return [(np.array(tout), np.array(yout), np.asarray(params), info) for tout, yout, params, info in outs]
+    return [(np.array(_t), np.array(_y), np.asarray(_p), _nfo) for _t, _y, _p, _nfo in outs]
