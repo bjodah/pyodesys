@@ -2,6 +2,7 @@
 #include <sysexits.h>
 #include <iostream>
 #include <string>
+#include <type_traits>
 #include <boost/program_options.hpp>
 #include <cvodes_anyode_parallel.hpp>
 
@@ -10,6 +11,7 @@ namespace po = boost::program_options;
 ${p_odesys_impl}
 
 int main(int argc, char *argv[]){
+    // Parse cmdline args:
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce help message")
@@ -69,15 +71,17 @@ int main(int argc, char *argv[]){
     for (std::string item; std::getline(special_settings_stream, item, ',');){
         special_settings.push_back(std::atof(item.c_str()));
     }
-    for (std::string line; std::getline(std::cin, line);){
-	// nt y0[0] ... y0[ny - 1] params[0] ... params[nparams - 1] t[0] ... t[nout - 1]
+    // Parse stdin:
+    int rowi=0;
+    for (std::string line; std::getline(std::cin, line); ++rowi){
+    // nt y0[0] ... y0[ny - 1] params[0] ... params[nparams - 1] t[0] ... t[nout - 1]
         if (line.size() == 0)
             break;
         std::string item;
         auto linestream = std::istringstream(line);
 
-	std::getline(linestream, item, ' ');
-	const int nt = std::atoi(item.c_str());
+        std::getline(linestream, item, ' ');
+        const int nt = std::atoi(item.c_str());
 
         for (int idx=0; idx<ny; ++idx){
             std::getline(linestream, item, ' ');
@@ -104,14 +108,19 @@ int main(int argc, char *argv[]){
         if (nout == -1){
             nout = tout.size();
         }
-	if (tout.size() != nt or nt != nout){
+        if (tout.size() != (rowi+1)*nt or nt != nout){
             std::cerr << "Inconsistent length of tout" << std::endl;
             return 1;
         }
 
         systems.push_back(new odesys_anyode::OdeSys(&params[systems.size()*nparams], atol, rtol,
-						    get_dx_max_factor, error_outside_bounds, special_settings));
+                          get_dx_max_factor, error_outside_bounds, special_settings));
     }
+    // Computations:
+    std::vector<std::pair<cvodes_anyode_parallel::sa_t, std::vector<int> > > xy_ri;
+    std::vector<std::pair<std::vector<int>, std::vector<double> > > ri_ro;
+    std::vector<realtype> yout;
+
     if (nout < 2){
         std::cerr << "Got too few (" << nout << ") time points." << std::endl;
     } else if (nout == 2) {
@@ -121,25 +130,90 @@ int main(int argc, char *argv[]){
             t0.push_back(tout[2*idx]);
             tend.push_back(tout[2*idx + 1]);
         }
-        // std::cerr << "cvodes_anyode_parallel::multi_adaptive(" <<
-	// 	"systems, atol=" << atol.size() << ", rtol=" << rtol << ", lmm=" << static_cast<int>(lmm) << ", &y0[0]=" << &y0[0] << ", &t0[0]=" << &t0[0] << ", &tend[0]=" << &tend[0] << ", mxsteps=" << mxsteps << ", &dx0[0]=" << dx0[0] << ", &dx_min[0]=" <<
-	// 	dx_min[0] << ", &dx_max[0]=" << &dx_max[0] << ", with_jacobian=" << with_jacobian << ", iter_type=" << static_cast<int>(iter_type) << ", linear_solver=" << linear_solver << ", maxl=" << maxl << ", eps_lin=" <<
-	// 	eps_lin << ", nderiv=" << nderiv << ", return_on_root=" << return_on_root << ", autorestart=" << autorestart << ", return_on_error=" << return_on_error << ");" << std::endl;
-        auto xy_ri = cvodes_anyode_parallel::multi_adaptive(
-		systems, atol, rtol, lmm, &y0[0], &t0[0], &tend[0], mxsteps, &dx0[0],
-		&dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
-		eps_lin, nderiv, return_on_root, autorestart, return_on_error);
+        xy_ri = cvodes_anyode_parallel::multi_adaptive(
+        systems, atol, rtol, lmm, &y0[0], &t0[0], &tend[0], mxsteps, &dx0[0],
+        &dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
+        eps_lin, nderiv, return_on_root, autorestart, return_on_error);
+
     } else {
-        std::vector<realtype> yout(systems.size()*ny*nout);
-	// std::cerr << "cvodes_anyode_parallel::multi_predefined(systems, atol=" << atol.size() << ", rtol=" << rtol << ", lmm=" << static_cast<int>(lmm) << ", &y0[0]=" << &y0[0] << ", nout=" << nout << ", &tout[0]=" << &tout[0] << ", &yout[0]=" <<
-	// 	&yout[0] << ", mxsteps=" << mxsteps << ", &dx0[0]=" << &dx0[0] <<
-	// 	", &dx_min[0]=" << &dx_min[0] << ", &dx_max[0]=" << &dx_max[0] << ", with_jacobian=" << with_jacobian << ", iter_type=" << static_cast<int>(iter_type) << ", linear_solver=" << linear_solver << ", maxl=" << maxl << ",eps_lin=" << eps_lin << ", nderiv=" <<
-	// 	 nderiv << ", autorestart=" << autorestart << ", return_on_error=" << return_on_error << ");" << std::endl;
-        auto ri_ro = cvodes_anyode_parallel::multi_predefined(
-		systems, atol, rtol, lmm, &y0[0], nout, &tout[0], &yout[0], mxsteps, &dx0[0],
-		&dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
-		eps_lin, nderiv, autorestart, return_on_error);
+        yout.resize(systems.size()*ny*nout);
+        ri_ro = cvodes_anyode_parallel::multi_predefined(
+        systems, atol, rtol, lmm, &y0[0], nout, &tout[0], &yout[0], mxsteps, &dx0[0],
+        &dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
+        eps_lin, nderiv, autorestart, return_on_error);
     }
+    // Output:
+    for (int si=0; si<systems.size(); ++si){
+        bool first = true;
+        for (int pi=0; pi<nparams; ++pi){
+            if (first)
+                first = false;
+            else
+                std::cout << ' ';
+            std::cout << params[si*nparams + pi];
+        }
+        std::cout << '\n';
+        if (nout == 2) {
+            const auto& xout_ = xy_ri[si].first.first;
+            const auto& yout_ = xy_ri[si].first.second;
+            for (int ti=0; ti<xout_.size(); ++ti){
+                std::cout << xout_[ti];
+                for (int yi=0; yi<ny; ++yi)
+                    std::cout << ' ' << yout_[ti*ny + yi];
+                std::cout << '\n';
+            }
+        } else {
+            for (int ti=0; ti<nout; ++ti){
+                std::cout << tout[si*nout + ti];
+                for (int yi=0; yi<ny; ++yi){
+                    std::cout << ' ' << yout[si*nout*ny + ti*ny + yi];
+                }
+                std::cout << '\n';
+            }
+        }
+        std::cout << '{';
+        first = true;
+        for (const auto& itm : systems[si]->last_integration_info) {
+            if (first){
+                first = false;
+            } else {
+                std::cout << ", ";
+            }
+            std::cout << "'" << itm.first << "': " << itm.second;
+        }
+        for (const auto& itm : systems[si]->last_integration_info_dbl) {
+            std::cout << ", '" << itm.first << "': " << itm.second;
+        }
+        for (const auto& itm : systems[si]->last_integration_info_vecdbl) {
+            std::cout << ", '" << itm.first << "': {";
+            first = true;
+            for (const auto& elem : itm.second) {
+                if (first){
+                    first = false;
+                } else {
+                    std::cout << ", ";
+                }
+                std::cout << elem;
+            }
+            std::cout << "}";
+        }
+        for (const auto& itm : systems[si]->last_integration_info_vecint) {
+            std::cout << ", '" << itm.first << "': {";
+            first = true;
+            for (const auto& elem : itm.second) {
+                if (first){
+                    first = false;
+                } else {
+                    std::cout << ", ";
+                }
+                std::cout << elem;
+            }
+            std::cout << "}";
+        }
+
+        std::cout << "}\n";
+    }
+
     for (auto& v : systems)
         delete v;
     return 0;
