@@ -210,7 +210,7 @@ class SymbolicSys(ODESys):
 
     @staticmethod
     def _to_array(cont, by_name, names, keys):
-        if isinstance(cont, dict) and not by_name and (names is None or len(names) == 0):
+        if isinstance(cont, dict) and (not by_name or names is None or len(names) == 0):
             cont = [cont[k] for k in keys]
         return cont
 
@@ -218,15 +218,6 @@ class SymbolicSys(ODESys):
         y = self._to_array(y, self.dep_by_name, self.names, self.dep)
         p = self._to_array(p, self.par_by_name, self.param_names, self.params)
         return super(SymbolicSys, self).to_arrays(x, y, p, callbacks=callbacks)
-
-
-    def pre_process(self, xout, y0, params=()):
-        if isinstance(y0, dict) and not self.dep_by_name:
-            y0 = [y0[symb] for symb in self.dep]  # assume "dep by symbol"
-        if isinstance(params, dict) and (
-                not self.par_by_name or (self.param_names is None or len(self.param_names) == 0)):
-            params = [params[symb] for symb in self.params]  # assume "par by symbol"
-        return super(SymbolicSys, self).pre_process(xout, y0, params)
 
     @staticmethod
     def _kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be):

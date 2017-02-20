@@ -132,7 +132,8 @@ class ODESys(object):
     def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
                  band=None, names=None, param_names=None, description=None, dep_by_name=False,
                  par_by_name=False, latex_names=None, latex_param_names=None, pre_processors=None,
-                 post_processors=None, append_iv=False, autonomous_interface=None, **kwargs):
+                 post_processors=None, append_iv=False, autonomous_interface=None, to_arrays_callbacks=None,
+                 **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -165,7 +166,7 @@ class ODESys(object):
 
         if self.autonomous_interface not in (True, False, None):
             raise ValueError("autonomous_interface needs to be a boolean value or None.")
-
+        self.to_arrays_callbacks = to_arrays_callbacks
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s" % str(kwargs))
 
@@ -187,7 +188,6 @@ class ODESys(object):
                     out[:, idx] = v
             return out, False
 
-
     def _conditional_from_dict(self, cont, by_name, names):
         if isinstance(cont, dict):
             if not by_name:
@@ -208,8 +208,11 @@ class ODESys(object):
         _y, tp_y = self._conditional_from_dict(y, self.dep_by_name, self.names)
         _p, tp_p = self._conditional_from_dict(p, self.par_by_name, self.param_names)
 
-        if callbacks is not None:
-            _x, _y, _p = [cb(e) for cb, e in zip(callbacks, [_x, _y, _p])]  # e.g. dedimensionalisation
+        callbacks = callbacks or self.to_arrays_callbacks
+        if callbacks is not None:  # e.g. dedimensionalisation
+            if len(callbacks) != 3:
+                raise ValueError("Need 3 callbacks/None values.")
+            _x, _y, _p = [e if cb is None else cb(e) for cb, e in zip(callbacks, [_x, _y, _p])]
 
         arrs = [arr.T if tp else arr for tp, arr in zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
         extra_shape = None
@@ -228,32 +231,11 @@ class ODESys(object):
             arrs = [a if a.ndim == 2 else np.tile(a, (extra_shape, 1)) for a in arrs]
         return arrs
 
-
     def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
-        if self.dep_by_name and isinstance(y0, dict):
-            _y0, tp_y0 = self._array_from_dict(y0, self.names)
-        else:
-            _y0 = y0
-            tp_y0 = False  # `quantities`-array-work-around (losing units if merely glanced at..)
-
-        if self.par_by_name and isinstance(params, dict):
-            _params, tp_p = self._array_from_dict(params, self.param_names)
-        else:
-            _params = params
-            tp_p = False
-
-        try:
-            nx = len(xout)
-            if nx == 1:
-                xout = (0*xout[0], xout[0])
-        except TypeError:
-            xout = (0*xout, xout)
-
         for pre_processor in self.pre_processors:
-            xout, _y0, _params = pre_processor(xout, _y0, _params)
-        _x, _y, _p = np.atleast_1d(xout), np.atleast_1d(_y0), np.atleast_1d(_params)
-        return _x, _y.T if tp_y0 else _y, _p.T if tp_p else _p
+            xout, y0, params = pre_processor(xout, y0, params)
+        return [np.atleast_1d(arr) for arr in (xout, y0, params)]
 
     def post_process(self, xout, yout, params):
         """ Transforms internal values to output, used internally. """
@@ -310,7 +292,6 @@ class ODESys(object):
                                           force_predefined=True, **kwargs)
         return yout, info
 
-
     def integrate(self, x, y0, params=(), **kwargs):
         """ Integrate the system of ordinary differential equations.
 
@@ -359,15 +340,21 @@ class ODESys(object):
                 values of x.
             info : dict ('nfev' is guaranteed to be a key)
         """
-        _intern_x, _intern_y0, _intern_p = self.pre_process(x, y0, params)
-        intern_x = _intern_x.squeeze()
-        intern_y0 = np.atleast_1d(_intern_y0)
-        if self.append_iv:
-            intern_p = np.concatenate((_intern_p, intern_y0), axis=-1)
+        arrs = self.to_arrays(x, y0, params)
+        _x, _y, _p = _arrs = self.pre_process(*arrs)
+        ndims = [a.ndim for a in _arrs]
+        if ndims == [1, 1, 1]:
+            twodim = False
+        elif ndims == [2, 2, 2]:
+            twodim = True
         else:
-            intern_p = _intern_p
+            raise ValueError("Pre-processor made ndims inconsistent?")
+
+        if self.append_iv:
+            _p = np.concatenate((_p, _y), axis=-1)
+
         if hasattr(self, 'ny'):
-            if intern_y0.shape[-1] != self.ny:
+            if _y.shape[-1] != self.ny:
                 raise ValueError("Incorrect shape of intern_y0")
         if isinstance(kwargs.get('atol', None), dict):
             kwargs['atol'] = [kwargs['atol'][k] for k in self.names]
@@ -375,29 +362,7 @@ class ODESys(object):
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
 
-        if intern_y0.ndim == 1 and intern_p.ndim == 2:
-            # repeat y based on p
-            intern_y0 = np.tile(intern_y0, (intern_p.shape[0], 1))
-        elif intern_y0.ndim == 2 and intern_p.ndim == 1:
-            # repeat p based on p
-            intern_p = np.tile(intern_p, (intern_y0.shape[0], 1))
-
-        if intern_x.ndim == 1 and intern_y0.ndim == 2:
-            # repeat x based on y
-            intern_x = np.tile(intern_x, (intern_y0.shape[0], 1))
-
-        ndims = (intern_x.ndim, intern_y0.ndim, intern_p.ndim)
-        if ndims == (1, 1, 1):
-            twodim = False
-        elif ndims == (2, 2, 2):
-            twodim = True
-            if not intern_x.shape[0] == intern_y0.shape[0] == intern_p.shape[0]:
-                raise ValueError("Inconsistent shape[0] in x, y, p: (%d, %d, %d)" % (
-                    intern_x.shape[0], intern_y0.shape[0], intern_p.shape[0]))
-        else:
-            raise ValueError("Mixed number of dimensions")
-
-        args = tuple(map(np.atleast_2d, (intern_x, intern_y0, intern_p)))
+        args = tuple(map(np.atleast_2d, (_x, _y, _p)))
 
         if isinstance(integrator, str):
             nfo = getattr(self, '_integrate_' + integrator)(*args, **kwargs)
@@ -415,10 +380,10 @@ class ODESys(object):
         else:
             _xout = nfo[0]['internal_xout']
             _yout = nfo[0]['internal_yout']
-            _params = intern_p
-            self._internal = _xout.copy(), _yout.copy(), _params.copy()
+
+            self._internal = _xout.copy(), _yout.copy(), _p.copy()
             nfo = nfo[0]
-            res = Result(*(self.post_process(_xout, _yout, _params) + (nfo, self)))
+            res = Result(*(self.post_process(_xout, _yout, _p) + (nfo, self)))
         return res
 
     def _integrate_scipy(self, intern_xout, intern_y0, intern_p,

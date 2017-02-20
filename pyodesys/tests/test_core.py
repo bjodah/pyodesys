@@ -423,11 +423,8 @@ def test_roots():
 def test_quantities_param():
     import quantities as pq
 
-    def pp(x, y, p):
-        return x, y, [p[0].rescale(1/pq.s).magnitude]
-
-    odesys = ODESys(sine, sine_jac, param_names=['k'],
-                    par_by_name=True, pre_processors=[pp])
+    odesys = ODESys(sine, sine_jac, param_names=['k'], par_by_name=True, to_arrays_callbacks=(
+        None, None, lambda p: [p[0].rescale(1/pq.s).magnitude]))
     A, k = 2, 3
     xout, yout, info = odesys.integrate(np.linspace(0, 1), [0, A*k],
                                         {'k': k/pq.second})
