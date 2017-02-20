@@ -187,6 +187,48 @@ class ODESys(object):
                     out[:, idx] = v
             return out, False
 
+
+    def _conditional_from_dict(self, cont, by_name, names):
+        if isinstance(cont, dict):
+            if not by_name:
+                raise ValueError("not by name, yet a dictionary was passed.")
+            cont, tp = self._array_from_dict(cont, names)
+        else:
+            tp = False
+        return cont, tp
+
+    def to_arrays(self, x, y, p, callbacks=None):
+        try:
+            nx = len(x)
+        except TypeError:
+            _x = 0*x, x
+        else:
+            _x = (0*x[0], x[0]) if nx == 0 else x
+
+        _y, tp_y = self._conditional_from_dict(y, self.dep_by_name, self.names)
+        _p, tp_p = self._conditional_from_dict(p, self.par_by_name, self.param_names)
+
+        if callbacks is not None:
+            _x, _y, _p = [cb(e) for cb, e in zip(callbacks, [_x, _y, _p])]  # e.g. dedimensionalisation
+
+        arrs = [arr.T if tp else arr for tp, arr in zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
+        extra_shape = None
+        for a in arrs:
+            if a.ndim == 1:
+                continue
+            elif a.ndim == 2:
+                if extra_shape is None:
+                    extra_shape = a.shape[0]
+                else:
+                    if extra_shape != a.shape[0]:
+                        raise ValueError("Size mismatch!")
+            else:
+                raise NotImplementedError("Only 2 dimensions currently supported.")
+        if extra_shape is not None:
+            arrs = [a if a.ndim == 2 else np.tile(a, (extra_shape, 1)) for a in arrs]
+        return arrs
+
+
     def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
         if self.dep_by_name and isinstance(y0, dict):
@@ -267,6 +309,7 @@ class ODESys(object):
         xout, yout, info = self.integrate(xout, y0, params=params,
                                           force_predefined=True, **kwargs)
         return yout, info
+
 
     def integrate(self, x, y0, params=(), **kwargs):
         """ Integrate the system of ordinary differential equations.

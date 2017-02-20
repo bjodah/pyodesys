@@ -208,6 +208,18 @@ class SymbolicSys(ODESys):
     def __getitem__(self, key):
         return self.dep[self.names.index(key)]
 
+    @staticmethod
+    def _to_array(cont, by_name, names, keys):
+        if isinstance(cont, dict) and not by_name and (names is None or len(names) == 0):
+            cont = [cont[k] for k in keys]
+        return cont
+
+    def to_arrays(self, x, y, p, callbacks=None):
+        y = self._to_array(y, self.dep_by_name, self.names, self.dep)
+        p = self._to_array(p, self.par_by_name, self.param_names, self.params)
+        return super(SymbolicSys, self).to_arrays(x, y, p, callbacks=callbacks)
+
+
     def pre_process(self, xout, y0, params=()):
         if isinstance(y0, dict) and not self.dep_by_name:
             y0 = [y0[symb] for symb in self.dep]  # assume "dep by symbol"

@@ -67,6 +67,28 @@ def test_predefined(solver):
     assert np.allclose(yout[-1, :], [-1.89021896, -0.71633577])
 
 
+def test_to_arrays():
+    odesys1 = ODESys(vdp_f, vdp_j, vdp_dfdt)
+    assert [e.tolist() for e in odesys1.to_arrays(3, [4, 5], [6])] == [[0, 3], [4, 5], [6]]
+    assert [e.tolist() for e in odesys1.to_arrays([2, 3], [4, 5], [6])] == [[2, 3], [4, 5], [6]]
+    assert [e.tolist() for e in odesys1.to_arrays([1, 2, 3], [4, 5], [6])] == [[1, 2, 3], [4, 5], [6]]
+    assert [e.tolist() for e in odesys1.to_arrays([[1, 2, 3], [0, 1, 2]], [4, 5], [6])] == [
+        [[1, 2, 3], [0, 1, 2]], [[4, 5]]*2, [[6]]*2]
+    assert [e.tolist() for e in odesys1.to_arrays([1, 2, 3], [[4, 4], [5, 5], [6, 6]], [6])] == [
+        [[1, 2, 3]]*3, [[4, 4], [5, 5], [6, 6]], [[6]]*3]
+    odesys2 = ODESys(vdp_f, vdp_j, vdp_dfdt, names='A B'.split(), dep_by_name=True)
+    assert [e.tolist() for e in odesys2.to_arrays(3, {'A': 4, 'B': 5}, [6])] == [[0, 3], [4, 5], [6]]
+    assert [e.tolist() for e in odesys2.to_arrays([2, 3], {'A': 4, 'B': 5}, [6])] == [[2, 3], [4, 5], [6]]
+    assert [e.tolist() for e in odesys2.to_arrays([1, 2, 3], {'A': 4, 'B': 5}, [6])] == [[1, 2, 3], [4, 5], [6]]
+    assert [e.tolist() for e in odesys2.to_arrays([[1, 2, 3], [0, 1, 2]], {'A': 4, 'B': 5}, [6])] == [
+        [[1, 2, 3], [0, 1, 2]], [[4, 5]]*2, [[6]]*2]
+    assert [e.tolist() for e in odesys2.to_arrays([1, 2, 3], {'A': [4, 5, 6], 'B': [4, 5, 6]}, [6])] == [
+        [[1, 2, 3]]*3, [[4, 4], [5, 5], [6, 6]], [[6]]*3]
+    assert [e.tolist() for e in odesys2.to_arrays([1, 2, 3], {'A': [4, 5, 6], 'B': 8}, [6])] == [
+        [[1, 2, 3]]*3, [[4, 8], [5, 8], [6, 8]], [[6]]*3]
+
+
+
 @requires('scipy')
 def test_pre_post_processors():
     """
