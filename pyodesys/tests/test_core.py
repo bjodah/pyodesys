@@ -88,7 +88,6 @@ def test_to_arrays():
         [[1, 2, 3]]*3, [[4, 8], [5, 8], [6, 8]], [[6]]*3]
 
 
-
 @requires('scipy')
 def test_pre_post_processors():
     """

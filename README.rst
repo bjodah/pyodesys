@@ -111,7 +111,7 @@ If the expression contains transcendental functions you will need to provide a `
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/lnx.png
 
-If already have symbolic expressions created using e.g. SymPy you can create your system from those:
+If you already have symbolic expressions created using e.g. SymPy you can create your system from those:
 
 .. code:: python
 

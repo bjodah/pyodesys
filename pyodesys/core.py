@@ -489,7 +489,9 @@ class ODESys(object):
                 'success': r.successful(),
                 'nfev': rhs.ncall,
                 'name': name,
-                'mode': mode
+                'mode': mode,
+                'atol': atol,
+                'rtol': rtol
             }
             if self.j_cb is not None:
                 info['njev'] = jac.ncall
