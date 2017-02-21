@@ -181,7 +181,7 @@ def test_integrate_chained_robertson(reduced_nsteps):
         if reduced_nsteps[0] > 0:
             y = np.insert(y, reduced_nsteps[0]-1, init_conc[0] - np.sum(y, axis=1), axis=1)
         assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=rtols[reduced_nsteps[0]])
-        assert nfo['success'] is True
+        assert nfo['success'] == True  # noqa
         assert nfo['nfev'] > 100
         assert nfo['njev'] > 10
 

@@ -130,7 +130,7 @@ class SymbolicSys(ODESys):
 
     _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
                       'latex_names', 'latex_param_names', 'description', 'linear_invariants',
-                      'linear_invariant_names')
+                      'linear_invariant_names', 'to_arrays_callbacks')
 
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,

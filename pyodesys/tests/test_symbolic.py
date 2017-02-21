@@ -831,7 +831,7 @@ def test_integrate_chained(integrator, method):
 
         xout, yout, info = integrate_chained([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
                                              return_on_error=True, **kw)
-        assert info['success'] is False
+        assert info['success'] == False  # noqa
         ntot = 400
         nlinear = 60*(p+3)
 
@@ -840,7 +840,7 @@ def test_integrate_chained(integrator, method):
             'first_step': [30.0, 1e-5],
             'return_on_error': [True, False]
         }, tout, y0, **kw)
-        assert info['success'] is True
+        assert info['success'] == True  # noqa
         check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
