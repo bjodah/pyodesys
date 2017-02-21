@@ -13,7 +13,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, latex_names=None, xlabel=None, ylabel=None,
-                xscale=None, yscale=None, legend=False):
+                xscale=None, yscale=None, legend=False, yerr=None):
     """
     Plot the depepndent variables vs. the independent variable
 
@@ -92,6 +92,11 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
     if lines is None:
         lines = interpolate in (None, False)
     markers = len(x) < m_lim
+
+    if yerr is not None:
+        for idx in indices:
+            clr = plot_kwargs_cb(idx)['c']
+            ax.fill_between(x, _y[:, idx] - yerr[:, idx], _y[:, idx] + yerr[:, idx], facecolor=clr, alpha=.3)
     for idx in indices:
         ax.plot(x, _y[:, idx], **plot_kwargs_cb(
             idx, lines=lines, labels=latex_names or names))
