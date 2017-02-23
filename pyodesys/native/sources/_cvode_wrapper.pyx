@@ -71,6 +71,9 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
+    if atol.size() == 1:
+        atol.resize(y0.shape[y0.ndim-1], atol[0])
+
     if dx0 is None:
         _dx0 = np.zeros(y0.shape[0])
     else:
@@ -166,6 +169,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
+
+    if atol.size() == 1:
+        atol.resize(y0.shape[y0.ndim-1], atol[0])
 
     if dx0 is None:
         _dx0 = np.zeros(y0.shape[0])

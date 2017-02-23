@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+from functools import reduce
 import inspect
 import math
 import operator
@@ -260,3 +261,26 @@ def import_(modname, *args):
             else:
                 mods.append(attr)
     return mods if len(args) > 1 else mods[0]
+
+
+def merge_dicts(*dicts):
+    """ Merges dictionaries with incresing priority.
+
+    Parameters
+    ----------
+    \*dicts: iterable of dict
+
+    Examples
+    --------
+    >>> d1, d2 = {'a': 1, 'b': 2}, {'a': 2, 'c': 3}
+    >>> merge_dicts(d1, d2, {'a': 3}) == {'a': 3, 'b': 2, 'c': 3}
+    True
+    >>> d1 == {'a': 1, 'b': 2}
+    True
+
+    Returns
+    -------
+    dict
+
+    """
+    return reduce(lambda x, y: x.update(y) or x, (dicts[0].copy(),) + dicts[1:])

@@ -9,7 +9,6 @@ apt-get install --quiet --assume-yes --no-install-recommends python-symengine py
 for PY in python2 python3; do
     $PY -c "import symengine"  # make sure symengine is installed
     $PY -m pip install symcxx pysym  # unofficial backends
-    $PY -m pip install git+https://github.com/bjodah/pycvodes@atol-rtol  #DO-NOT-MERGE!
 done
 
 python setup.py sdist

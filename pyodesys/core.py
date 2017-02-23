@@ -488,6 +488,7 @@ class ODESys(object):
                 'internal_params': _p,
                 'success': r.successful(),
                 'nfev': rhs.ncall,
+                'n_steps': -1,  # don't know how to obtain this number
                 'name': name,
                 'mode': mode,
                 'atol': atol,

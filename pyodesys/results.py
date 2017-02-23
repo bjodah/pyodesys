@@ -154,7 +154,7 @@ class Result(object):
                 legend = True
         return cb(x, y, legend=legend, **kwargs)
 
-    def plot(self, info_vlines_kw=None, between=None, deriv=False, **kwargs):
+    def plot(self, info_vlines_kw=None, between=None, deriv=False, title_info=0, **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
         Parameters
@@ -184,7 +184,22 @@ class Result(object):
             if 'y' in kwargs:
                 raise ValueError("Cannot give both deriv=True and y.")
             kwargs['y'] = self.odesys.f_cb(self._internal('xout'), self._internal('yout'), self._internal('params'))
-        return self._plot(plot_result, **kwargs)
+        ax = self._plot(plot_result, **kwargs)
+        if title_info:
+            ax.set_title(
+                (self.odesys.description or '') +
+                ', '.join(
+                    (['%d steps' % self.info['n_steps']] if self.info.get('n_steps', -1) >= 0 else []) +
+                    [
+                        '%d fev' % self.info['nfev'],
+                        '%d jev' % self.info['njev'],
+                    ] + ([
+                        '%.2g s CPU' % self.info['time_cpu']
+                    ] if title_info > 1 and self.info.get('time_cpu', -1) >= 0 else [])
+                ) +
+                (', success' if self.info['success'] else ', failed'),
+                {'fontsize': 'medium'} if title_info > 1 else {}
+            )
 
     def plot_phase_plane(self, indices=None, **kwargs):
         """ Plots a phase portrait from last integration.

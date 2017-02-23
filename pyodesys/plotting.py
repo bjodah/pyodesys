@@ -7,6 +7,14 @@ from math import log
 import numpy as np
 
 
+def _set_scale(cb, argstr):
+    if argstr.count(';') == 0:
+        cb(argstr)
+    else:
+        arg, kw = argstr.split(';')
+        cb(arg, **eval('dict(%s)' % kw))
+
+
 def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
                 ls=('-', '--', ':', '-.'),
                 c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
@@ -97,6 +105,13 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
         for idx in indices:
             clr = plot_kwargs_cb(idx)['c']
             ax.fill_between(x, _y[:, idx] - yerr[:, idx], _y[:, idx] + yerr[:, idx], facecolor=clr, alpha=.3)
+
+    if isinstance(yscale, str) and 'linthreshy' in yscale:
+        arg, kw = yscale.split(';')
+        thresh = eval('dict(%s)' % kw)['linthreshy']
+        ax.axhline(thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)
+        ax.axhline(-thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)
+
     for idx in indices:
         ax.plot(x, _y[:, idx], **plot_kwargs_cb(
             idx, lines=lines, labels=latex_names or names))
@@ -152,9 +167,9 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
         return x_plot, y2
 
     if xscale is not None:
-        (ax or plt.gca()).set_xscale(xscale)
+        _set_scale(ax.set_xscale, xscale)
     if yscale is not None:
-        (ax or plt.gca()).set_yscale(yscale)
+        _set_scale(ax.set_yscale, yscale)
 
     if legend is True:
         ax.legend()
@@ -162,6 +177,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
         pass
     else:
         ax.legend(**legend)
+    return ax
 
 
 def plot_phase_plane(x, y, indices=None, plot=None, names=None, **kwargs):

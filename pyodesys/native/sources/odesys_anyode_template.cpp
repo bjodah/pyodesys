@@ -38,7 +38,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
    %endif
   % endfor
     use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${'true' if p_get_dx_max else 'false'} : false;
-    ${'\n    '.join(p_constructor_validation_snippets)}
+    ${'\n    '.join(p_constructor)}
 }
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
