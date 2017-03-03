@@ -53,6 +53,9 @@ int OdeSys::get_nroots() const {
 AnyODE::Status OdeSys::rhs(double x,
                            const double * const __restrict__ y,
                            double * const __restrict__ f) {
+%if isinstance(p_rhs, str):
+    ${p_rhs}
+%else:
     ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
   % for cse_token, cse_expr in p_rhs['cses']:
     const auto ${cse_token} = ${cse_expr};
@@ -90,6 +93,7 @@ AnyODE::Status OdeSys::rhs(double x,
     for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
   % endif
     return AnyODE::Status::success;
+%endif
 }
 
 % if p_jac is not None:
@@ -101,6 +105,9 @@ AnyODE::Status OdeSys::dense_jac_${order}(double x,
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt) {
+%if order in p_jac:
+    ${p_jac[order]}
+%else:
     // The AnyODE::ignore(...) calls below are used to generate code free from false compiler warnings.
     AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
     ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
@@ -128,6 +135,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double x,
     }
     this->njev++;
     return AnyODE::Status::success;
+%endif
 }
 % endfor
 % endif

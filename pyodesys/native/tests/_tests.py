@@ -283,3 +283,25 @@ def _test_NativeSys__dep_by_name__single_varied(NativeSys):
         ref = np.array(bateman_full([y0[k][idx] if k == 'a' else y0[k] for k in odesys.names],
                                     kf+[0], xout-xout[0], exp=np.exp)).T
         assert np.allclose(yout, ref)
+
+
+def _test_return_on_error_success(NativeSys):
+    k, y0 = [4, 3], (5, 4, 2)
+
+    native = NativeSys.from_callback(decay_rhs, len(k)+1, len(k), namespace_override={
+        'p_rhs': """
+        f[0] = -m_p[0]*y[0];
+        f[1] = m_p[0]*y[0] - m_p[1]*y[1];
+        f[2] = m_p[1]*y[1];
+        if (x > 0.5) return AnyODE::Status::recoverable_error;
+        this->nfev++;
+        return AnyODE::Status::success;
+"""
+    })
+    xout = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    result = native.integrate(xout, y0, k, atol=1e-11, rtol=1e-11, return_on_error=True, dx_max=.05)
+    nreached = result.info['nreached']
+    assert nreached == 3
+    ref = np.array(bateman_full(y0, k+[0], result.xout[:nreached] - xout[0], exp=np.exp)).T
+    assert result.info['success'] == False
+    assert np.allclose(result.yout[:nreached, :], ref, rtol=1e-8, atol=1e-8)

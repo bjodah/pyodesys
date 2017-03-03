@@ -22,10 +22,13 @@ import numpy as np
 
 cdef dict _as_dict(unordered_map[string, int] nfo,
                    unordered_map[string, double] nfo_dbl,
-                   mode=None):
+                   success, mode=None, nreached=None):
     dct = {str(k.decode('utf-8')): v for k, v in dict(nfo).items()}
     dct.update({str(k.decode('utf-8')): v for k, v in dict(nfo_dbl).items()})
     dct['mode'] = mode
+    dct['success'] = success
+    if nreached is not None:
+        dct['nreached'] = nreached
     return dct
 
 
@@ -95,7 +98,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
-                             mode='adaptive'))
+                             mode='adaptive', success=x0[idx] == _xout[-1]))
         del systems[idx]
 
     yout_arr = [np.asarray(_) for _ in yout]
@@ -118,6 +121,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
+        vector[int] result
+        int nreached
+        bool success
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -154,15 +160,17 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                                      [atol], rtol, get_dx_max_factor, False, special_settings))
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
-    multi_predefined[OdeSys](
+    result = multi_predefined[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data, xout.shape[1],
         <double *>xout.data, <double *>yout.data,
         mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0])
 
     for idx in range(y0.shape[0]):
+        nreached = result[idx]
+        success = False if return_on_error and nreached < xout.shape[1] else True
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
-                             mode='predefined'))
+                             mode='predefined', success=success, nreached=nreached))
         del systems[idx]
 
     yout_arr = np.asarray(yout)

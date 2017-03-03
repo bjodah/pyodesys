@@ -262,7 +262,6 @@ class _NativeSysBase(SymbolicSys):
             info[idx]['internal_xout'] = intern_xout[idx]
             info[idx]['internal_yout'] = yout[idx]
             info[idx]['internal_params'] = intern_p[idx, ...]
-            info[idx]['success'] = intern_x[idx, -1] == intern_xout[idx][-1]
             if 'nfev' not in info[idx] and 'n_rhs_evals' in info[idx]:
                 info[idx]['nfev'] = info[idx]['n_rhs_evals']
             if 'njev' not in info[idx] and 'dense_n_dls_jac_evals' in info[idx]:

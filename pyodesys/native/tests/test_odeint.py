@@ -10,7 +10,7 @@ from ._tests import (
     _test_multiple_predefined, _test_multiple_adaptive_chained,
     _test_PartiallySolved_symmetric_native,
     _test_PartiallySolved_symmetric_native_multi,
-    _test_Decay_nonnegative, _test_NativeSys__first_step_cb
+    _test_Decay_nonnegative, _test_NativeSys__first_step_cb,
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..odeint import NativeOdeintSys as NativeSys

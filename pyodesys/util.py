@@ -277,6 +277,11 @@ def merge_dicts(*dicts):
     True
     >>> d1 == {'a': 1, 'b': 2}
     True
+    >>> from collections import defaultdict
+    >>> dd1 = defaultdict(lambda: 3, {'b': 4})
+    >>> dd2 = merge_dicts(dd1, {'c': 5}, {'c': 17})
+    >>> dd2['c'] - dd2['a'] - dd2['b'] == 10
+    True
 
     Returns
     -------
