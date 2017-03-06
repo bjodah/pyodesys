@@ -98,7 +98,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
-                             mode='adaptive', success=x0[idx] == _xout[-1]))
+                             x0[idx] == _xout[-1], mode='adaptive'))
         del systems[idx]
 
     yout_arr = [np.asarray(_) for _ in yout]
@@ -112,7 +112,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          double atol, double rtol,
                          dx0, dx_min=None, dx_max=None,
                          long int mxsteps=0, str method='bsimp',
-                         double get_dx_max_factor=0.0, vector[double] special_settings=[]):
+                         bool return_on_error=False,
+                         double get_dx_max_factor=0.0,
+                         vector[double] special_settings=[]):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
