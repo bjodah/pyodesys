@@ -49,6 +49,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         vector[pair[vector[double], vector[double]]] result
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
+        bool success
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -87,9 +88,10 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         xout.append(_xout)
         _yout = np.asarray(result[idx].second)
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
+        success = _xout[-1] == xend[idx]
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
-                             mode='adaptive', success=x0[idx] == _xout[-1]))
+                             success, mode='adaptive'))
         del systems[idx]
 
     yout_arr = [np.asarray(_) for _ in yout]
@@ -153,7 +155,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         success = False if return_on_error and nreached < xout.shape[1] else True
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
-                             mode='predefined', nreached=nreached))
+                             success, mode='predefined', nreached=nreached))
         del systems[idx]
 
     yout_arr = np.asarray(yout)

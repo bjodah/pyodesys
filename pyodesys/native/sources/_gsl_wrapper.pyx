@@ -98,7 +98,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
-                             x0[idx] == _xout[-1], mode='adaptive'))
+                             xend[idx] == _xout[-1], mode='adaptive'))
         del systems[idx]
 
     yout_arr = [np.asarray(_) for _ in yout]
