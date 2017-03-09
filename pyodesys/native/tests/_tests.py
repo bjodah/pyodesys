@@ -303,5 +303,5 @@ def _test_return_on_error_success(NativeSys):
     nreached = result.info['nreached']
     assert nreached == 3
     ref = np.array(bateman_full(y0, k+[0], result.xout[:nreached] - xout[0], exp=np.exp)).T
-    assert result.info['success'] == False
+    assert result.info['success'] is False
     assert np.allclose(result.yout[:nreached, :], ref, rtol=1e-8, atol=1e-8)
