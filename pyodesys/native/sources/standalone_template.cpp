@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
     }
     // Computations:
     std::vector<std::pair<cvodes_anyode_parallel::sa_t, std::vector<int> > > xy_ri;
-    std::vector<std::pair<std::vector<int>, std::vector<double> > > ri_ro;
+    std::vector<std::pair<int, std::pair<std::vector<int>, std::vector<double> > > > ri_ro;
     std::vector<realtype> yout;
 
     if (nout < 2){
