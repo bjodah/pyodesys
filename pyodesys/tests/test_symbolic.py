@@ -997,9 +997,13 @@ def test_SymbolicSys__from_callback__first_step_expr__by_name():
         first_step_factory=lambda x0, ic: 1e-30*ic['foo'])
     y0 = {'foo': .7, 'bar': 0, 'baz': 0}
     p = {'first': 1e23, 'second': 2, 'third': 3}
-    xout, yout, info = odesys.integrate(5, y0, p, **kwargs)
-    ref = np.array(bateman_full([y0[k] for k in names], [p[k] for k in par_names], xout - xout[0], exp=np.exp)).T
-    assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+    result = odesys.integrate(5, y0, p, **kwargs)
+    assert result.info['success']
+    ref = bateman_full([y0[k] for k in names], [p[k] for k in par_names], result.xout - result.xout[0], exp=np.exp)
+    for i, k in enumerate(odesys.names):
+        assert np.allclose(result.get_dep(k), ref[i], atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+    for k, v in p.items():
+        assert result.get_param(k) == v
 
 
 @requires('sym', 'pyodeint')
