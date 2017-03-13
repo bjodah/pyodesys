@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 import time
 
-from ..util import import_
 try:
     import sym
 except ImportError:
@@ -26,8 +25,6 @@ from ..util import requires
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
 from . import _cetsa
-
-sp = import_('sympy')
 
 
 def identity(x):
@@ -104,6 +101,7 @@ def test_TransformedSys_logy_logx():
 
 @requires('sym', 'pycvodes', 'sympy')
 def test_TransformedSys_logy_logx_scaled_shifted():
+    import sympy as sp
     em16 = (sp.S.One*10)**-16
     _test_TransformedSys(get_logexp(42, em16), get_logexp(42, em16), 1e-7, 1e-7, 1e-4,
                          150, y_zero=0, t_zero=0, nsteps=800)
@@ -121,6 +119,7 @@ def test_TransformedSys_liny_logx():
 
 @requires('sym', 'pycvodes')
 def test_ScaledSys():
+    import sympy as sp
     k = k0, k1, k2 = [7., 3, 2]
     y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
     # this is actually a silly example since it is linear
@@ -212,6 +211,7 @@ def timeit(callback, *args, **kwargs):
 @requires('sym', 'pyodeint')
 @pytest.mark.parametrize('method', ['bs', 'rosenbrock4'])
 def test_exp(method):
+    import sympy as sp
     x = sp.Symbol('x')
     symsys = SymbolicSys([(x, sp.exp(x))])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
@@ -224,6 +224,7 @@ def test_exp(method):
 
 # @pytest.mark.xfail
 def _test_mpmath():  # too slow
+    import sympy as sp
     x = sp.Symbol('x')
     symsys = SymbolicSys([(x, sp.exp(x))])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
@@ -279,6 +280,7 @@ def test_SymbolicSys__from_callback_bateman(band):
 
 
 def _test_bateman(SymbSys, **kwargs):
+    import sympy as sp
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
     dydt = decay_dydt_factory(k)
@@ -650,6 +652,7 @@ def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
 
 
 def _get_transf_part_system():
+    import sympy as sp
     odesys = _get_decay3()
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
         odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
@@ -1170,6 +1173,7 @@ def test_SymbolicSys__indep_in_exprs():
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('idx', [0, 1, 2])
 def test_PartiallySolvedSystem__roots(idx):
+    import sympy as sp
     t, x, y, z, p, q = sp.symbols('t x y z, p, q')
     odesys = SymbolicSys({x: -p*x, y: p*x - q*y, z: q*y}, t, params=(p, q), roots=([x - y], [x - z], [y - z])[idx])
     _p, _q, tend = 7, 3, 0.7

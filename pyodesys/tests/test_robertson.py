@@ -12,7 +12,6 @@ from ..symbolic import SymbolicSys, PartiallySolvedSystem, symmetricsys
 from ..util import requires
 from ._robertson import run_integration, get_ode_exprs
 
-sympy = import_('sympy')
 _yref_1e11 = (0.2083340149701255e-7, 0.8333360770334713e-13, 0.9999999791665050)
 
 
@@ -40,6 +39,7 @@ def test_run_integration__atol_list():
 def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
               logt=False, zero_conc=0, zero_time=0, nonnegative=None,
               atol=1e-14, rtol=1e-10, integrator='cvode', nsteps=6000, **kwargs):
+    sympy = import_('sympy')
 
     ny, nk = 3, 3
     k = (.04, 1e4, 3e7)
