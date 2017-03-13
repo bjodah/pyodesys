@@ -37,10 +37,10 @@ class Result(object):
         else:
             raise KeyError("Invalid key: %s (for backward compatibility reasons)." % str(key))
 
-    def get_param(self, param_name):
+    def named_param(self, param_name):
         return self.params[self.odesys.param_names.index(param_name)]
 
-    def get_dep(self, name):
+    def named_dep(self, name):
         return self.yout[..., self.odesys.names.index(name)]
 
     def between(self, lower, upper, xdata=None, ydata=None):

@@ -1001,9 +1001,9 @@ def test_SymbolicSys__from_callback__first_step_expr__by_name():
     assert result.info['success']
     ref = bateman_full([y0[k] for k in names], [p[k] for k in par_names], result.xout - result.xout[0], exp=np.exp)
     for i, k in enumerate(odesys.names):
-        assert np.allclose(result.get_dep(k), ref[i], atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+        assert np.allclose(result.named_dep(k), ref[i], atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
     for k, v in p.items():
-        assert result.get_param(k) == v
+        assert result.named_param(k) == v
 
 
 @requires('sym', 'pyodeint')

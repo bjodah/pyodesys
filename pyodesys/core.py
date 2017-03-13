@@ -451,6 +451,7 @@ class ODESys(object):
                 mode = 'adaptive'
                 if name in ('vode', 'lsoda'):
                     warnings.warn("'adaptive' mode with SciPy's integrator (vode/lsoda) may overshoot (itask=2)")
+                    warnings.warn("'adaptive' mode with SciPy's integrator is unreliable, consider using e.g. cvode")
                     # vode itask 2 (may overshoot)
                     ysteps = [_y0]
                     xsteps = [_xout[0]]
