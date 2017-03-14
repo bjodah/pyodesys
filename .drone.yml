@@ -1,13 +1,13 @@
 build:
   image: bjodah/bjodahimg16dev:latest
   environment:
-    - PYCVODES_LAPACK=lapack,blas
     - CPLUS_INCLUDE_PATH=/opt/boost_1_63_0/include
     - LIBRARY_PATH=/opt/boost_1_63_0/lib
     - LD_LIBRARY_PATH=/opt/boost_1_63_0/lib
   commands:
-    - ./scripts/ci.sh pyodesys
+    - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
+    - rm -r ~/.cache/python*pyodesys*/
     - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
     - PATH=/opt/miniconda3/bin:$PATH conda build conda-recipe
     - bash -c '[[ $(python setup.py --version) =~ ^[0-9]+.* ]]'
