@@ -28,7 +28,7 @@ of numerically integrating systems of ordinary differential equations (intial va
 It unifies the interface of several libraries for performing the numerical integration as well as
 several libraries for symbolic representation. It also provides a convenience class for 
 representing and integrating ODE systems defined by symbolic expressions, e.g. `SymPy <http://www.sympy.org>`_
-expressions. This allows the user to write concise code and rely on pyodesys to handle the subtle differences
+expressions. This allows the user to write concise code and rely on ``pyodesys`` to handle the subtle differences
 between libraries.
 
 The numerical integration is perfomed using eiher:
@@ -44,9 +44,9 @@ callback for calculating the jacobian is provided automatically by pyodesys.
 The symbolic representation is abstracted by using `sym <https://github.com/bjodah/sym>`_.
 
 When performance is of outmost importance, e.g. in model fitting where results are needed
-for a large set of initial conditions and parameters choices, the user may transparently
-rely on compiled native code (code generation). This has the benefit that there is no need
-to manually rewrite the corresponing expressions in another programming language.
+for a large set of initial conditions and parameters, the user may transparently
+rely on compiled native code (pyodesys can generate optimal C++ code). The major benefit is that
+there is no need to manually rewrite the corresponing expressions in another programming language.
 
 Documentation
 -------------
@@ -132,8 +132,8 @@ If you already have symbolic expressions created using e.g. SymPy you can create
 
 .. image:: https://raw.githubusercontent.com/bjodah/pyodesys/master/examples/harmonic.png
 
-for more examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered jupyter notebooks here:
-`<http://hera.physchem.kth.se/~pyodesys/branches/master/examples>`_
+for more examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered
+jupyter notebooks here: `<http://hera.physchem.kth.se/~pyodesys/branches/master/examples>`_
 
 License
 -------
