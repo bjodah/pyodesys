@@ -36,13 +36,12 @@ from __future__ import division, print_function, absolute_import
 import math
 
 import numpy as np
-try:
-    import sympy as sp
-except ImportError:
-    sp = None
+from ..util import import_
 
 from ..core import RecoverableError
 from ..symbolic import ScaledSys
+
+sp = import_('sympy')
 
 
 def get_ode_exprs(logc=False, logt=False, reduced=0, base2=False):

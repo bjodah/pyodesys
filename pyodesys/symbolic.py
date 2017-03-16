@@ -13,17 +13,13 @@ from itertools import repeat
 
 import numpy as np
 
-try:
-    from sym import Backend
-except ImportError:
-    class Backend(object):
-        def __call__(self, *args, **kwargs):
-            raise ImportError("Could not import package 'sym'.")
-
+from .util import import_
 from .core import ODESys, RecoverableError
 from .util import (
     transform_exprs_dep, transform_exprs_indep, _ensure_4args, _Wrapper
 )
+
+Backend = import_('sym', 'Backend')
 
 
 def _get_ny_nparams_from_kw(ny, nparams, kwargs):
@@ -100,6 +96,10 @@ class SymbolicSys(ODESys):
         Matrix specifing linear combinations of dependent variables that
     nonlinear_invariants : iterable of expressions
         Iterable collection of expressions of nonlinear invariants.
+    steady_state_root : bool or float
+        Generate an expressions for roots which is the sum the smaller of
+        aboslute values of derivatives or relative derivatives subtracted by
+        the value of ``steady_state_root`` (default ``1e-10``).
     \*\*kwargs:
         See :py:class:`ODESys`
 
@@ -130,12 +130,12 @@ class SymbolicSys(ODESys):
 
     _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
                       'latex_names', 'latex_param_names', 'description', 'linear_invariants',
-                      'linear_invariant_names')
+                      'linear_invariant_names', 'to_arrays_callbacks')
 
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
                  linear_invariants=None, nonlinear_invariants=None,
-                 linear_invariant_names=None, nonlinear_invariant_names=None, **kwargs):
+                 linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
         if params is None:
@@ -145,8 +145,16 @@ class SymbolicSys(ODESys):
         self._jac = jac
         self._dfdx = dfdx
         self.first_step_expr = first_step_expr
-        self.roots = roots
         self.be = Backend(backend)
+        if steady_state_root:
+            if steady_state_root is True:
+                steady_state_root = 1e-10
+            if roots is not None:
+                raise ValueError("Cannot give both steady_state_root & roots")
+            roots = [sum([self.be.Min(self.be.Abs(expr),
+                                      self.be.Abs(expr)/dep) for dep, expr in
+                          zip(self.dep, self.exprs)]) - steady_state_root]
+        self.roots = roots
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
         if linear_invariants is not None:
@@ -200,13 +208,16 @@ class SymbolicSys(ODESys):
     def __getitem__(self, key):
         return self.dep[self.names.index(key)]
 
-    def pre_process(self, xout, y0, params=()):
-        if isinstance(y0, dict) and not self.dep_by_name:
-            y0 = [y0[symb] for symb in self.dep]  # assume "dep by symbol"
-        if isinstance(params, dict) and (
-                not self.par_by_name or (self.param_names is None or len(self.param_names) == 0)):
-            params = [params[symb] for symb in self.params]  # assume "par by symbol"
-        return super(SymbolicSys, self).pre_process(xout, y0, params)
+    @staticmethod
+    def _to_array(cont, by_name, names, keys):
+        if isinstance(cont, dict) and (not by_name or names is None or len(names) == 0):
+            cont = [cont[k] for k in keys]
+        return cont
+
+    def to_arrays(self, x, y, p, callbacks=None):
+        y = self._to_array(y, self.dep_by_name, self.names, self.dep)
+        p = self._to_array(p, self.par_by_name, self.param_names, self.params)
+        return super(SymbolicSys, self).to_arrays(x, y, p, callbacks=callbacks)
 
     @staticmethod
     def _kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be):

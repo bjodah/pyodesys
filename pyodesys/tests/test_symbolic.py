@@ -11,11 +11,6 @@ import pytest
 import time
 
 try:
-    import sympy as sp
-except ImportError:
-    sp = None
-
-try:
     import sym
 except ImportError:
     sym = None
@@ -106,6 +101,7 @@ def test_TransformedSys_logy_logx():
 
 @requires('sym', 'pycvodes', 'sympy')
 def test_TransformedSys_logy_logx_scaled_shifted():
+    import sympy as sp
     em16 = (sp.S.One*10)**-16
     _test_TransformedSys(get_logexp(42, em16), get_logexp(42, em16), 1e-7, 1e-7, 1e-4,
                          150, y_zero=0, t_zero=0, nsteps=800)
@@ -123,6 +119,7 @@ def test_TransformedSys_liny_logx():
 
 @requires('sym', 'pycvodes')
 def test_ScaledSys():
+    import sympy as sp
     k = k0, k1, k2 = [7., 3, 2]
     y0, y1, y2, y3 = sp.symbols('y0 y1 y2 y3', real=True, positive=True)
     # this is actually a silly example since it is linear
@@ -214,6 +211,7 @@ def timeit(callback, *args, **kwargs):
 @requires('sym', 'pyodeint')
 @pytest.mark.parametrize('method', ['bs', 'rosenbrock4'])
 def test_exp(method):
+    import sympy as sp
     x = sp.Symbol('x')
     symsys = SymbolicSys([(x, sp.exp(x))])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
@@ -226,6 +224,7 @@ def test_exp(method):
 
 # @pytest.mark.xfail
 def _test_mpmath():  # too slow
+    import sympy as sp
     x = sp.Symbol('x')
     symsys = SymbolicSys([(x, sp.exp(x))])
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
@@ -281,6 +280,7 @@ def test_SymbolicSys__from_callback_bateman(band):
 
 
 def _test_bateman(SymbSys, **kwargs):
+    import sympy as sp
     tend, k, y0 = 2, [4, 3], (5, 4, 2)
     y = sp.symarray('y', len(k)+1)
     dydt = decay_dydt_factory(k)
@@ -560,9 +560,8 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
     _k = [3.5, 2.5, 1.5]
     k = [_k]*4
     res1 = odesys.integrate(tout, y0, k, integrator=integrator, first_step=1e-14)
-    for xout1, yout1, info1 in zip(*res1):
-        assert np.allclose(xout1 - xout1[0], res1[0][0] - res1[0][0][0])
-        assert np.allclose(yout1, res1[1][0])
+    for res in res1:
+        xout1, yout1, info1 = res.xout, res.yout, res.info
         ref = np.array(bateman_full(_y0, _k, xout1 - xout1[0], exp=np.exp)).T
         assert info1['success']
         assert xout1.size > 10
@@ -570,8 +569,9 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
         assert np.allclose(yout1, ref)
 
     res2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator, first_step=1e-14)
-    for xout2, yout2, info2 in zip(*res2):
-        assert info1['success']
+    for res in res2:
+        xout2, yout2, info2 = res.xout, res.yout, res.info
+        assert info2['success']
         assert xout2.size == xout1.size
         assert np.allclose(yout2, ref)
 
@@ -652,6 +652,7 @@ def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
 
 
 def _get_transf_part_system():
+    import sympy as sp
     odesys = _get_decay3()
     partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0: {
         odesys.dep[0]: y0[0]*sp.exp(-p0[0]*(odesys.indep-x0))
@@ -681,12 +682,13 @@ def test_PartiallySolvedSystem__symmetricsys__multi(integrator):
     trnsfsys = _get_transf_part_system()
     y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
     ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
-    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator=integrator, first_step=1e-14)
+    results = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator=integrator, first_step=1e-14)
     for i, (y0, k) in enumerate(zip(y0s, ks)):
-        ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
-        assert info[i]['success'] and info[i]['nfev'] > 10
-        assert info[i]['nfev'] > 1 and info[i]['time_cpu'] < 100
-        assert np.allclose(yout[i], ref) and np.allclose(np.sum(yout[i], axis=1), sum(y0))
+        xout, yout, info = results[i]
+        ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+        assert info['success'] and info['nfev'] > 10
+        assert info['nfev'] > 1 and info['time_cpu'] < 100
+        assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
 def _get_nonlin(**kwargs):
@@ -832,7 +834,7 @@ def test_integrate_chained(integrator, method):
 
         xout, yout, info = integrate_chained([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
                                              return_on_error=True, **kw)
-        assert info['success'] is False
+        assert info['success'] == False  # noqa
         ntot = 400
         nlinear = 60*(p+3)
 
@@ -841,7 +843,7 @@ def test_integrate_chained(integrator, method):
             'first_step': [30.0, 1e-5],
             'return_on_error': [True, False]
         }, tout, y0, **kw)
-        assert info['success'] is True
+        assert info['success'] == True  # noqa
         check(yout[-1, :], n, p, a, atol, rtol, forgive)
 
 
@@ -859,13 +861,13 @@ def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
 
     comb_res = integrate_chained([tsys, odesys], {'nsteps': [500*stepx, 20*stepx]}, tout, y0/molar_unitless, params,
                                  return_on_error=True, autorestart=2, **kwargs)
-    if isinstance(comb_res[2], dict):
-        assert comb_res[2]['success']
-        assert comb_res[2]['nfev'] > 10
+    if isinstance(comb_res, list):
+        for r in comb_res:
+            assert r.info['success']
+            assert r.info['nfev'] > 10
     else:
-        for d in comb_res[2]:
-            assert d['success']
-            assert d['nfev'] > 10
+        assert comb_res.info['success']
+        assert comb_res.info['nfev'] > 10
 
     if extra:
         with pytest.raises(RuntimeError):  # (failure)
@@ -874,10 +876,10 @@ def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
 
         res = odesys.integrate(np.linspace(t0, tend, 20), y0/molar_unitless, params, nsteps=int(38*1.1),
                                first_step=1e-14, **kwargs)
-        assert np.min(res[1][-1, :]) < -1e-6  # crazy! (failure of the linear formulation)
+        assert np.min(res.yout[-1, :]) < -1e-6  # crazy! (failure of the linear formulation)
         tres = tsys.integrate([t0, tend], y0/molar_unitless, params, nsteps=int(1345*1.1), **kwargs)
-        assert tres[2]['success'] is True
-        assert tres[2]['nfev'] > 100
+        assert tres.info['success'] is True
+        assert tres.info['nfev'] > 100
 
 
 @pytest.mark.veryslow
@@ -998,9 +1000,13 @@ def test_SymbolicSys__from_callback__first_step_expr__by_name():
         first_step_factory=lambda x0, ic: 1e-30*ic['foo'])
     y0 = {'foo': .7, 'bar': 0, 'baz': 0}
     p = {'first': 1e23, 'second': 2, 'third': 3}
-    xout, yout, info = odesys.integrate(5, y0, p, **kwargs)
-    ref = np.array(bateman_full([y0[k] for k in names], [p[k] for k in par_names], xout - xout[0], exp=np.exp)).T
-    assert np.allclose(yout, ref, atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+    result = odesys.integrate(5, y0, p, **kwargs)
+    assert result.info['success']
+    ref = bateman_full([y0[k] for k in names], [p[k] for k in par_names], result.xout - result.xout[0], exp=np.exp)
+    for i, k in enumerate(odesys.names):
+        assert np.allclose(result.named_dep(k), ref[i], atol=10*kwargs['atol'], rtol=10*kwargs['rtol'])
+    for k, v in p.items():
+        assert result.named_param(k) == v
 
 
 @requires('sym', 'pyodeint')
@@ -1167,6 +1173,7 @@ def test_SymbolicSys__indep_in_exprs():
 @requires('sym', 'pycvodes')
 @pytest.mark.parametrize('idx', [0, 1, 2])
 def test_PartiallySolvedSystem__roots(idx):
+    import sympy as sp
     t, x, y, z, p, q = sp.symbols('t x y z, p, q')
     odesys = SymbolicSys({x: -p*x, y: p*x - q*y, z: q*y}, t, params=(p, q), roots=([x - y], [x - z], [y - z])[idx])
     _p, _q, tend = 7, 3, 0.7

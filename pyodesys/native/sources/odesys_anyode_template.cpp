@@ -25,9 +25,9 @@ namespace {  // anonymous namespace for user-defined helper functions
 using odesys_anyode::OdeSys;
 
 OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol,
-               double get_dx_max_factor, bool error_outside_bounds) :
+               double get_dx_max_factor, bool error_outside_bounds, std::vector<double> special_settings) :
     m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor),
-    m_error_outside_bounds(error_outside_bounds) {
+    m_error_outside_bounds(error_outside_bounds), m_special_settings(special_settings) {
     m_p.assign(params, params + ${len(p_odesys.params)});
     <% idx = 0 %>
   % for cse_token, cse_expr in p_common['cses']:
@@ -38,16 +38,24 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
    %endif
   % endfor
     use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${'true' if p_get_dx_max else 'false'} : false;
+    ${'\n    '.join(p_constructor)}
 }
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
 }
 int OdeSys::get_nroots() const {
-    return ${p_odesys.nroots};
+%if isinstance(p_nroots, str):
+    ${p_nroots}
+%else:
+    return ${p_nroots};
+%endif
 }
 AnyODE::Status OdeSys::rhs(double x,
                            const double * const __restrict__ y,
                            double * const __restrict__ f) {
+%if isinstance(p_rhs, str):
+    ${p_rhs}
+%else:
     ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
   % for cse_token, cse_expr in p_rhs['cses']:
     const auto ${cse_token} = ${cse_expr};
@@ -85,6 +93,7 @@ AnyODE::Status OdeSys::rhs(double x,
     for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
   % endif
     return AnyODE::Status::success;
+%endif
 }
 
 % if p_jac is not None:
@@ -96,6 +105,9 @@ AnyODE::Status OdeSys::dense_jac_${order}(double x,
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt) {
+%if order in p_jac:
+    ${p_jac[order]}
+%else:
     // The AnyODE::ignore(...) calls below are used to generate code free from false compiler warnings.
     AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
     ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
@@ -123,6 +135,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double x,
     }
     this->njev++;
     return AnyODE::Status::success;
+%endif
 }
 % endfor
 % endif
@@ -175,9 +188,11 @@ double OdeSys::get_dx_max(double x, const double * const y) {
 }
 
 AnyODE::Status OdeSys::roots(double x, const double * const y, double * const out) {
-% if p_odesys.roots is None:
+% if p_roots is None:
     AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
     return AnyODE::Status::success;
+% elif isinstance(p_roots, str):
+    ${p_roots}
 % else:
     ${'' if any(p_odesys.indep in expr.free_symbols for expr in p_odesys.roots) else 'AnyODE::ignore(x);'}
 

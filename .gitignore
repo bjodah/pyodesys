@@ -11,3 +11,5 @@ examples/*.html
 examples/thumbs/
 *.egg-info/
 gks.svg
+examples/standalone.*
+examples/.metadata_CompilerRunner

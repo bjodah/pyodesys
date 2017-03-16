@@ -4,19 +4,16 @@ from __future__ import print_function, absolute_import, division
 
 import numpy as np
 
-try:
-    import sympy as sp
-except ImportError:
-    sp = None
-
+from pyodesys.util import import_
 from pyodesys.core import integrate_chained
 from pyodesys.symbolic import ScaledSys, TransformedSys, symmetricsys, PartiallySolvedSystem
-
 from pyodesys.tests.test_core import (
     vdp_f, _test_integrate_multiple_adaptive, _test_integrate_multiple_predefined, sine, decay
 )
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
 from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3, get_logexp
+
+sp = import_('sympy')
 
 
 def _test_NativeSys(NativeSys, **kwargs):
@@ -142,16 +139,17 @@ def _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple=False, forg
     trnsfsys = _get_transformed_partially_solved_system(NativeSys, multiple)
     y0s = [[3., 2., 1.], [3.1, 2.1, 1.1], [3.2, 2.3, 1.2], [3.6, 2.4, 1.3]]
     ks = [[3.5, 2.5, 0], [3.3, 2.4, 0], [3.2, 2.1, 0], [3.3, 2.4, 0]]
-    xout, yout, info = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='native', **kwargs)
+    results = trnsfsys.integrate([(1e-10, 1)]*len(ks), y0s, ks, integrator='native', **kwargs)
     allclose_kw = dict(atol=kwargs.get('atol', 1e-8)*forgive, rtol=kwargs.get('rtol', 1e-8)*forgive)
     for i, (y0, k) in enumerate(zip(y0s, ks)):
-        ref = np.array(bateman_full(y0, k, xout[i] - xout[i][0], exp=np.exp)).T
-        assert info[i]['success']
-        assert info[i]['nfev'] > 10
-        assert info[i]['nfev'] > 1
-        assert info[i]['time_cpu'] < 100
-        assert np.allclose(yout[i], ref, **allclose_kw)
-        assert np.allclose(np.sum(yout[i], axis=1), sum(y0), **allclose_kw)
+        xout, yout, info = results[i]
+        ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+        assert info['success']
+        assert info['nfev'] > 10
+        assert info['nfev'] > 1
+        assert info['time_cpu'] < 100
+        assert np.allclose(yout, ref, **allclose_kw)
+        assert np.allclose(np.sum(yout, axis=1), sum(y0), **allclose_kw)
 
 
 def _test_multiple_adaptive(NativeSys, **kwargs):
@@ -185,14 +183,15 @@ def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
 
     comb_res = integrate_chained([tsys, osys], kw, touts, y0s, ks, atol=atol, rtol=rtol, **kwargs)
 
-    for y0, k, xout, yout in zip(y0s, ks, comb_res[0], comb_res[1]):
+    for y0, k, res in zip(y0s, ks, comb_res):
+        xout, yout = res.xout, res.yout
         ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
         assert np.allclose(yout, ref, rtol=rtol*800, atol=atol*800)
 
-    for nfo in comb_res[2]:
-        assert 0 < nfo['time_cpu'] < 100
-        assert 0 < nfo['time_wall'] < 100
-        assert nfo['success'] == True  # noqa
+    for res in comb_res:
+        assert 0 < res.info['time_cpu'] < 100
+        assert 0 < res.info['time_wall'] < 100
+        assert res.info['success'] == True  # noqa
 
 
 def _test_NativeSys__first_step_cb(NativeSys, forgive=20):
@@ -276,10 +275,33 @@ def _test_NativeSys__dep_by_name__single_varied(NativeSys):
     dydt = decay_dydt_factory(kf)
     f = dydt(0, y)
     odesys = NativeSys(zip(y, f), names='a b c'.split(), dep_by_name=True)
-    xout, yout, info = odesys.integrate(tend, y0, integrator='native')
+    results = odesys.integrate(tend, y0, integrator='native')
     for idx in range(len(y0['a'])):
-        assert info[idx]['success']
-        assert xout[idx].size == yout[idx].shape[0] and yout[idx].shape[1] == 3
+        xout, yout, info = results[idx]
+        assert info['success']
+        assert xout.size == yout.shape[0] and yout.shape[1] == 3
         ref = np.array(bateman_full([y0[k][idx] if k == 'a' else y0[k] for k in odesys.names],
-                                    kf+[0], xout[idx]-xout[idx][0], exp=np.exp)).T
-        assert np.allclose(yout[idx], ref)
+                                    kf+[0], xout-xout[0], exp=np.exp)).T
+        assert np.allclose(yout, ref)
+
+
+def _test_return_on_error_success(NativeSys):
+    k, y0 = [4, 3], (5, 4, 2)
+
+    native = NativeSys.from_callback(decay_rhs, len(k)+1, len(k), namespace_override={
+        'p_rhs': """
+        f[0] = -m_p[0]*y[0];
+        f[1] = m_p[0]*y[0] - m_p[1]*y[1];
+        f[2] = m_p[1]*y[1];
+        if (x > 0.5) return AnyODE::Status::recoverable_error;
+        this->nfev++;
+        return AnyODE::Status::success;
+"""
+    })
+    xout = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    result = native.integrate(xout, y0, k, atol=1e-11, rtol=1e-11, return_on_error=True, dx_max=.05)
+    nreached = result.info['nreached']
+    assert nreached == 3
+    ref = np.array(bateman_full(y0, k+[0], result.xout[:nreached] - xout[0], exp=np.exp)).T
+    assert result.info['success'] is False
+    assert np.allclose(result.yout[:nreached, :], ref, rtol=1e-8, atol=1e-8)

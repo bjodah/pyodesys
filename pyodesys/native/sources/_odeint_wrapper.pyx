@@ -22,10 +22,13 @@ import numpy as np
 
 cdef dict _as_dict(unordered_map[string, int] nfo,
                    unordered_map[string, double] nfo_dbl,
-                   mode=None):
+                   bool success, mode=None, nreached=None):
     dct = {str(k.decode('utf-8')): v for k, v in dict(nfo).items()}
     dct.update({str(k.decode('utf-8')): v for k, v in dict(nfo_dbl).items()})
     dct['mode'] = mode
+    dct['success'] = success
+    if nreached is not None:
+        dct['nreached'] = nreached
     return dct
 
 
@@ -37,7 +40,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        dx0, dx_max=None,
                        long int mxsteps=0, str method='rosenbrock4',
                        int autorestart=0,
-                       bool return_on_error=False):
+                       bool return_on_error=False,
+                       vector[double] special_settings=[]):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
@@ -45,6 +49,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         vector[pair[vector[double], vector[double]]] result
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
+        bool success
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -70,7 +75,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     [atol], rtol, 1.0, False))
+                                     [atol], rtol, 1.0, False, special_settings))
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
@@ -83,9 +88,10 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         xout.append(_xout)
         _yout = np.asarray(result[idx].second)
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
+        success = _xout[-1] == xend[idx]
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
-                             mode='adaptive'))
+                             success, mode='adaptive'))
         del systems[idx]
 
     yout_arr = [np.asarray(_) for _ in yout]
@@ -100,7 +106,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          dx0, dx_max=None,
                          long int mxsteps=0, str method='rosenbrock4',
                          int autorestart=0,
-                         bool return_on_error=False):
+                         bool return_on_error=False,
+                         vector[double] special_settings=[]):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
@@ -108,6 +115,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         string _styp = method.lower().encode('UTF-8')
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
+        vector[int] result
+        int nreached
+        bool success
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -132,18 +142,20 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     [atol], rtol, 1.0, False))
+                                     [atol], rtol, 1.0, False, special_settings))
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
-    multi_predefined[OdeSys](
+    result = multi_predefined[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data, xout.shape[1],
         <double *>xout.data, <double *>yout.data,
         mxsteps, &_dx0[0], &_dx_max[0], autorestart, return_on_error)
 
     for idx in range(y0.shape[0]):
+        nreached = result[idx]
+        success = False if return_on_error and nreached < xout.shape[1] else True
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
-                             mode='predefined'))
+                             success, mode='predefined', nreached=nreached))
         del systems[idx]
 
     yout_arr = np.asarray(yout)

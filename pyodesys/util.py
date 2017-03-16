@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+from functools import reduce
 import inspect
 import math
 import operator
@@ -225,38 +226,66 @@ class requires(object):
 
 class MissingImport(object):
 
-    def __init__(self, modname):
+    def __init__(self, modname, exc):
         self._modname = modname
+        self._exc = exc
 
     def __getattribute__(self, attr):
-        if attr == '_modname':
+        if attr in ('_modname', '_exc'):
             return object.__getattribute__(self, attr)
         else:
-            raise ImportError("Failed to import %s" % self._modname)
+            raise self._exc  # ImportError("Failed to import %s" % self._modname)
 
     def __call__(self, *args, **kwargs):
-        raise ImportError("Failed to import %s" % self._modname)
+        raise self._exc  # ImportError("Failed to import %s" % self._modname)
 
 
 def import_(modname, *args):
     if len(args) == 0:
         try:
             return __import__(modname)
-        except ImportError:
-            return MissingImport(modname)
+        except ImportError as e:
+            return MissingImport(modname, e)
 
     mods = []
     for arg in args:
-        mi = MissingImport(modname + '.' + arg)
         try:
             mod = __import__(modname, globals(), locals(), [arg])
-        except ImportError:
-            mods.append(mi)
+        except ImportError as e:
+            mods.append(MissingImport(modname + '.' + arg, e))
         else:
             try:
                 attr = getattr(mod, arg)
-            except AttributeError:
-                mods.append(mi)
+            except AttributeError as e:
+                mods.append(MissingImport(modname + '.' + arg, e))
             else:
                 mods.append(attr)
     return mods if len(args) > 1 else mods[0]
+
+
+def merge_dicts(*dicts):
+    """ Merges dictionaries with incresing priority.
+
+    Parameters
+    ----------
+    \*dicts: iterable of dict
+
+    Examples
+    --------
+    >>> d1, d2 = {'a': 1, 'b': 2}, {'a': 2, 'c': 3}
+    >>> merge_dicts(d1, d2, {'a': 3}) == {'a': 3, 'b': 2, 'c': 3}
+    True
+    >>> d1 == {'a': 1, 'b': 2}
+    True
+    >>> from collections import defaultdict
+    >>> dd1 = defaultdict(lambda: 3, {'b': 4})
+    >>> dd2 = merge_dicts(dd1, {'c': 5}, {'c': 17})
+    >>> dd2['c'] - dd2['a'] - dd2['b'] == 10
+    True
+
+    Returns
+    -------
+    dict
+
+    """
+    return reduce(lambda x, y: x.update(y) or x, (dicts[0].copy(),) + dicts[1:])

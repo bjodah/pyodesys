@@ -37,6 +37,12 @@ class Result(object):
         else:
             raise KeyError("Invalid key: %s (for backward compatibility reasons)." % str(key))
 
+    def named_param(self, param_name):
+        return self.params[self.odesys.param_names.index(param_name)]
+
+    def named_dep(self, name):
+        return self.yout[..., self.odesys.names.index(name)]
+
     def between(self, lower, upper, xdata=None, ydata=None):
         """ Get results inside span for independent variable """
         if xdata is None:
@@ -85,7 +91,7 @@ class Result(object):
                 res, err = res_poly, np.abs(res_poly - res_cub)
             else:
                 res_lin = avgy + yspan/xspan*(x - avgx)
-                res, err = res_cub, np.abs(res_cub - res_lin)
+                res, err = res_cub, np.abs(res_cub - np.asarray(res_lin))
 
         return res, err
 
@@ -132,7 +138,7 @@ class Result(object):
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
 
-    def _plot(self, cb, x=None, y=None, **kwargs):
+    def _plot(self, cb, x=None, y=None, legend=None, **kwargs):
         if x is None:
             x = self.xout
         if y is None:
@@ -149,10 +155,12 @@ class Result(object):
             _latex_names = getattr(self.odesys, 'latex_names', None)
             if _latex_names is not None and not all(ln is None for ln in _latex_names):
                 kwargs['latex_names'] = _latex_names
+        if legend is None:
+            if kwargs.get('latex_names', None) is not None or kwargs['names'] is not None:
+                legend = True
+        return cb(x, y, legend=legend, **kwargs)
 
-        return cb(x, y, **kwargs)
-
-    def plot(self, info_vlines_kw=None, between=None, deriv=False, **kwargs):
+    def plot(self, info_vlines_kw=None, between=None, deriv=False, title_info=0, **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
         Parameters
@@ -182,7 +190,22 @@ class Result(object):
             if 'y' in kwargs:
                 raise ValueError("Cannot give both deriv=True and y.")
             kwargs['y'] = self.odesys.f_cb(self._internal('xout'), self._internal('yout'), self._internal('params'))
-        return self._plot(plot_result, **kwargs)
+        ax = self._plot(plot_result, **kwargs)
+        if title_info:
+            ax.set_title(
+                (self.odesys.description or '') +
+                ', '.join(
+                    (['%d steps' % self.info['n_steps']] if self.info.get('n_steps', -1) >= 0 else []) +
+                    [
+                        '%d fev' % self.info['nfev'],
+                        '%d jev' % self.info['njev'],
+                    ] + ([
+                        '%.2g s CPU' % self.info['time_cpu']
+                    ] if title_info > 1 and self.info.get('time_cpu', -1) >= 0 else [])
+                ) +
+                (', success' if self.info['success'] else ', failed'),
+                {'fontsize': 'medium'} if title_info > 1 else {}
+            )
 
     def plot_phase_plane(self, indices=None, **kwargs):
         """ Plots a phase portrait from last integration.

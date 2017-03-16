@@ -13,7 +13,8 @@ from ._tests import (
     _test_PartiallySolved_symmetric_native, _test_PartiallySolved_symmetric_native_multi,
     _test_Decay_nonnegative, _test_NativeSys__first_step_cb, _test_NativeSys__first_step_cb_source_code,
     _test_NativeSys__roots, _test_NativeSys__get_dx_max_source_code, _test_NativeSys__band,
-    _test_NativeSys__dep_by_name__single_varied
+    _test_NativeSys__dep_by_name__single_varied,
+    _test_return_on_error_success
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
@@ -157,9 +158,11 @@ def test_NativeSys__roots():
 
     odesys = NativeSys.from_callback(f, 1, roots_cb=roots)
     kwargs = dict(first_step=1e-12, atol=1e-12, rtol=1e-12, method='adams', integrator='cvode')
-    xout, yout, info = odesys.integrate(2, [1], **kwargs)
-    assert len(info['root_indices']) == 1
-    assert np.min(np.abs(xout - 1)) < 1e-11
+    for return_on_root in (False, True):
+        result = odesys.integrate(2, [1], **kwargs)
+        assert len(result.info['root_indices']) == 1
+        assert result.info['success'] == True  # noqa
+        assert np.min(np.abs(result.xout - 1)) < 1e-11
 
 
 @pytest.mark.veryslow
@@ -191,3 +194,9 @@ def test_NativeSys__PartiallySolvedSystem__roots(idx):
     check(psys)
     pnative = NativeSys.from_other(psys)
     check(pnative)
+
+
+@pytest.mark.slow
+@requires('pycvodes')
+def test_return_on_error_success():
+    _test_return_on_error_success(NativeSys)

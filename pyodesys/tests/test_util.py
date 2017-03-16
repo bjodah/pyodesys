@@ -26,9 +26,9 @@ def test_import_():
     assert sqrt(4) == 2 and sin(0) == 0
 
     foo, bar = import_('numpy', 'foo', 'bar')
-    with pytest.raises(ImportError):
+    with pytest.raises(AttributeError):
         foo.baz
-    with pytest.raises(ImportError):
+    with pytest.raises(AttributeError):
         bar(3)
 
     qux = import_('qux')

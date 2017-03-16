@@ -3,10 +3,7 @@ from __future__ import (absolute_import, division, print_function)
 
 import numpy as np
 
-try:
-    import sympy
-except ImportError:
-    sympy = None
+from ..util import import_
 import pytest
 
 from .. import ODESys
@@ -42,6 +39,7 @@ def test_run_integration__atol_list():
 def _test_goe(symbolic=False, reduced=0, extra_forgive=1, logc=False,
               logt=False, zero_conc=0, zero_time=0, nonnegative=None,
               atol=1e-14, rtol=1e-10, integrator='cvode', nsteps=6000, **kwargs):
+    sympy = import_('sympy')
 
     ny, nk = 3, 3
     k = (.04, 1e4, 3e7)
@@ -183,7 +181,7 @@ def test_integrate_chained_robertson(reduced_nsteps):
         if reduced_nsteps[0] > 0:
             y = np.insert(y, reduced_nsteps[0]-1, init_conc[0] - np.sum(y, axis=1), axis=1)
         assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=rtols[reduced_nsteps[0]])
-        assert nfo['success'] is True
+        assert nfo['success'] == True  # noqa
         assert nfo['nfev'] > 100
         assert nfo['njev'] > 10
 
@@ -210,11 +208,12 @@ def test_integrate_chained_multi_robertson():
 
     for sys_iter, kw in [(odes, {'nsteps': [100, 1660], 'return_on_error': [True, False]}),
                          (odes[1:], {'nsteps': [1705*1.01]})]:
-        _x, _y, _nfo = integrate_chained(
+        results = integrate_chained(
             sys_iter, kw, [(zero_time, 1e11)]*3,
             [init_conc]*3, [k+init_conc]*3, integrator='cvode', atol=1e-10, rtol=1e-14, first_step=1e-14)
-        assert len(_x) == 3 and len(_y) == 3 and len(_nfo) == 3
-        for x, y, nfo in zip(_x, _y, _nfo):
+        assert len(results) == 3
+        for res in results:
+            x, y, nfo = res
             assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=0.02)
             assert nfo['success'] is True
             assert nfo['nfev'] > 100

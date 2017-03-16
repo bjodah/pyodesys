@@ -3,12 +3,10 @@ from __future__ import (absolute_import, division, print_function)
 
 import copy
 
-try:
-    import pyodeint
-except ImportError:
-    pyodeint = None
-
+from ..util import import_
 from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
+
+pyodeint = import_('pyodeint')
 
 
 class NativeOdeintCode(_NativeCodeBase):

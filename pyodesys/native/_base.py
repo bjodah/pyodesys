@@ -203,7 +203,9 @@ class _NativeCodeBase(Cpp_Code):
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in roots_cses],
                 'exprs': map(_ccode, roots_exprs)
             },
-            p_get_dx_max=False
+            p_nroots=self.odesys.nroots,
+            p_constructor=[],
+            p_get_dx_max=False,
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)
@@ -260,7 +262,6 @@ class _NativeSysBase(SymbolicSys):
             info[idx]['internal_xout'] = intern_xout[idx]
             info[idx]['internal_yout'] = yout[idx]
             info[idx]['internal_params'] = intern_p[idx, ...]
-            info[idx]['success'] = intern_x[idx, -1] == intern_xout[idx][-1]
             if 'nfev' not in info[idx] and 'n_rhs_evals' in info[idx]:
                 info[idx]['nfev'] = info[idx]['n_rhs_evals']
             if 'njev' not in info[idx] and 'dense_n_dls_jac_evals' in info[idx]:
