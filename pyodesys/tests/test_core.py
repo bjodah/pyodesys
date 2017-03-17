@@ -463,3 +463,30 @@ def test_quantities_param_multi():
         ]
         assert np.allclose(res.yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
         assert np.allclose(res.yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
+
+
+@requires('quantities')
+def test_quantities_param_multi2():
+    import quantities as pq
+
+    units = [1/pq.s]
+    odesys = ODESys(
+        sine, sine_jac, param_names=['k'], par_by_name=True, to_arrays_callbacks=(
+            None, None, lambda p: np.array([[elem.rescale(u).magnitude for elem in parvals] for parvals, u in zip(p.T, units)]).T)
+    )
+    A = 2.
+    kvals = (7452., 13853., 22123.)
+    results = odesys.integrate(
+        np.linspace(0, 1), [[0, A*kval/3600] for kval in kvals],
+        {'k': kvals/pq.hour}
+    )
+    assert len(results) == 3
+    assert all([r.info['success'] for r in results])
+    for res, kval in zip(results, kvals):
+        assert res.xout.size > 7
+        ref = [
+            A*np.sin(1/3600*kval*(res.xout - res.xout[0])),
+            A*np.cos(1/3600*kval*(res.xout - res.xout[0]))*kval/3600
+        ]
+        assert np.allclose(res.yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
+        assert np.allclose(res.yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
