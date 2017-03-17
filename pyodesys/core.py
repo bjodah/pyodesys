@@ -185,8 +185,11 @@ class ODESys(object):
                     for j in range(lens[0]):
                         out[j, idx] = v
                 else:
-                    for j in range(lens[0]):
-                        out[j, idx] = v[j]
+                    try:
+                        for j in range(lens[0]):
+                            out[j, idx] = v[j]
+                    except TypeError:
+                        out[:, idx] = v
             return out, False
 
     def _conditional_from_dict(self, cont, by_name, names):

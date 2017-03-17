@@ -472,7 +472,11 @@ def test_quantities_param_multi2():
     units = [1/pq.s]
     odesys = ODESys(
         sine, sine_jac, param_names=['k'], par_by_name=True, to_arrays_callbacks=(
-            None, None, lambda p: np.array([[elem.rescale(u).magnitude for elem in parvals] for parvals, u in zip(p.T, units)]).T)
+            None, None, lambda p: np.array([
+                [elem.rescale(u).magnitude for elem in parvals]
+                for parvals, u in zip(p.T, units)
+            ]).T
+        )
     )
     A = 2.
     kvals = (7452., 13853., 22123.)
