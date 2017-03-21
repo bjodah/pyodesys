@@ -25,6 +25,7 @@ int main(int argc, char *argv[]){
         ("return-on-error", po::value<bool>()->default_value(false), "Return on error")
         ("get-dx-max-factor", po::value<realtype>()->default_value(1.0), "get_dx_max multiplicative factor")
         ("error-outside-bounds", po::value<bool>()->default_value(false), "Return recoverable error to solver when outside bounds")
+        ("max-invariant-violation", po::value<bool>()->default_value(0.0), "Limit at which to return recoverable error when supported by integrator.")
         ("special-settings", po::value<std::string>()->default_value(""), "special settings2 (if customized)")
         ;
     po::variables_map vm;
@@ -71,6 +72,7 @@ int main(int argc, char *argv[]){
     std::vector<realtype> params;
     const realtype get_dx_max_factor(vm["get-dx-max-factor"].as<realtype>());
     bool error_outside_bounds = vm["error-outside-bounds"].as<bool>();
+    const realtype max_invariant_violation(vm["max-invariant-violation"].as<realtype>());
     std::vector<realtype> special_settings;
     auto special_settings_stream = std::istringstream(vm["special-settings"].as<std::string>());
     for (std::string item; std::getline(special_settings_stream, item, ',');){
@@ -119,7 +121,8 @@ int main(int argc, char *argv[]){
         }
 
         systems.push_back(new odesys_anyode::OdeSys(&params[systems.size()*nparams], atol, rtol,
-                          get_dx_max_factor, error_outside_bounds, special_settings));
+                                                    get_dx_max_factor, error_outside_bounds,
+                                                    max_invariant_violation, special_settings));
     }
     // Computations:
     std::vector<std::pair<cvodes_anyode_parallel::sa_t, std::vector<int> > > xy_ri;
