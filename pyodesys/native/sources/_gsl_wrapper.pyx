@@ -83,7 +83,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     [atol], rtol, get_dx_max_factor, False, special_settings))
+                                     [atol], rtol, get_dx_max_factor, False, 0.0, special_settings))
 
     result = multi_adaptive[OdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
@@ -159,7 +159,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     [atol], rtol, get_dx_max_factor, False, special_settings))
+                                     [atol], rtol, get_dx_max_factor, False, 0.0, special_settings))
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeSys](

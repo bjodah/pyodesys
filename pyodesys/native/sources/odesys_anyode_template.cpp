@@ -42,7 +42,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
     use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${'true' if p_get_dx_max else 'false'} : false;
   %if p_invariants is not None and p_support_recoverable_error:
     if (m_max_invariant_violation != 0.0){
-        const double * const y = params + ${len(p_odesys.params)} - ${p_odesys.ny};
+        const double * const y = params + ${len(p_odesys.params)};
       %for cse_token, cse_expr in p_invariants['cses']:
         const auto ${cse_token} = ${cse_expr};
       %endfor
@@ -107,7 +107,10 @@ AnyODE::Status OdeSys::rhs(double x,
         const auto ${cse_token} = ${cse_expr};
       %endfor
       %for idx, invar_expr in enumerate(p_invariants['exprs']):
-        if (fabs(${invar_expr} - m_invar0[${idx}]) > m_max_invariant_violation) return AnyODE::Status::recoverable_error;
+        if (fabs(${invar_expr} - m_invar0[${idx}]) > ((m_max_invariant_violation > 0) ? m_max_invariant_violation : fabs(m_max_invariant_violation*m_invar0[${idx}]) - m_max_invariant_violation)) {
+            std::cerr << "Invariant (${idx}) violation at x=" << x << "\n";
+            return AnyODE::Status::recoverable_error;
+        }
       %endfor
     }
    %endif

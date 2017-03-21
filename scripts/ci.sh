@@ -9,7 +9,7 @@ apt-get install --quiet --assume-yes --no-install-recommends python-symengine py
 for PY in python2 python3; do
     $PY -c "import symengine"  # make sure symengine is installed
     $PY -m pip install symcxx pysym  # unofficial backends
-    $PY -m pip install git+https://github.com/bjodah/sympy@master  # DO-NOT-MERGE!
+    $PY -m pip install https://github.com/bjodah/sympy/archive/master.tar.gz  # DO-NOT-MERGE!
 done
 
 python setup.py sdist
@@ -17,7 +17,7 @@ python setup.py sdist
 
 
 for PY in python2 python3; do
-    $PY -m pip install --upgrade .[all]
+    $PY -m pip install --upgrade --upgrade-strategy only-if-needed .[all]
 done
 
 PYTHON=python2 ./scripts/run_tests.sh
