@@ -124,12 +124,13 @@ class _NativeCodeBase(Cpp_Code):
         def _ccode(expr):
             return self.odesys.be.ccode(expr.xreplace(subsd))
 
+        all_invar = tuple(self.odesys.all_invariants())
         jac = self.odesys.get_jac()
         if jac is False:
-            all_exprs = self.odesys.exprs
+            all_exprs = self.odesys.exprs + all_invar
         else:
             jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
-            all_exprs = self.odesys.exprs + tuple(jac_dfdx)
+            all_exprs = self.odesys.exprs + tuple(jac_dfdx) + all_invar
 
         def common_cse_symbols():
             idx = 0
@@ -160,7 +161,8 @@ class _NativeCodeBase(Cpp_Code):
 
         if jac is not False:
             jac_cses, jac_exprs = self.odesys.be.cse(
-                common_exprs[len(self.odesys.exprs):],
+                common_exprs[len(self.odesys.exprs):
+                             len(self.odesys.exprs)+len(jac_dfdx)],
                 symbols=self.odesys.be.numbered_symbols('cse'))
 
         first_step = self.odesys.first_step_expr
@@ -173,6 +175,13 @@ class _NativeCodeBase(Cpp_Code):
             roots_cses, roots_exprs = self.odesys.be.cse(
                 self.odesys.roots,
                 symbols=self.odesys.be.numbered_symbols('cse'))
+        if all_invar:
+            self.odesys.append_iv = True
+            invar_cses, invar_exprs = self.odesys.be.cse(
+                common_exprs[len(self.odesys.exprs)+len(jac_dfdx):
+                             len(self.odesys.exprs)+len(jac_dfdx)+len(all_invar)],
+                symbols=self.odesys.be.numbered_symbols('cse')
+            )
 
         ns = dict(
             _message_for_rendered=[
@@ -187,7 +196,7 @@ class _NativeCodeBase(Cpp_Code):
             },
             p_rhs={
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in rhs_cses],
-                'exprs': map(_ccode, rhs_exprs)
+                'exprs': list(map(_ccode, rhs_exprs))
             },
             p_jac=None if jac is False else {
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
@@ -201,7 +210,11 @@ class _NativeCodeBase(Cpp_Code):
             },
             p_roots=None if self.odesys.roots is None else {
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in roots_cses],
-                'exprs': map(_ccode, roots_exprs)
+                'exprs': list(map(_ccode, roots_exprs))
+            },
+            p_invariants=None if all_invar == () else {
+                'cses': [(symb.name, _ccode(expr)) for symb, expr in invar_cses],
+                'exprs': list(map(_ccode, invar_exprs))
             },
             p_nroots=self.odesys.nroots,
             p_constructor=[],

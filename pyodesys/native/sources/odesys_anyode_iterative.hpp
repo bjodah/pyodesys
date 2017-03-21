@@ -8,11 +8,14 @@ namespace odesys_anyode {
         std::vector<double> m_atol;
         std::vector<double> m_upper_bounds;
         std::vector<double> m_lower_bounds;
+        std::vector<double> m_invar0;
         double m_rtol;
         double m_get_dx_max_factor;
         bool m_error_outside_bounds;
+        double m_max_invariant_violation;
         std::vector<double> m_special_settings;
-        OdeSys(const double * const, std::vector<double>, double, double, bool, std::vector<double>);
+        OdeSys(const double * const, std::vector<double>, double, double,
+               bool, double, std::vector<double>);
         int nrev=0;  // number of calls to roots
         int get_ny() const override;
         int get_nroots() const override;
