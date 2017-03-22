@@ -13,7 +13,7 @@ from ._tests import (
     _test_PartiallySolved_symmetric_native, _test_PartiallySolved_symmetric_native_multi,
     _test_Decay_nonnegative, _test_NativeSys__first_step_cb, _test_NativeSys__first_step_cb_source_code,
     _test_NativeSys__roots, _test_NativeSys__get_dx_max_source_code, _test_NativeSys__band,
-    _test_NativeSys__dep_by_name__single_varied,
+    _test_NativeSys__dep_by_name__single_varied, _test_PartiallySolvedSystem_Native,
     _test_return_on_error_success
 )
 from ._test_robertson_native import _test_chained_multi_native
@@ -200,3 +200,9 @@ def test_NativeSys__PartiallySolvedSystem__roots(idx):
 @requires('pycvodes')
 def test_return_on_error_success():
     _test_return_on_error_success(NativeSys)
+
+
+@pytest.mark.slow
+@requires('pycvodes')
+def test__PartiallySolvedSystem_Native():
+    _test_PartiallySolvedSystem_Native(NativeSys, 'cvode')

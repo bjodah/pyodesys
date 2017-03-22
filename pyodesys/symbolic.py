@@ -312,9 +312,9 @@ class SymbolicSys(ODESys):
                 val = getattr(ori, k)
                 if val is not None:
                     kwargs[k] = val
-        if 'lower_bounds' not in kwargs and getattr(ori, 'lower_bounds'):
+        if 'lower_bounds' not in kwargs and hasattr(ori, 'lower_bounds'):
             kwargs['lower_bounds'] = ori.lower_bounds
-        if 'upper_bounds' not in kwargs and getattr(ori, 'upper_bounds'):
+        if 'upper_bounds' not in kwargs and hasattr(ori, 'upper_bounds'):
             kwargs['upper_bounds'] = ori.upper_bounds
 
         if len(ori.pre_processors) > 0:

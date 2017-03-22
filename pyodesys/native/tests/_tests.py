@@ -101,6 +101,20 @@ def _test_Decay_nonnegative(NativeSys):
     assert np.allclose(yout, ref) and np.allclose(np.sum(yout, axis=1), sum(y0))
 
 
+def _test_PartiallySolvedSystem_Native(NativeSys, integrator):
+    odesys = _get_decay3(lower_bounds=[0, 0, 0], linear_invariants=[[1, 1, 1]])
+    scaledsys = ScaledSys.from_other(odesys, dep_scaling=42)
+    partsys = PartiallySolvedSystem.from_linear_invariants(scaledsys)
+    nativesys = NativeSys.from_other(partsys)
+    y0 = [3.3, 2.4, 1.5]
+    k = [3.5, 2.5, 0]
+    for system in [odesys, scaledsys, partsys, nativesys]:
+        result = system.integrate([0, .3, .5, .7, .9, 1.3], y0, k, integrator=integrator)
+        ref = np.array(bateman_full(y0, k, result.xout - result.xout[0], exp=np.exp)).T
+        assert result.info['success']
+        assert np.allclose(result.yout, ref)
+
+
 def _get_transformed_partially_solved_system(NativeSys, multiple=False):
     odesys = _get_decay3()
     if multiple:
