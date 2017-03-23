@@ -20,7 +20,7 @@ else:
 
 from .. import ODESys
 from ..core import integrate_chained
-from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem, get_logexp
+from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem, get_logexp, _group_invariants
 from ..util import requires
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
@@ -56,6 +56,13 @@ def test_SymbolicSys():
 
     with pytest.raises(ValueError):
         SymbolicSys.from_callback(lambda x, y, p, be: [], 2, names=['foo', 'bar'])
+
+
+def test_SymbolicSys__init_indep__init_dep():
+    odesys = SymbolicSys.from_callback(lambda x, y, p, be: [-y[0], y[0]], 2, names=['foo', 'bar'], indep_name='t',
+                                       init_indep=True, init_dep=True)
+    assert odesys.init_indep.name == 'i_t'
+    assert [dep.name for dep in odesys.init_dep] == ['i_foo', 'i_bar']
 
 
 def decay_rhs(t, y, k):
@@ -585,10 +592,55 @@ def test_PartiallySolvedSystem(integrator):
     })
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 1.5]
-    xout, yout, info = partsys.integrate([0, 1], y0, k, integrator=integrator)
+    xout, yout, info = partsys.integrate(
+        [0, 1], y0, k, integrator=integrator)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
     assert info['success']
     assert np.allclose(yout, ref)
+
+
+@requires('sym', 'pycvodes')
+def test_PartiallySolvedSystem_ScaledSys():
+    odesys = _get_decay3(lower_bounds=[0, 0, 0])
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be: {
+        odesys.dep[0]: y0[0]*be.exp(-p0[0]*(odesys.indep-x0))
+    })
+    y0 = [3, 2, 1]
+    k = [3.5, 2.5, 1.5]
+
+    def _check(res):
+        ref = np.array(bateman_full(y0, k, res.xout - res.xout[0], exp=np.exp)).T
+        assert res.info['success']
+        assert np.allclose(res.yout, ref)
+    args = [0, 1], y0, k
+    kwargs = dict(integrator='cvode')
+    _check(odesys.integrate(*args, **kwargs))
+    _check(partsys.integrate(*args, **kwargs))
+    scaledsys = ScaledSys.from_other(partsys, dep_scaling=42, indep_scaling=17)
+    _check(scaledsys.integrate(*args, **kwargs))
+
+
+@requires('sym', 'pycvodes', 'pygslodeiv2')
+@pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
+def test_PartiallySolvedSystem_multi(integrator):
+    odesys = _get_decay3()
+
+    def _get_analytic(x0, y0, p0, be):
+        a0 = y0[0]*be.exp(-p0[0]*(odesys.indep - x0))
+        a1 = y0[0] + y0[1] + y0[2] - a0 - odesys.dep[2]
+        return [a0, a1]
+
+    def subst(x0, y0, p0, be):
+        a0, a1 = _get_analytic(x0, y0, p0, be)
+        return {odesys.dep[0]: a0, odesys.dep[1]: a1}
+
+    partsys = PartiallySolvedSystem(odesys, subst)
+    a0, a1 = _get_analytic(partsys.init_indep,
+                           partsys.init_dep,
+                           odesys.params,
+                           odesys.be)
+    assert partsys.ny == 1
+    assert partsys.exprs[0].subs(odesys.params[2], 0) - odesys.params[1]*a1 == 0
 
 
 @requires('sym', 'pycvodes', 'pygslodeiv2')
@@ -643,12 +695,15 @@ def test_PartiallySolvedSystem_multiple_subs__transformed(integrator):
     y0 = [3, 2, 1]
     k = [3.5, 2.5, 0]
     tend = 1
-    xout, yout, info = loglogpartsys.integrate([1e-12, tend], y0, k, integrator=integrator, first_step=1e-14)
-    ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
-    assert info['success']
-    assert info['internal_yout'].shape[-1] == 1
-    assert info['internal_yout'][-1, 0] < 0  # ln(y[1])
-    assert np.allclose(yout, ref)
+    for system, ny_internal in [(odesys, 3), (partsys, 1), (loglogpartsys, 1)]:
+        xout, yout, info = system.integrate([1e-12, tend], y0, k, integrator=integrator,
+                                            first_step=1e-14, nsteps=1000)
+        ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
+        assert info['success']
+        assert info['internal_yout'].shape[-1] == ny_internal
+        if system == loglogpartsys:
+            assert info['internal_yout'][-1, 0] < 0  # ln(y[1])
+        assert np.allclose(yout, ref)
 
 
 def _get_transf_part_system():
@@ -1234,3 +1289,28 @@ def test_TransformedSys__roots(idx1, idx2, scaled, b2):
     })
     ploglog2 = LogLogSys.from_other(psys2)
     check(ploglog2)
+
+
+@requires('sym', 'sympy')
+def test__group_invariants():
+    be = sym.Backend('sympy')
+    x, y, z = symbs = be.symbols('x y z')
+
+    coeff1 = [3, 2, -1]
+    expr1 = 3*x + 2*y - z
+    lin, nonlin = _group_invariants([expr1], symbs, be)
+    assert lin == [coeff1]
+    assert nonlin == []
+
+    expr2 = 3*x*x + 2*y - z
+    lin, nonlin = _group_invariants([expr2], symbs, be)
+    assert lin == []
+    assert nonlin == [expr2]
+
+    lin, nonlin = _group_invariants([expr1, expr2], symbs, be)
+    assert lin == [coeff1]
+    assert nonlin == [expr2]
+
+    lin, nonlin = _group_invariants([x + be.exp(y)], symbs, be)
+    assert lin == []
+    assert nonlin == [x+be.exp(y)]

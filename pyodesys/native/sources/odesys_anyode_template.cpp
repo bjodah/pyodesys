@@ -30,7 +30,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
     m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor),
     m_error_outside_bounds(error_outside_bounds), m_max_invariant_violation(max_invariant_violation),
     m_special_settings(special_settings) {
-    m_p.assign(params, params + ${len(p_odesys.params)});
+    m_p.assign(params, params + ${len(p_odesys.params) + p_odesys.ny if p_odesys.append_iv else 0});
     <% idx = 0 %>
   %for cse_token, cse_expr in p_common['cses']:
    %if cse_token.startswith('m_p_cse'):
@@ -42,6 +42,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
     use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${'true' if p_get_dx_max else 'false'} : false;
   %if p_invariants is not None and p_support_recoverable_error:
     if (m_max_invariant_violation != 0.0){
+        ${'' if p_odesys.append_iv else 'throw std::runtime_error("append_iv not set to True")'}
         const double * const y = params + ${len(p_odesys.params)};
       %for cse_token, cse_expr in p_invariants['cses']:
         const auto ${cse_token} = ${cse_expr};

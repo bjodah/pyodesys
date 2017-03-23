@@ -83,8 +83,7 @@ class ODESys(object):
         params1[:]
         When modifying: insert at end.
     append_iv :  bool
-        If ``True`` params[:] passed to :attr:`f_cb`, :attr:`jac_cb` will contain
-        initial values of y.
+        See :attr:`append_iv`.
     autonomous_interface : bool (optional)
         If given, sets the :attr:`autonomous` to indicate whether
         the system appears autonomous or not upon call to :meth:`integrate`.
@@ -111,6 +110,9 @@ class ODESys(object):
     pre_processors : iterable of callbacks
     post_processors : iterable of callbacks
     append_iv : bool
+        If ``True`` params[:] passed to :attr:`f_cb`, :attr:`jac_cb` will contain
+        initial values of y. Note that this happens after pre processors have been
+        applied.
     autonomous_interface : bool or None
         Indicates whether the system appears autonomous upon call to
         :meth:`integrate`. ``None`` indicates that it is unknown.
