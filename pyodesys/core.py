@@ -146,13 +146,13 @@ class ODESys(object):
             if not band[0] >= 0 or not band[1] >= 0:
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
-        self.names = None if names is None else tuple(names)
-        self.param_names = None if param_names is None else tuple(param_names)
+        self.names = None if names in (None, []) else tuple(names)
+        self.param_names = None if param_names in (None, []) else tuple(param_names)
         self.description = description
         self.dep_by_name = dep_by_name
         self.par_by_name = par_by_name
-        self.latex_names = latex_names if latex_names is None else tuple(latex_names)
-        self.latex_param_names = latex_param_names if latex_param_names is None else tuple(latex_param_names)
+        self.latex_names = None if latex_names in (None, []) else tuple(latex_names)
+        self.latex_param_names = None if latex_param_names in (None, []) else tuple(latex_param_names)
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.append_iv = append_iv

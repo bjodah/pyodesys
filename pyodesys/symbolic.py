@@ -188,11 +188,13 @@ class SymbolicSys(ODESys):
         self.upper_bounds = upper_bounds
         self.linear_invariants = linear_invariants
         self.nonlinear_invariants = nonlinear_invariants
+        linear_invariant_names = linear_invariant_names or None
         if linear_invariant_names is not None:
             if len(linear_invariant_names) != self.linear_invariants.shape[0]:
                 raise ValueError("Incorrect length of linear_invariant_names: %d (expected %d)" % (
                     len(linear_invariant_names), linear_invariants.shape[0]))
         self.linear_invariant_names = linear_invariant_names
+        nonlinear_invariant_names = nonlinear_invariant_names or None
         if nonlinear_invariant_names is not None:
             if len(nonlinear_invariant_names) != len(nonlinear_invariants):
                 raise ValueError("Incorrect length of nonlinear_invariant_names: %d (expected %d)" % (
@@ -561,16 +563,24 @@ class SymbolicSys(ODESys):
         return self.stiffness(xyp, self._get_analytic_stiffness_cb())
 
 
-def _group_invariants(all_invar, deps, be):
+def _group_invariants(all_invar, deps, be, names=None):
     linear_invar = []
     nonlinear_invar = []
-    for invar in all_invar:
+    lin_names, nonlin_names = [], []
+    for idx, invar in enumerate(all_invar):
         derivs = [invar.diff(dep) for dep in deps]
         if all([deriv.is_Number for deriv in derivs]):
             linear_invar.append(derivs)
+            if names not in (None, []):
+                lin_names.append(names[idx])
         else:
             nonlinear_invar.append(invar)
-    return linear_invar, nonlinear_invar
+            if names not in (None, []):
+                nonlin_names.append(names[idx])
+    if names is None:
+        return linear_invar, nonlinear_invar
+    else:
+        return linear_invar, nonlinear_invar, lin_names, nonlin_names
 
 
 class TransformedSys(SymbolicSys):
@@ -632,7 +642,10 @@ class TransformedSys(SymbolicSys):
         else:
             self.indep_fw, self.indep_bw = None, None
 
-        kwargs['linear_invariants'], kwargs['nonlinear_invariants'] = _group_invariants(all_invariants, dep, be)
+        kwargs['linear_invariants'], kwargs['nonlinear_invariants'], \
+            kwargs['linear_invariant_names'], kwargs['nonlinear_invariant_names'] = _group_invariants(
+                all_invariants, dep, be, (kwargs.get('linear_invariant_names', []) +
+                                          kwargs.get('nonlinear_invariant_names', [])))
 
         lower_b = kwargs.pop('lower_bounds', None)
         upper_b = kwargs.pop('upper_bounds', None)
