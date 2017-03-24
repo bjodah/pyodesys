@@ -33,6 +33,31 @@ def identity(x):
 idty2 = (identity, identity)
 
 
+def _decay3(x, y, p):
+    return [
+        -p[0]*y[0],
+        p[0]*y[0] - p[1]*y[1],
+        p[1]*y[1] - p[2]*y[2]
+    ]
+
+
+def _get_decay3(**kwargs):
+    return SymbolicSys.from_callback(_decay3, 3, 3, **kwargs)
+
+
+def _get_decay3_names(yn, pn, **kwargs):
+    def f(x, y, p):
+        y = [y[n] for n in yn]
+        p = [p[n] for n in pn]
+        return dict(zip(yn, [
+            -p[0]*y[0],
+            p[0]*y[0] - p[1]*y[1],
+            p[1]*y[1] - p[2]*y[2]
+        ]))
+    return SymbolicSys.from_callback(f, names=yn, param_names=pn, dep_by_name=True,
+                                     par_by_name=True, indep_name='t', **kwargs)
+
+
 @requires('sym', 'scipy')
 def test_SymbolicSys():
     from pyodesys.integrators import RK4_example_integrator
@@ -526,15 +551,6 @@ def test_long_chain_banded_cvode(n):
         assert time_dens > time_band
     except AssertionError:
         pass  # will fail sometimes due to load
-
-
-def _get_decay3(**kwargs):
-    return SymbolicSys.from_callback(
-        lambda x, y, p: [
-            -p[0]*y[0],
-            p[0]*y[0] - p[1]*y[1],
-            p[1]*y[1] - p[2]*y[2]
-        ], 3, 3, **kwargs)
 
 
 @pytest.mark.slow
@@ -1093,6 +1109,28 @@ def test_PartiallySolvedSystem__by_name():
         assert yout.shape[1] == 2
         assert xout.shape[0] == yout.shape[0]
         assert yout.ndim == 2 and xout.ndim == 1
+
+
+@requires('sym', 'pycvodes')
+def test_PartiallySolvedSystem__by_name_2():
+    yn, pn = 'x y z'.split(), 'p q r'.split()
+    odesys = _get_decay3_names(yn, pn)
+    partsys = PartiallySolvedSystem(odesys, lambda x0, y0, p0, be: {
+        odesys['x']: y0[odesys['x']]*be.exp(-p0['p']*(odesys.indep-x0))
+    })
+    y0 = [3, 2, 1]
+    k = [3.5, 2.5, 1.5]
+
+    def _check(res):
+        ref = np.array(bateman_full(y0, k, res.xout - res.xout[0], exp=np.exp)).T
+        assert res.info['success']
+        assert np.allclose(res.yout, ref)
+    args = [0, 1], dict(zip(yn, y0)), dict(zip(pn, k))
+    kwargs = dict(integrator='cvode')
+    _check(odesys.integrate(*args, **kwargs))
+    _check(partsys.integrate(*args, **kwargs))
+    scaledsys = ScaledSys.from_other(partsys, dep_scaling=42, indep_scaling=17)
+    _check(scaledsys.integrate(*args, **kwargs))
 
 
 @requires('sym', 'pycvodes')

@@ -11,13 +11,15 @@ from pyodesys.tests.test_core import (
     vdp_f, _test_integrate_multiple_adaptive, _test_integrate_multiple_predefined, sine, decay
 )
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
-from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3, get_logexp
+from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3
 
 sp = import_('sympy')
 
 
 def _test_NativeSys(NativeSys, **kwargs):
     native = NativeSys.from_callback(vdp_f, 2, 1)
+    assert native.ny == 2
+    assert len(native.params) == 1
     xout, yout, info = native.integrate([0, 1, 2], [1, 0], params=[2.0], **kwargs)
     # blessed values:
     ref = [[1, 0], [0.44449086, -1.32847148], [-1.89021896, -0.71633577]]
@@ -102,7 +104,11 @@ def _test_Decay_nonnegative(NativeSys):
 
 
 def _test_PartiallySolvedSystem_Native(NativeSys, integrator):
+    class TransformedNativeSys(TransformedSys, NativeSys):
+        pass
     logexp = get_logexp(1, 1e-24)
+    NativeLogLogSys = symmetricsys(logexp, logexp, SuperClass=TransformedNativeSys)
+
     odesys = _get_decay3(lower_bounds=[0, 0, 0], linear_invariants=[[1, 1, 1]])
     n_sys = NativeSys.from_other(odesys)
     scaledsys = ScaledSys.from_other(odesys, dep_scaling=42)
@@ -112,11 +118,9 @@ def _test_PartiallySolvedSystem_Native(NativeSys, integrator):
     LogLogSys = symmetricsys(logexp, logexp)
     ll_scaledsys = LogLogSys.from_other(scaledsys)
     ll_partsys = LogLogSys.from_other(partsys)
-    class TransformedNativeSys(TransformedSys, NativeSys):
-        pass
-    NativeLogLogSys = symmetricsys(logexp, logexp, SuperClass=TransformedNativeSys)
     nll_scaledsys = NativeLogLogSys.from_other(scaledsys)
     nll_partsys = NativeLogLogSys.from_other(partsys)
+
     y0 = [3.3, 2.4, 1.5]
     k = [3.5, 2.5, 0]
     systems = [odesys, n_sys, scaledsys, ns_sys, partsys, np_sys, ll_scaledsys, ll_partsys, nll_scaledsys, nll_partsys]

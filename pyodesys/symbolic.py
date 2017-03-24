@@ -53,6 +53,16 @@ def _get_ny_nparams_from_kw(ny, nparams, kwargs):
     return ny, nparams
 
 
+def _get_lin_invar_mtx(lin_invar, be, ny):
+    if lin_invar is None or lin_invar == []:
+        return None
+    else:
+        li_mtx = be.Matrix(lin_invar)
+        if len(li_mtx.shape) != 2 or li_mtx.shape[1] != ny:
+            raise ValueError("Incorrect shape of linear_invariants Matrix: %s" % str(li_mtx.shape))
+        return li_mtx
+
+
 class SymbolicSys(ODESys):
     """ ODE System from symbolic expressions
 
@@ -142,6 +152,14 @@ class SymbolicSys(ODESys):
                       'linear_invariant_names', 'to_arrays_callbacks')
     append_iv = True
 
+    @property
+    def linear_invariants(self):
+        return getattr(self, '_linear_invariants', None)
+
+    @linear_invariants.setter
+    def linear_invariants(self, lin_invar):
+        self._linear_invariants = _get_lin_invar_mtx(lin_invar, self.be, self.ny)
+
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
                  linear_invariants=None, nonlinear_invariants=None,
@@ -168,17 +186,10 @@ class SymbolicSys(ODESys):
         self.roots = roots
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
-        if linear_invariants is not None:
-            if linear_invariants == []:
-                linear_invariants = None
-            else:
-                linear_invariants = self.be.Matrix(linear_invariants)
-                if len(linear_invariants.shape) != 2 or linear_invariants.shape[1] != self.ny:
-                    raise ValueError("Incorrect shape of linear_invariants Matrix: %s" % str(linear_invariants.shape))
         self.linear_invariants = linear_invariants
         self.nonlinear_invariants = nonlinear_invariants
         if linear_invariant_names is not None:
-            if len(linear_invariant_names) != linear_invariants.shape[0]:
+            if len(linear_invariant_names) != self.linear_invariants.shape[0]:
                 raise ValueError("Incorrect length of linear_invariant_names: %d (expected %d)" % (
                     len(linear_invariant_names), linear_invariants.shape[0]))
         self.linear_invariant_names = linear_invariant_names
@@ -248,7 +259,8 @@ class SymbolicSys(ODESys):
             for dep in self.dep:
                 if dep.name.startswith(prefix):
                     raise ValueError("Name ambiguity in dependent variable names")
-        return tuple(self._Symbol(prefix + str(idx if names is None else names[idx]) + suffix, be) for idx in range(ny))
+        return tuple(self._Symbol(prefix + str(idx if names is None else names[idx]) + suffix, be)
+                     for idx in range(ny))
 
     def all_invariants(self, linear_invariants=None, nonlinear_invariants=None, dep=None, backend=None):
         linear_invariants = linear_invariants or getattr(self, 'linear_invariants', None)
@@ -455,11 +467,7 @@ class SymbolicSys(ODESys):
         return self._dfdx
 
     def _callback_factory(self, exprs):
-        args = [self.indep] + list(self.dep) + list(self.params)#  + (
-        #     [] if self.init_indep is None else [self.init_indep]
-        # ) + (
-        #     [] if self.init_dep is None else list(self.init_dep)
-        # )
+        args = [self.indep] + list(self.dep) + list(self.params)
         return _Wrapper(self.be.Lambdify(args, exprs),
                         len(self.dep), len(self.params))
 
@@ -600,8 +608,9 @@ class TransformedSys(SymbolicSys):
         roots = kwargs.pop('roots', None)
         be = Backend(kwargs.pop('backend', None))
         kwargs['backend'] = be
-        all_invariants = self.all_invariants(kwargs.pop('linear_invariants', None),
-                                             kwargs.pop('nonlinear_invariants', None), dep, backend=be)
+        all_invariants = self.all_invariants(
+            _get_lin_invar_mtx(kwargs.pop('linear_invariants', None), be, len(dep)),
+            kwargs.pop('nonlinear_invariants', None), dep, backend=be)
         if dep_transf is not None:
             self.dep_fw, self.dep_bw = zip(*dep_transf)
             exprs = transform_exprs_dep(
@@ -983,7 +992,7 @@ class PartiallySolvedSystem(SymbolicSys):
         self.free_names = None if self._ori_sys.names is None else free_names
         self.free_latex_names = None if self._ori_sys.latex_names is None else free_latex_names
         self.append_iv = kwargs.get('append_iv', False)
-        new_pars = _append(_pars, (init_indep,), init_dep)
+        new_pars = _append(self._ori_sys.params, (init_indep,), init_dep)
         self.analytic_cb = self._get_analytic_callback(
             self._ori_sys, list(self.analytic_exprs.values()), new_dep, new_pars)
         self.ori_analyt_idx_map = OrderedDict([(self.original_dep.index(dep), idx)
@@ -1020,7 +1029,7 @@ class PartiallySolvedSystem(SymbolicSys):
             if y.ndim == 2:
                 return zip(*[partially_solved_pre_processor(_x, _y, _p)
                              for _x, _y, _p in zip(x, y, p)])
-            return (x, _skip(self.ori_analyt_idx_map, y), _append(p, [x[0]], y))  # DO-NOT-MERGE!
+            return (x, _skip(self.ori_analyt_idx_map, y), _append(p, [x[0]], y))
 
         def partially_solved_post_processor(x, y, p):
             try:
@@ -1044,6 +1053,9 @@ class PartiallySolvedSystem(SymbolicSys):
         super(PartiallySolvedSystem, self).__init__(
             zip(new_dep, new_exprs), self._ori_sys.indep, new_pars, backend=_be, roots=new_roots,
             init_indep=init_indep, init_dep=init_dep, **new_kw)
+
+    # def to_arrays(self, x, y, p, callbacks=None):
+    #     return super(PartiallySolvedSystem, self).to_arrays(x, y, _append(p, [x[0]], y))
 
     @classmethod
     def from_linear_invariants(cls, ori_sys, preferred=None, **kwargs):
