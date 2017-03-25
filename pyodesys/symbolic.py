@@ -261,7 +261,8 @@ class SymbolicSys(ODESys):
             for dep in self.dep:
                 if dep.name.startswith(prefix):
                     raise ValueError("Name ambiguity in dependent variable names")
-        return tuple(self._Symbol(prefix + str(idx if names is None else names[idx]) + suffix, be)
+        use_names = names is not None and len(names) > 0
+        return tuple(self._Symbol(prefix + names[idx] if use_names else str(idx) + suffix, be)
                      for idx in range(ny))
 
     def all_invariants(self, linear_invariants=None, nonlinear_invariants=None, dep=None, backend=None):
@@ -567,15 +568,16 @@ def _group_invariants(all_invar, deps, be, names=None):
     linear_invar = []
     nonlinear_invar = []
     lin_names, nonlin_names = [], []
+    use_names = names is not None and len(names) > 0
     for idx, invar in enumerate(all_invar):
         derivs = [invar.diff(dep) for dep in deps]
         if all([deriv.is_Number for deriv in derivs]):
             linear_invar.append(derivs)
-            if names not in (None, []):
+            if use_names:
                 lin_names.append(names[idx])
         else:
             nonlinear_invar.append(invar)
-            if names not in (None, []):
+            if use_names:
                 nonlin_names.append(names[idx])
     if names is None:
         return linear_invar, nonlinear_invar
@@ -644,8 +646,8 @@ class TransformedSys(SymbolicSys):
 
         kwargs['linear_invariants'], kwargs['nonlinear_invariants'], \
             kwargs['linear_invariant_names'], kwargs['nonlinear_invariant_names'] = _group_invariants(
-                all_invariants, dep, be, (kwargs.get('linear_invariant_names', []) +
-                                          kwargs.get('nonlinear_invariant_names', [])))
+                all_invariants, dep, be, (list(kwargs.get('linear_invariant_names') or ()) +
+                                          list(kwargs.get('nonlinear_invariant_names') or ())))
 
         lower_b = kwargs.pop('lower_bounds', None)
         upper_b = kwargs.pop('upper_bounds', None)
@@ -998,9 +1000,9 @@ class PartiallySolvedSystem(SymbolicSys):
         for idx, dep in enumerate(self.original_dep):
             if dep not in self.analytic_exprs:
                 new_dep.append(dep)
-                if self._ori_sys.names is not None:
+                if self._ori_sys.names is not None and len(self._ori_sys.names) > 0:
                     free_names.append(self._ori_sys.names[idx])
-                if self._ori_sys.latex_names is not None:
+                if self._ori_sys.latex_names is not None and len(self._ori_sys.latex_names) > 0:
                     free_latex_names.append(self._ori_sys.latex_names[idx])
         self.free_names = None if self._ori_sys.names is None else free_names
         self.free_latex_names = None if self._ori_sys.latex_names is None else free_latex_names
@@ -1126,12 +1128,12 @@ class PartiallySolvedSystem(SymbolicSys):
                      ci in range(A.cols) if ci != tgt])/A[ri, tgt] for ri, tgt in row_tgt
             }
 
-        ori_li_nms = ori_sys.linear_invariant_names or []
+        ori_li_nms = ori_sys.linear_invariant_names or ()
         new_lin_invar = [[cell for ci, cell in enumerate(row) if ci not in list(zip(*row_tgt))[1]]
                          for ri, row in enumerate(A.tolist()) if ri not in list(zip(*row_tgt))[0]]
         new_lin_i_nms = [nam for ri, nam in enumerate(ori_li_nms) if ri not in list(zip(*row_tgt))[0]]
-        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar or None,
-                   linear_invariant_names=new_lin_i_nms or None, **kwargs)
+        return cls(ori_sys, analytic_factory, linear_invariants=new_lin_invar,
+                   linear_invariant_names=new_lin_i_nms, **kwargs)
 
     @staticmethod
     def _get_analytic_callback(ori_sys, analytic_exprs, new_dep, new_params):

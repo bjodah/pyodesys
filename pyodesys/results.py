@@ -152,18 +152,18 @@ class Result(object):
             y = self.yout
 
         if 'names' in kwargs:
-            if 'indices' not in kwargs and getattr(self.odesys, 'names', None) is not None:
+            if 'indices' not in kwargs and (getattr(self.odesys, 'names', None) or None) is not None:
                 kwargs['indices'] = [self.odesys.names.index(n) for n in kwargs['names']]
                 kwargs['names'] = self.odesys.names
         else:
-            kwargs['names'] = getattr(self.odesys, 'names', None)
+            kwargs['names'] = getattr(self.odesys, 'names', ())
 
         if 'latex_names' not in kwargs:
             _latex_names = getattr(self.odesys, 'latex_names', None)
-            if _latex_names is not None and not all(ln is None for ln in _latex_names):
+            if (_latex_names or None) is not None and not all(ln is None for ln in _latex_names):
                 kwargs['latex_names'] = _latex_names
         if legend is None:
-            if kwargs.get('latex_names', None) is not None or kwargs['names'] is not None:
+            if (kwargs.get('latex_names') or None) is not None or (kwargs['names'] or None) is not None:
                 legend = True
         return cb(x, y, legend=legend, **kwargs)
 

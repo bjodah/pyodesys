@@ -120,15 +120,6 @@ class _NativeCodeBase(Cpp_Code):
         subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
         subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
                       idx, k in enumerate(self.odesys.params)})
-        # if self.odesys.init_indep is not None:
-        #     subsd[self.odesys.init_indep] = self.odesys.be.Symbol('m_p[%d]' % len(self.odesys.params))
-        # if self.odesys.init_dep is not None:
-        #     subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % (len(self.odesys.params) + 1 + idx)) for
-        #                   idx, k in enumerate(self.odesys.init_dep)})
-        # print(self.odesys.init_indep)  # DO-NOT-MERGE!
-        # print(self.odesys.init_dep)  # DO-NOT-MERGE!
-        # for item in sorted(subsd.items(), key=lambda x: x[0].name):  # DO-NOT-MERGE!
-        #     print('%s: %s' % item)  # DO-NOT-MERGE!
 
         def _ccode(expr):
             return self.odesys.be.ccode(expr.xreplace(subsd))

@@ -83,6 +83,7 @@ def test_SymbolicSys():
         SymbolicSys.from_callback(lambda x, y, p, be: [], 2, names=['foo', 'bar'])
 
 
+@requires('sym')
 def test_SymbolicSys__init_indep__init_dep():
     odesys = SymbolicSys.from_callback(lambda x, y, p, be: [-y[0], y[0]], 2, names=['foo', 'bar'], indep_name='t',
                                        init_indep=True, init_dep=True)
@@ -1133,6 +1134,7 @@ def test_PartiallySolvedSystem__by_name_2():
     _check(scaledsys.integrate(*args, **kwargs))
 
 
+@requires('sym')
 def test_symmetricsys__invariants():
     yn, pn = 'x y z'.split(), 'a b'.split()
     odesys = SymbolicSys.from_callback(

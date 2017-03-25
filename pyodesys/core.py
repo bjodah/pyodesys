@@ -132,8 +132,8 @@ class ODESys(object):
     """
 
     def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
-                 band=None, names=None, param_names=None, description=None, dep_by_name=False,
-                 par_by_name=False, latex_names=None, latex_param_names=None, pre_processors=None,
+                 band=None, names=(), param_names=(), description=None, dep_by_name=False,
+                 par_by_name=False, latex_names=(), latex_param_names=(), pre_processors=None,
                  post_processors=None, append_iv=False, autonomous_interface=None, to_arrays_callbacks=None,
                  **kwargs):
         self.f_cb = _ensure_4args(f)
@@ -146,13 +146,13 @@ class ODESys(object):
             if not band[0] >= 0 or not band[1] >= 0:
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
-        self.names = None if names in (None, []) else tuple(names)
-        self.param_names = None if param_names in (None, []) else tuple(param_names)
+        self.names = tuple(names or ())
+        self.param_names = tuple(param_names or ())
         self.description = description
         self.dep_by_name = dep_by_name
         self.par_by_name = par_by_name
-        self.latex_names = None if latex_names in (None, []) else tuple(latex_names)
-        self.latex_param_names = None if latex_param_names in (None, []) else tuple(latex_param_names)
+        self.latex_names = tuple(latex_names or ())
+        self.latex_param_names = tuple(latex_param_names or ())
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.append_iv = append_iv
