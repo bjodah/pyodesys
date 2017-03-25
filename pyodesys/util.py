@@ -146,17 +146,18 @@ def _default(arg, default):
 
 class _Wrapper(_Blessed):
 
-    def __init__(self, callback, ny):
+    def __init__(self, callback, ny, take_params=None):
         self.callback = callback
         self.ny = ny
+        self.take_params = take_params
 
     def __call__(self, x, y, params=(), backend=None):
         _x = np.asarray(x)
         _y = np.asarray(y)
-        _p = np.asarray(params)
+        _p = np.asarray(params)[..., :self.take_params]
         if _y.shape[-1] != self.ny:
             raise TypeError("Incorrect shape of y")
-        input_width = self.ny + _p.shape[-1] + 1
+        input_width = 1 + self.ny + _p.shape[-1]
         if _x.ndim == 0:
             inp_shape = (input_width,)
         elif _x.ndim == 1:

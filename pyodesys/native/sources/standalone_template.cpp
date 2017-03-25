@@ -25,7 +25,7 @@ int main(int argc, char *argv[]){
         ("return-on-error", po::value<bool>()->default_value(false), "Return on error")
         ("get-dx-max-factor", po::value<realtype>()->default_value(1.0), "get_dx_max multiplicative factor")
         ("error-outside-bounds", po::value<bool>()->default_value(false), "Return recoverable error to solver when outside bounds")
-        ("max-invariant-violation", po::value<bool>()->default_value(0.0), "Limit at which to return recoverable error when supported by integrator.")
+        ("max-invariant-violation", po::value<realtype>()->default_value(0.0), "Limit at which to return recoverable error when supported by integrator.")
         ("special-settings", po::value<std::string>()->default_value(""), "special settings2 (if customized)")
         ;
     po::variables_map vm;

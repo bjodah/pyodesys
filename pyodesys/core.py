@@ -83,8 +83,7 @@ class ODESys(object):
         params1[:]
         When modifying: insert at end.
     append_iv :  bool
-        If ``True`` params[:] passed to :attr:`f_cb`, :attr:`jac_cb` will contain
-        initial values of y.
+        See :attr:`append_iv`.
     autonomous_interface : bool (optional)
         If given, sets the :attr:`autonomous` to indicate whether
         the system appears autonomous or not upon call to :meth:`integrate`.
@@ -101,16 +100,19 @@ class ODESys(object):
         For calculating the first step based on x0, y0 & p.
     roots_cb : callback
     nroots : int
-    names : iterable of strings
-    param_names : iterable of strings
+    names : tuple of strings
+    param_names : tuple of strings
     description : str
     dep_by_name : bool
     par_by_name : bool
-    latex_names : iterable of str
-    latex_param_names : iterable of str
+    latex_names : tuple of str
+    latex_param_names : tuple of str
     pre_processors : iterable of callbacks
     post_processors : iterable of callbacks
     append_iv : bool
+        If ``True`` params[:] passed to :attr:`f_cb`, :attr:`jac_cb` will contain
+        initial values of y. Note that this happens after pre processors have been
+        applied.
     autonomous_interface : bool or None
         Indicates whether the system appears autonomous upon call to
         :meth:`integrate`. ``None`` indicates that it is unknown.
@@ -130,8 +132,8 @@ class ODESys(object):
     """
 
     def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
-                 band=None, names=None, param_names=None, description=None, dep_by_name=False,
-                 par_by_name=False, latex_names=None, latex_param_names=None, pre_processors=None,
+                 band=None, names=(), param_names=(), description=None, dep_by_name=False,
+                 par_by_name=False, latex_names=(), latex_param_names=(), pre_processors=None,
                  post_processors=None, append_iv=False, autonomous_interface=None, to_arrays_callbacks=None,
                  **kwargs):
         self.f_cb = _ensure_4args(f)
@@ -144,13 +146,13 @@ class ODESys(object):
             if not band[0] >= 0 or not band[1] >= 0:
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
-        self.names = names
-        self.param_names = param_names
+        self.names = tuple(names or ())
+        self.param_names = tuple(param_names or ())
         self.description = description
         self.dep_by_name = dep_by_name
         self.par_by_name = par_by_name
-        self.latex_names = latex_names
-        self.latex_param_names = latex_param_names
+        self.latex_names = tuple(latex_names or ())
+        self.latex_param_names = tuple(latex_param_names or ())
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.append_iv = append_iv
@@ -185,7 +187,11 @@ class ODESys(object):
                     for j in range(lens[0]):
                         out[j, idx] = v
                 else:
-                    out[:, idx] = v
+                    try:
+                        for j in range(lens[0]):
+                            out[j, idx] = v[j]
+                    except TypeError:
+                        out[:, idx] = v
             return out, False
 
     def _conditional_from_dict(self, cont, by_name, names):

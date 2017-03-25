@@ -101,6 +101,13 @@ class Result(object):
         else:
             return override
 
+    def _internals(self):
+        return (
+            self._internal('xout'),
+            self._internal('yout'),
+            self._internal('params')[:-self.odesys.ny if self.odesys.append_iv else None]
+        )
+
     def stiffness(self, xyp=None, eigenvals_cb=None):
         """ Running stiffness ratio from last integration.
 
@@ -127,7 +134,7 @@ class Result(object):
             eigenvals_cb = self.odesys._jac_eigenvals_svd
 
         if xyp is None:
-            x, y, intern_p = self._internal('xout'), self._internal('yout'), self._internal('params')
+            x, y, intern_p = self._internals()
         else:
             x, y, intern_p = self.pre_process(*xyp)
 
@@ -145,18 +152,18 @@ class Result(object):
             y = self.yout
 
         if 'names' in kwargs:
-            if 'indices' not in kwargs and getattr(self.odesys, 'names', None) is not None:
+            if 'indices' not in kwargs and (getattr(self.odesys, 'names', None) or None) is not None:
                 kwargs['indices'] = [self.odesys.names.index(n) for n in kwargs['names']]
                 kwargs['names'] = self.odesys.names
         else:
-            kwargs['names'] = getattr(self.odesys, 'names', None)
+            kwargs['names'] = getattr(self.odesys, 'names', ())
 
         if 'latex_names' not in kwargs:
             _latex_names = getattr(self.odesys, 'latex_names', None)
-            if _latex_names is not None and not all(ln is None for ln in _latex_names):
+            if (_latex_names or None) is not None and not all(ln is None for ln in _latex_names):
                 kwargs['latex_names'] = _latex_names
         if legend is None:
-            if kwargs.get('latex_names', None) is not None or kwargs['names'] is not None:
+            if (kwargs.get('latex_names') or None) is not None or (kwargs['names'] or None) is not None:
                 legend = True
         return cb(x, y, legend=legend, **kwargs)
 
@@ -189,7 +196,7 @@ class Result(object):
         if deriv:
             if 'y' in kwargs:
                 raise ValueError("Cannot give both deriv=True and y.")
-            kwargs['y'] = self.odesys.f_cb(self._internal('xout'), self._internal('yout'), self._internal('params'))
+            kwargs['y'] = self.odesys.f_cb(*self._internals())
         ax = self._plot(plot_result, **kwargs)
         if title_info:
             ax.set_title(
@@ -222,7 +229,7 @@ class Result(object):
 
     def plot_invariant_violations(self, **kwargs):
         invar = self.odesys.get_invariants_callback()
-        viol = invar(self._internal('xout'), self._internal('yout'), self._internal('params'))
+        viol = invar(*self._internals())
         abs_viol = np.abs(viol - viol[0, :])
         invar_names = self.odesys.all_invariant_names()
         return self._plot(plot_result, x=self._internal('xout'), y=abs_viol, names=invar_names,

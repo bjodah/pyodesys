@@ -176,7 +176,6 @@ class _NativeCodeBase(Cpp_Code):
                 self.odesys.roots,
                 symbols=self.odesys.be.numbered_symbols('cse'))
         if all_invar:
-            self.odesys.append_iv = True
             invar_cses, invar_exprs = self.odesys.be.cse(
                 common_exprs[len(self.odesys.exprs)+len(jac_dfdx):
                              len(self.odesys.exprs)+len(jac_dfdx)+len(all_invar)],
@@ -236,6 +235,9 @@ class _NativeSysBase(SymbolicSys):
     def __init__(self, *args, **kwargs):
         namespace_override = kwargs.pop('namespace_override', {})
         namespace_extend = kwargs.pop('namespace_extend', {})
+        if 'init_indep' not in kwargs:  # we need to trigger append_iv for when invariants are used
+            kwargs['init_indep'] = True
+            kwargs['init_dep'] = True
         super(_NativeSysBase, self).__init__(*args, **kwargs)
         self._native = self._NativeCode(self,
                                         namespace_override=namespace_override,
