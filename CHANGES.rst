@@ -1,3 +1,9 @@
+v0.9.0
+======
+- Support for max_invariant_violations
+- Expose special settings
+- Fix dropping units
+
 v0.8.1
 ======
 - Fix bug in PartiallySolvedSystem when passing linear_invariants to constructor.
