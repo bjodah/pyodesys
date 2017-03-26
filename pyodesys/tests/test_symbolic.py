@@ -83,6 +83,18 @@ def test_SymbolicSys():
         SymbolicSys.from_callback(lambda x, y, p, be: [], 2, names=['foo', 'bar'])
 
 
+@requires('sym', 'scipy')
+def test_SymbolicSys__indep_name():
+    odesys = SymbolicSys.from_callback(
+        lambda t, y, p: {
+            'x': -p['a']*y['x'],
+            'y': -p['b']*y['y'] + p['a']*y['x'],
+            'z': p['b']*y['y']
+        }, names='xyz', param_names='ab', dep_by_name=True, par_by_name=True)
+    result = odesys.integrate([42, 43, 44], {'x': 7, 'y': 5, 'z': 3}, {'a': 11, 'b': 13})
+    assert np.allclose(result.named_dep('x'), 7*np.exp(-11*(result.xout - result.xout[0])))
+
+
 @requires('sym')
 def test_SymbolicSys__init_indep__init_dep():
     odesys = SymbolicSys.from_callback(lambda x, y, p, be: [-y[0], y[0]], 2, names=['foo', 'bar'], indep_name='t',

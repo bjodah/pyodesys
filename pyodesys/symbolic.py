@@ -303,7 +303,7 @@ class SymbolicSys(ODESys):
 
     @classmethod
     def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None,
-                      roots_cb=None, indep_name='x', **kwargs):
+                      roots_cb=None, indep_name=None, **kwargs):
         """ Create an instance from a callback.
 
         Parameters
@@ -319,6 +319,7 @@ class SymbolicSys(ODESys):
         roots_cb : callable
             Callback with signature ``roots(x, y[:], p[:], backend=math) -> r[:]``.
         indep_name : str
+            Default 'x' if not already in ``names``, otherwise indep0, or indep1, or ...
         dep_by_name : bool
             Make ``y`` passed to ``rhs`` a dict (keys from :attr:`names`) and convert
             its return value from dict to array.
@@ -345,13 +346,23 @@ class SymbolicSys(ODESys):
         """
         ny, nparams = _get_ny_nparams_from_kw(ny, nparams, kwargs)
         be = Backend(kwargs.pop('backend', None))
+        names = tuple(kwargs.pop('names', ''))
+        if indep_name is None:
+            if 'x' not in names:
+                indep_name = 'x'
+            else:
+                i = 0
+                indep_name = 'indep0'
+                while indep_name in names:
+                    i += 1
+                    indep_name = 'indep%d' % i
         try:
             x = be.Symbol(indep_name, real=True)
         except TypeError:
             x = be.Symbol(indep_name)
         y = be.real_symarray('y', ny)
         p = be.real_symarray('p', nparams)
-        _y = dict(zip(kwargs['names'], y)) if kwargs.get('dep_by_name', False) else y
+        _y = dict(zip(names, y)) if kwargs.get('dep_by_name', False) else y
         _p = dict(zip(kwargs['param_names'], p)) if kwargs.get('par_by_name', False) else p
 
         try:
@@ -375,8 +386,8 @@ class SymbolicSys(ODESys):
             except TypeError:
                 kwargs['first_step_expr'] = _ensure_4args(first_step_factory)(x, _y, _p, be)
         if kwargs.get('dep_by_name', False):
-            exprs = [exprs[k] for k in kwargs['names']]
-        return cls(zip(y, exprs), x, None if len(p) == 0 else p, backend=be, **kwargs)
+            exprs = [exprs[k] for k in names]
+        return cls(zip(y, exprs), x, None if len(p) == 0 else p, backend=be, names=names, **kwargs)
 
     @classmethod
     def from_other(cls, ori, **kwargs):
