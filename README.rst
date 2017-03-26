@@ -142,19 +142,35 @@ You can also refer to the dependent variables by name instead of index:
    ...         'z': p['b']*y['y']
    ...     }, names='xyz', param_names='ab', dep_by_name=True, par_by_name=True)
    ... 
-   >>> pars = {'a': [11, 17, 19], 'b': 13}
-   >>> results = odesys.integrate([42, 43, 44], {'x': 7, 'y': 5, 'z': 3}, pars)
-   >>> for r, a in zip(results, pars['a']):
-   ...     print(np.allclose(r.named_dep('x'), 7*np.exp(-a*(r.xout - r.xout[0]))))
+   >>> t, ic, pars = [42, 43, 44], {'x': 7, 'y': 5, 'z': 3}, {'a': [11, 17, 19], 'b': 13}
+   >>> for r, a in zip(odesys.integrate(t, ic, pars, integrator='cvode'), pars['a']):
+   ...     assert np.allclose(r.named_dep('x'), 7*np.exp(-a*(r.xout - r.xout[0])))
+   ...     print('%.2f ms ' % (r.info['time_cpu']*1e3))  # doctest: +SKIP
    ... 
-   True
-   True
-   True
-
+   10.54 ms
+   11.55 ms
+   11.06 ms
 
 Note how we generated a list of results for each value of the parameter ``a``. When using a class
 from ``pyodesys.native.native_sys`` those integrations are run in separate threads (bag of tasks
-parallelism).
+parallelism):
+
+.. code:: python
+
+   >>> from pyodesys.native import native_sys
+   >>> native = native_sys['cvode'].from_other(odesys)
+   >>> for r, a in zip(native.integrate(t, ic, pars), pars['a']):
+   ...     assert np.allclose(r.named_dep('x'), 7*np.exp(-a*(r.xout - r.xout[0])))
+   ...     print('%.2f ms ' % (r.info['time_cpu']*1e3))  # doctest: +SKIP
+   ... 
+   0.42 ms
+   0.43 ms
+   0.42 ms
+
+For this small example we see a 20x (serial) speedup by using native code. Bigger systems often see 100x speedup.
+Since the latter is run in parallel the (wall clock) time spent waiting for the results is in practice
+further reduced by a factor equal to the number of cores of your CPU (number of threads used is set by
+the environment variable ``ANYODE_NUM_THREADS``).
 
 For further examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered
 jupyter notebooks here: `<http://hera.physchem.kth.se/~pyodesys/branches/master/examples>`_
