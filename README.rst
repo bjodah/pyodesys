@@ -142,11 +142,21 @@ You can also refer not the dependent variables by name intead of index:
    ...         'z': p['b']*y['y']
    ...     }, names='xyz', param_names='ab', dep_by_name=True, par_by_name=True)
    ... 
-   >>> result = odesys.integrate([42, 43, 44], {'x': 7, 'y': 5, 'z': 3}, {'a': 11, 'b': 13})
-   >>> np.allclose(result.named_dep('x'), 7*np.exp(-11*(result.xout - result.xout[0])))
+   >>> pars = {'a': [11, 17, 19], 'b': 13}
+   >>> results = odesys.integrate([42, 43, 44], {'x': 7, 'y': 5, 'z': 3}, pars)
+   >>> for r, a in zip(results, pars['a']):
+   ...     print(np.allclose(r.named_dep('x'), 7*np.exp(-a*(r.xout - r.xout[0]))))
+   ... 
+   True
+   True
    True
 
-for more examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered
+
+Note how we generated a list of results for each value of the parameter ``a``. When using a class
+from ``pyodesys.native.native_sys`` those integrations are run in separate threads (bag of tasks
+parallelism).
+
+For further examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered
 jupyter notebooks here: `<http://hera.physchem.kth.se/~pyodesys/branches/master/examples>`_
 
 License

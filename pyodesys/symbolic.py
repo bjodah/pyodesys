@@ -216,7 +216,7 @@ class SymbolicSys(ODESys):
         _names = kwargs.get('names', None)
         if _names is True:
             kwargs['names'] = _names = [y.name for y in self.dep]
-        if self.indep is not None and _names is not None:
+        if self.indep is not None and _names not in (None, ()):
             if self.indep.name in _names:
                 raise ValueError("Independent variable cannot share name with any dependent variable")
 

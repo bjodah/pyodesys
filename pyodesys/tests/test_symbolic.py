@@ -91,8 +91,10 @@ def test_SymbolicSys__indep_name():
             'y': -p['b']*y['y'] + p['a']*y['x'],
             'z': p['b']*y['y']
         }, names='xyz', param_names='ab', dep_by_name=True, par_by_name=True)
-    result = odesys.integrate([42, 43, 44], {'x': 7, 'y': 5, 'z': 3}, {'a': 11, 'b': 13})
-    assert np.allclose(result.named_dep('x'), 7*np.exp(-11*(result.xout - result.xout[0])))
+    pars = {'a': [11, 17, 19], 'b': 13}
+    results = odesys.integrate([42, 43, 44], {'x': 7, 'y': 5, 'z': 3}, pars)
+    for r, a in zip(results, pars['a']):
+        assert np.allclose(r.named_dep('x'), 7*np.exp(-a*(r.xout - r.xout[0])))
 
 
 @requires('sym')
