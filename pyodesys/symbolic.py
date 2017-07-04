@@ -67,7 +67,7 @@ class SymbolicSys(ODESys):
     """ ODE System from symbolic expressions
 
     Creates a :class:`ODESys` instance
-    from symbolic expressions. Jacboian and second derivatives
+    from symbolic expressions. Jacobian and second derivatives
     are derived when needed.
 
     Parameters
@@ -461,9 +461,7 @@ class SymbolicSys(ODESys):
     def jacobian_singular(self):
         """ Returns True if Jacobian is singular, else False. """
         cses, (jac_in_cses,) = self.be.cse(self.get_jac())
-        try:
-            jac_in_cses.LUdecomposition()
-        except ValueError:
+        if jac_in_cses.nullspace():
             return True
         else:
             return False
