@@ -44,7 +44,7 @@ namespace AnyODE {
             if (m_own_data and m_data)
                 free(m_data);
         }
-        virtual Real_t& operator()(int /* ri */, int /* ci */) { throw std::runtime_error("Not implemented."); };
+        virtual Real_t& operator()(int /* ri */, int /* ci */) { throw std::runtime_error("Not implemented."); }
         const Real_t& operator()(int ri, int ci) const { return (*const_cast<MatrixBase<Real_t>* >(this))(ri, ci); }
         virtual bool valid_index(const int ri, const int ci) const {
             return (0 <= ri) and (ri < this->m_nr) and (0 <= ci) and (ci < this->m_nc);
