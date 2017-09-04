@@ -1,9 +1,9 @@
 build:
-  image: bjodah/bjodahimg16dev:latest
+  image: bjodah/bjodahimg16dev:v1.3
   environment:
-    - CPLUS_INCLUDE_PATH=/opt/boost_1_63_0/include
-    - LIBRARY_PATH=/opt/boost_1_63_0/lib
-    - LD_LIBRARY_PATH=/opt/boost_1_63_0/lib
+    - CPLUS_INCLUDE_PATH=/opt/boost_1_65_0/include
+    - LIBRARY_PATH=/opt/boost_1_65_0/lib
+    - LD_LIBRARY_PATH=/opt/boost_1_65_0/lib
   commands:
     - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
