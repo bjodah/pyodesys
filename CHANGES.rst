@@ -1,3 +1,8 @@
+v0.9.1
+======
+- Address ``indep`` by name
+- Bumpy AnyODE
+
 v0.9.0
 ======
 - Support for max_invariant_violations
