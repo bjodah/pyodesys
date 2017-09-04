@@ -1,6 +1,4 @@
-#ifndef ANYODE_PARALLEL_H_47FBBF5A914C11E6AAE25B5C5A8B7CFC
-#define ANYODE_PARALLEL_H_47FBBF5A914C11E6AAE25B5C5A8B7CFC
-
+#pragma once
 #include <exception>
 #include <mutex>
 
@@ -28,5 +26,3 @@ namespace anyode_parallel {
         bool holds_exception() { return m_exc != nullptr; }
     };
 }
-
-#endif /* ANYODE_PARALLEL_H_47FBBF5A914C11E6AAE25B5C5A8B7CFC */

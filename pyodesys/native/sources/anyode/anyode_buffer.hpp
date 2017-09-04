@@ -1,5 +1,4 @@
-#ifndef ANYODE_BUFFER_HPP_63125B1A95F611E693D1CF22A79098EA
-#define ANYODE_BUFFER_HPP_63125B1A95F611E693D1CF22A79098EA
+#pragma once
 
 #ifdef NDEBUG
 #include<memory>
@@ -9,6 +8,7 @@
 
 namespace AnyODE {
 
+#ifdef NDEBUG
 #if __cplusplus >= 201402L
     using std::make_unique;
 #else
@@ -36,22 +36,14 @@ namespace AnyODE {
     }
 #endif
 
-
-#ifdef NDEBUG
-
     template<typename T> using buffer_t = std::unique_ptr<T[]>;
     template<typename T> using buffer_ptr_t = T*;
     template<typename T> constexpr T* buffer_get_raw_ptr(buffer_t<T>& buf) {
         return buf.get();
     }
-
-#if __cplusplus >= 201402L
-    template<typename T> constexpr auto buffer_factory = make_unique<T[]>;
-#else
     template<typename T> inline constexpr buffer_t<T> buffer_factory(std::size_t n) {
         return make_unique<T[]>(n);
     }
-#endif
 
 #else
     template<typename T> using buffer_t = std::vector<T>;
@@ -64,5 +56,3 @@ namespace AnyODE {
     }
 #endif
 }
-
-#endif /* ANYODE_BUFFER_HPP_63125B1A95F611E693D1CF22A79098EA */

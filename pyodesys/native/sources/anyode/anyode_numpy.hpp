@@ -1,12 +1,11 @@
-#ifndef ANYODE_NUMPY_HPP_363685EE8DA911E6879C8F3B030A9DA7
-#define ANYODE_NUMPY_HPP_363685EE8DA911E6879C8F3B030A9DA7
+#pragma once
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include <anyode/anyode.hpp>
 
 namespace AnyODE {
-    struct PyOdeSys : public AnyODE::OdeSysBase {
+    struct PyOdeSys : public AnyODE::OdeSysBase<double> {
         int ny;
         PyObject *py_rhs, *py_jac, *py_roots, *py_kwargs, *py_dx0cb, *py_dx_max_cb;
         int mlower, mupper, nroots;
@@ -212,6 +211,3 @@ namespace AnyODE {
         }
     };
 }
-
-
-#endif /* ANYODE_NUMPY_HPP_363685EE8DA911E6879C8F3B030A9DA7 */

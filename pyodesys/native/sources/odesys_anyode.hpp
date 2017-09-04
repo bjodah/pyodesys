@@ -2,7 +2,7 @@
 #include "anyode/anyode.hpp"
 
 namespace odesys_anyode {
-    struct OdeSys : public AnyODE::OdeSysBase {
+    struct OdeSys : public AnyODE::OdeSysBase<double> {
         std::vector<double> m_p;
         std::vector<double> m_p_cse;
         std::vector<double> m_atol;
