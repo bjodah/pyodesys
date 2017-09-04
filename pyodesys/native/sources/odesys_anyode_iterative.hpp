@@ -2,7 +2,7 @@
 #include "anyode/anyode_iterative.hpp"
 
 namespace odesys_anyode {
-    struct OdeSys : public AnyODE::OdeSysIterativeBase {
+    struct OdeSys : public AnyODE::OdeSysIterativeBase<double> {
         std::vector<double> m_p;
         std::vector<double> m_p_cse;
         std::vector<double> m_atol;

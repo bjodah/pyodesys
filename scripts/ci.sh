@@ -2,18 +2,12 @@
 
 export PKG_NAME=$1
 
-echo "deb http://ppa.launchpad.net/symengine/ppa/ubuntu xenial main" >>/etc/apt/sources.list
-apt-get update
-apt-get install --quiet --assume-yes --no-install-recommends python-symengine python3-symengine
-
 for PY in python2 python3; do
-    $PY -c "import symengine"  # make sure symengine is installed
-    $PY -m pip install symcxx pysym  # unofficial backends
-    $PY -m pip install https://github.com/sympy/sympy/archive/723f6c1.tar.gz
+    $PY -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
 done
 
-python setup.py sdist
-(cd dist/; python -m pip install --force-reinstall $PKG_NAME-*.tar.gz)
+python3 setup.py sdist
+(cd dist/; python3 -m pip install $PKG_NAME-$(python3 ../setup.py --version).tar.gz)
 
 
 for PY in python2 python3; do

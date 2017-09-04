@@ -194,7 +194,8 @@ def test_integrate_multiple_predefined__cvode():
 
 @requires('pyodeint')
 def test_integrate_multiple_predefined__odeint():
-    _test_integrate_multiple_predefined(ODESys(decay), integrator='odeint', method='bulirsch_stoer', atol=1e-9)
+    _test_integrate_multiple_predefined(ODESys(decay), integrator='odeint', method='bulirsch_stoer',
+                                        atol=1e-10, rtol=1e-10)
 
 
 @requires('pygslodeiv2')
