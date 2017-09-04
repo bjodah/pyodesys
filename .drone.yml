@@ -5,6 +5,7 @@ build:
     - LIBRARY_PATH=/opt/boost_1_65_0/lib
     - LD_LIBRARY_PATH=/opt/boost_1_65_0/lib
   commands:
+    - echo "#error" >/opt/boost_1_65_0/include/boost/numeric/odeint/stepper/rosenbrock4_controller.hpp
     - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
     - rm -r ~/.cache/python*pyodesys*/
