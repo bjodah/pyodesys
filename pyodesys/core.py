@@ -335,7 +335,7 @@ class ODESys(object):
             when jacobian is derived at runtime (high computational cost).
         force_predefined : bool (default: False)
             override behaviour of ``len(x) == 2`` => :meth:`adaptive`
-        \*\*kwargs:
+        \\*\\*kwargs :
             Additional keyword arguments for ``_integrate_$(integrator)``.
 
         Returns

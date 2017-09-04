@@ -15,6 +15,7 @@ sphinx-apidoc --full --force -A "$AUTHOR" --module-first --doc-version=$(python 
 #sed -i 's/Contents/.. include:: ..\/README.rst\n\nContents/g' doc/index.rst
 #echo ".. include:: ../README.rst" >>doc/index.rst
 cat <<EOF >>doc/index.rst
+
 Overview
 ========
 $(tail -n+3 README.rst)
