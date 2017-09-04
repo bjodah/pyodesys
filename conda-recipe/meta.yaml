@@ -15,6 +15,7 @@ build:
 requirements:
   build:
     - python
+    - setuptools
   run:
     - python
     - numpy
@@ -28,9 +29,12 @@ test:
     - {{ name }}
   requires:
     - python
-    - pytest
+    - numpy
+    - sym
+    - sympy
     - scipy
-    - boost
+    - appdirs
+    - pytest
     - pyodeint
     - pygslodeiv2
     - pycvodes
