@@ -36,6 +36,7 @@ test:
     - appdirs
     - pytest
     - pyodeint
+    - boost
     - pygslodeiv2
     - pycvodes
     - pycompilation
