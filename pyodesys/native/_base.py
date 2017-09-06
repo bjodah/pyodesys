@@ -86,10 +86,13 @@ class _NativeCodeBase(Cpp_Code):
         _wrapper_src = pkg_resources.resource_filename(
             __name__, 'sources/%s.pyx' % self.wrapper_name)
         if cachedir is None:
-            raise ImportError("No module named appdirs (needed for caching)")
-        _wrapper_obj = os.path.join(cachedir, '%s%s' % (self.wrapper_name, _obj_suffix))
+            raise ImportError("No module named appdirs (needed for caching). Install 'appdirs' using e.g. pip/conda.")
         if not os.path.exists(cachedir):
             os.makedirs(cachedir)
+        _wrapper_src = os.path.join(cachedir, '%s%s' % (self.wrapper_name, '.pyx'))
+        shutil.copy(pkg_resources.resource_filename(__name__, 'sources/%s.pyx' % self.wrapper_name),
+                    _wrapper_src)
+        _wrapper_obj = os.path.join(cachedir, '%s%s' % (self.wrapper_name, _obj_suffix))
         prebuild = {_wrapper_src: _wrapper_obj}
 
         self.build_files = self.build_files + tuple(prebuild.values())
