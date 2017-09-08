@@ -1,3 +1,7 @@
+v0.9.2
+======
+- Copy pyx to cache dir prior to cythonize
+
 v0.9.1
 ======
 - Address ``indep`` by name
