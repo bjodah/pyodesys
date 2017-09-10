@@ -21,6 +21,16 @@ from .util import (
 
 Backend = import_('sym', 'Backend')
 
+def _get_indep_name(names):
+    if 'x' not in names:
+        indep_name = 'x'
+    else:
+        i = 0
+        indep_name = 'indep0'
+        while indep_name in names:
+            i += 1
+            indep_name = 'indep%d' % i
+    return indep_name
 
 def _get_ny_nparams_from_kw(ny, nparams, kwargs):
     if kwargs.get('dep_by_name', False):
@@ -347,15 +357,7 @@ class SymbolicSys(ODESys):
         ny, nparams = _get_ny_nparams_from_kw(ny, nparams, kwargs)
         be = Backend(kwargs.pop('backend', None))
         names = tuple(kwargs.pop('names', ''))
-        if indep_name is None:
-            if 'x' not in names:
-                indep_name = 'x'
-            else:
-                i = 0
-                indep_name = 'indep0'
-                while indep_name in names:
-                    i += 1
-                    indep_name = 'indep%d' % i
+        indep_name = indep_name or _get_indep_name(names)
         try:
             x = be.Symbol(indep_name, real=True)
         except TypeError:
@@ -444,6 +446,49 @@ class SymbolicSys(ODESys):
                 return False
         self._autonomous_exprs = True
         return True
+
+    def as_autonomous(self, indep_name=None, latex_indep_name=None):
+        new_names = () if not self.names else (self.names + (self.indep_name,))
+        new_indep_name = indep_name or _get_indep_name(new_names)
+        new_latex_indep_name = latex_indep_name or new_indep_name
+        new_latex_names = () if not self.latex_names else (self.latex_names + (new_latex_indep_name,))
+        new_indep = self.be.Symbol(new_indep_name)
+        new_dep = self.dep + (self.indep,)
+        new_exprs = self.exprs + (self.indep**0,)
+        new_kw = dict(
+            names=new_names,
+            indep_name=new_indep_name,
+            latex_names=new_latex_names,
+            latex_indep_name=new_latex_indep_name,
+        )
+        for attr in filter(lambda k: k not in new_kw, self._attrs_to_copy):
+            new_kw[attr] = getattr(self, attr)
+
+        def autonomous_pre_processor(x, y, p):
+            if isinstance(y, dict) and not self.dep_by_name:
+                y = [y[k] for k in self._ori_sys.dep]
+            if isinstance(p, dict) and not self.par_by_name:
+                p = [p[k] for k in self._ori_sys.params]
+            x, y, p = map(np.atleast_1d, (x, y, p))
+            if y.ndim == 2:
+                return zip(*[partially_solved_pre_processor(_x, _y, _p)
+                             for _x, _y, _p in zip(x, y, p)])
+            return x, _append(y, [x[0]]), p
+
+        def autonomous_post_processor(x, y, p):
+            try:
+                y[0][0, 0]
+            except:
+                pass
+            else:
+                return zip(*[autonomous_post_processor(_x, _y, _p)
+                             for _x, _y, _p in zip(x, y, p)])
+            # one could check here that x and y[..., -1] do not differ too much
+            return y[..., -1], y[..., :-1], p
+
+        new_kw['pre_processors'] = self.pre_processors + [autonomous_pre_processor]
+        new_kw['post_processors'] = [autonomous_post_processor] + self.post_processors
+        return self.__class__(zip(new_dep, new_exprs), indep=new_indep, **new_kw)
 
     def get_jac(self):
         """ Derives the jacobian from ``self.exprs`` and ``self.dep``. """
