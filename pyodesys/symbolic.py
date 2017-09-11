@@ -448,10 +448,13 @@ class SymbolicSys(ODESys):
         return True
 
     def as_autonomous(self, indep_name=None, latex_indep_name=None):
+        if self.autonomous_exprs:
+            return self
         new_names = () if not self.names else (self.names + (self.indep_name,))
         new_indep_name = indep_name or _get_indep_name(new_names)
         new_latex_indep_name = latex_indep_name or new_indep_name
-        new_latex_names = () if not self.latex_names else (self.latex_names + (new_latex_indep_name,))
+        new_latex_names = () if not self.latex_names else (
+            self.latex_names + (new_latex_indep_name,))
         new_indep = self.be.Symbol(new_indep_name)
         new_dep = self.dep + (self.indep,)
         new_exprs = self.exprs + (self.indep**0,)
@@ -460,7 +463,11 @@ class SymbolicSys(ODESys):
             indep_name=new_indep_name,
             latex_names=new_latex_names,
             latex_indep_name=new_latex_indep_name,
+            autonomous_interface=False  # see pre-processor below
         )
+        if self.linear_invariants:
+            new_kw['linear_invariants'] = np.concatenate(
+                (self.linear_invariants, np.zeros((self.linear_invariants.shape[0], 1))), axis=-1)
         for attr in filter(lambda k: k not in new_kw, self._attrs_to_copy):
             new_kw[attr] = getattr(self, attr)
 
@@ -1122,9 +1129,6 @@ class PartiallySolvedSystem(SymbolicSys):
         super(PartiallySolvedSystem, self).__init__(
             zip(new_dep, new_exprs), self._ori_sys.indep, new_pars, backend=_be, roots=new_roots,
             init_indep=init_indep, init_dep=init_dep, **new_kw)
-
-    # def to_arrays(self, x, y, p, callbacks=None):
-    #     return super(PartiallySolvedSystem, self).to_arrays(x, y, _append(p, [x[0]], y))
 
     @classmethod
     def from_linear_invariants(cls, ori_sys, preferred=None, **kwargs):

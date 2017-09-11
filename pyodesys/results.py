@@ -227,10 +227,14 @@ class Result(object):
         """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
 
-    def plot_invariant_violations(self, **kwargs):
+    def calc_invariant_violations(self):
         invar = self.odesys.get_invariants_callback()
-        viol = invar(*self._internals())
-        abs_viol = np.abs(viol - viol[0, :])
+        val = invar(*self._internals())
+        return val - val[0, :]
+
+    def plot_invariant_violations(self, **kwargs):
+        viol = self.calc_invariant_violations()
+        abs_viol = np.abs(viol)
         invar_names = self.odesys.all_invariant_names()
         return self._plot(plot_result, x=self._internal('xout'), y=abs_viol, names=invar_names,
                           latex_names=kwargs.pop('latex_names', invar_names), indices=None, **kwargs)

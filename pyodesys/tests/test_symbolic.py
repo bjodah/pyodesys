@@ -1432,5 +1432,24 @@ def test_SymbolicSys_as_autonomous():
     asys = odesys.as_autonomous()
     integrate_and_check(asys)
     assert len(asys.dep) == 3
-    assert asys.autonomous_interface
+    assert not asys.autonomous_interface
     assert asys.autonomous_exprs
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys_as_autonomous__linear_invariants():
+    def rhs(t, y, p):
+        k = t**p[0]
+        return [-k*y[0], k*y[0]]
+
+    def analytic(tout, init_y, params):
+        y0ref = init_y[0]*np.exp(-tout**(params[0]+1)/(params[0]+1))
+        return np.array([y0ref, init_y[0] - y0ref + init_y[1]]).T
+
+    odesys = SymbolicSys.from_callback(rhs, 2, 1, linear_invariants=[[1, 1]])
+    result = odesys.integrate(4, [5, 2], [3], integrator='cvode')
+    ref = analytic(result.xout, result.yout[0, :], result.params)
+    assert np.allclose(result.yout, ref, atol=1e-6)
+
+    invar_viol = result.calc_invariant_violations()
+    assert np.allclose(invar_viol, 0)
