@@ -21,6 +21,7 @@ from .util import (
 
 Backend = import_('sym', 'Backend')
 
+
 def _get_indep_name(names):
     if 'x' not in names:
         indep_name = 'x'
@@ -31,6 +32,7 @@ def _get_indep_name(names):
             i += 1
             indep_name = 'indep%d' % i
     return indep_name
+
 
 def _get_ny_nparams_from_kw(ny, nparams, kwargs):
     if kwargs.get('dep_by_name', False):
@@ -63,10 +65,12 @@ def _get_ny_nparams_from_kw(ny, nparams, kwargs):
     return ny, nparams
 
 
-def _get_lin_invar_mtx(lin_invar, be, ny):
+def _get_lin_invar_mtx(lin_invar, be, ny, names=None):
     if lin_invar is None or lin_invar == []:
         return None
     else:
+        if isinstance(lin_invar[0], dict) and names:
+            lin_invar = [[d[n] for n in names] for d in lin_invar]
         li_mtx = be.Matrix(lin_invar)
         if len(li_mtx.shape) != 2 or li_mtx.shape[1] != ny:
             raise ValueError("Incorrect shape of linear_invariants Matrix: %s" % str(li_mtx.shape))
@@ -168,7 +172,7 @@ class SymbolicSys(ODESys):
 
     @linear_invariants.setter
     def linear_invariants(self, lin_invar):
-        self._linear_invariants = _get_lin_invar_mtx(lin_invar, self.be, self.ny)
+        self._linear_invariants = _get_lin_invar_mtx(lin_invar, self.be, self.ny, self.names)
 
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
@@ -194,6 +198,18 @@ class SymbolicSys(ODESys):
                                       self.be.Abs(expr)/dep) for dep, expr in
                           zip(self.dep, self.exprs)]) - steady_state_root]
         self.roots = roots
+
+        # we need self.band before super().__init__
+        self.band = kwargs.get('band', None)
+        super(SymbolicSys, self).__init__(
+            self.get_f_ty_callback(),
+            self.get_j_ty_callback(),
+            self.get_dfdx_callback(),
+            self.get_first_step_callback(),
+            self.get_roots_callback(),
+            nroots=None if roots is None else len(roots),
+            **kwargs)
+
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
         self.linear_invariants = linear_invariants
@@ -234,16 +250,6 @@ class SymbolicSys(ODESys):
         if _param_names is True:
             kwargs['param_names'] = [p.name for p in self.params]
 
-        # we need self.band before super().__init__
-        self.band = kwargs.get('band', None)
-        super(SymbolicSys, self).__init__(
-            self.get_f_ty_callback(),
-            self.get_j_ty_callback(),
-            self.get_dfdx_callback(),
-            self.get_first_step_callback(),
-            self.get_roots_callback(),
-            nroots=None if roots is None else len(roots),
-            **kwargs)
         if self.autonomous_interface is None:
             self.autonomous_interface = self.autonomous_exprs
 
@@ -463,8 +469,10 @@ class SymbolicSys(ODESys):
             indep_name=new_indep_name,
             latex_names=new_latex_names,
             latex_indep_name=new_latex_indep_name,
-            autonomous_interface=False  # see pre-processor below
+            autonomous_interface=False,  # see pre-processor below
         )
+        if new_names:
+            new_kw['taken_names'] = self.taken_names + (self.indep_name,)
         if self.linear_invariants:
             new_kw['linear_invariants'] = np.concatenate(
                 (self.linear_invariants, np.zeros((self.linear_invariants.shape[0], 1))), axis=-1)
@@ -478,7 +486,7 @@ class SymbolicSys(ODESys):
                 p = [p[k] for k in self._ori_sys.params]
             x, y, p = map(np.atleast_1d, (x, y, p))
             if y.ndim == 2:
-                return zip(*[partially_solved_pre_processor(_x, _y, _p)
+                return zip(*[autonomous_pre_processor(_x, _y, _p)
                              for _x, _y, _p in zip(x, y, p)])
             return x, _append(y, [x[0]]), p
 

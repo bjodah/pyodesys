@@ -1395,16 +1395,17 @@ def test__group_invariants():
     assert lin == []
     assert nonlin == [x+be.exp(y)]
 
+
 @requires('sym', 'pycvodes')
 def test_SymbolicSys_as_autonomous():
-    import sympy as sympy
-    import numpy as numpy
+    import sympy
+
     def rhs(t, y, p, backend=math):
         return [y[1], backend.sin(t)-p[0]*y[0]]
     odesys = SymbolicSys.from_callback(rhs, 2, 1)
 
     def analytic(tout, init_y, p):
-        t, (y0, y1), (k,) = odesys.indep, odesys.dep, odesys.params
+        t, (k,) = odesys.indep, odesys.params
         c1, c2 = sympy.symbols('c1 c2')
         sqk = sympy.sqrt(k)
         f = c1*sympy.cos(sqk*t) + c2*sympy.sin(sqk*t) + sympy.sin(t)/(k-1)
@@ -1412,7 +1413,7 @@ def test_SymbolicSys_as_autonomous():
         t0 = tout[0]
         sol, = sympy.solve([f.subs(t, t0) - init_y[0],
                            dfdt.subs(t, t0) - init_y[1]],
-                          [c1, c2], dict=True)
+                           [c1, c2], dict=True)
         sol[k] = p[0]
         exprs = [f.subs(sol), dfdt.subs(sol)]
         cb = sympy.lambdify([t], exprs)
@@ -1446,10 +1447,38 @@ def test_SymbolicSys_as_autonomous__linear_invariants():
         y0ref = init_y[0]*np.exp(-tout**(params[0]+1)/(params[0]+1))
         return np.array([y0ref, init_y[0] - y0ref + init_y[1]]).T
 
-    odesys = SymbolicSys.from_callback(rhs, 2, 1, linear_invariants=[[1, 1]])
-    result = odesys.integrate(4, [5, 2], [3], integrator='cvode')
-    ref = analytic(result.xout, result.yout[0, :], result.params)
-    assert np.allclose(result.yout, ref, atol=1e-6)
+    odes = SymbolicSys.from_callback(rhs, 2, 1, linear_invariants=[[1, 1]])
+    for odesys in [odes, odes.as_autonomous()]:
+        result = odesys.integrate(4, [5, 2], [3], integrator='cvode')
+        ref = analytic(result.xout, result.yout[0, :], result.params)
+        assert np.allclose(result.yout, ref, atol=1e-6)
 
-    invar_viol = result.calc_invariant_violations()
-    assert np.allclose(invar_viol, 0)
+        invar_viol = result.calc_invariant_violations()
+        assert np.allclose(invar_viol, 0)
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys__by_name__as_autonomous():
+    def f(t, y, p):
+        k = t**p['e']
+        return {
+            'a': -k*y['a'],
+            'b': +k*y['a']
+        }
+
+    def analytic(tout, init_y, p):
+        y0ref = init_y[0]*np.exp(-tout**(p[0]+1)/(p[0]+1))
+        return np.array([y0ref, init_y[0] - y0ref + init_y[1]]).T
+
+    odes = SymbolicSys.from_callback(
+        f, names='ab', param_names='e', dep_by_name=True, par_by_name=True,
+        linear_invariants=[{'a': 1, 'b': 1}]
+    )
+
+    for odesys in [odes, odes.as_autonomous()]:
+        result = odesys.integrate(3, {'a': 2, 'b': 1}, {'e': 2}, integrator='cvode')
+        ref = analytic(result.xout, result.yout[0, :], result.params)
+        assert np.allclose(result.yout, ref, atol=1e-6)
+
+        invar_viol = result.calc_invariant_violations()
+        assert np.allclose(invar_viol, 0)
