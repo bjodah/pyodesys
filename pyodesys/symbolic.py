@@ -199,6 +199,29 @@ class SymbolicSys(ODESys):
                           zip(self.dep, self.exprs)]) - steady_state_root]
         self.roots = roots
 
+        if init_indep is True:
+            init_indep = self._mk_init_indep(name=self.indep)
+        if init_dep is True:
+            init_dep = self._mk_init_dep(names=kwargs.get('names'))
+        self.init_indep = init_indep
+        self.init_dep = init_dep
+        if self.init_indep is not None or self.init_dep is not None:
+            if self.init_indep is None or self.init_dep is None:
+                raise ValueError("Need both or neither of init_indep & init_dep.")
+            if kwargs.get('append_iv', True) is not True:
+                raise ValueError("append_iv == False is not valid when giving init_indep/init_dep.")
+            kwargs['append_iv'] = True
+        _names = kwargs.get('names', None)
+        if _names is True:
+            kwargs['names'] = _names = [y.name for y in self.dep]
+        if self.indep is not None and _names not in (None, ()):
+            if self.indep.name in _names:
+                raise ValueError("Independent variable cannot share name with any dependent variable")
+
+        _param_names = kwargs.get('param_names', None)
+        if _param_names is True:
+            kwargs['param_names'] = [p.name for p in self.params]
+
         # we need self.band before super().__init__
         self.band = kwargs.get('band', None)
         super(SymbolicSys, self).__init__(
@@ -226,29 +249,6 @@ class SymbolicSys(ODESys):
                 raise ValueError("Incorrect length of nonlinear_invariant_names: %d (expected %d)" % (
                     len(nonlinear_invariant_names), len(nonlinear_invariants)))
         self.nonlinear_invariant_names = nonlinear_invariant_names
-        if init_indep is True:
-            init_indep = self._mk_init_indep(name=self.indep)
-        if init_dep is True:
-            init_dep = self._mk_init_dep(names=kwargs.get('names'))
-        self.init_indep = init_indep
-        self.init_dep = init_dep
-        if self.init_indep is not None or self.init_dep is not None:
-            if self.init_indep is None or self.init_dep is None:
-                raise ValueError("Need both or neither of init_indep & init_dep.")
-            if kwargs.get('append_iv', True) is not True:
-                raise ValueError("append_iv == False is not valid when giving init_indep/init_dep.")
-            kwargs['append_iv'] = True
-        self.append_iv = kwargs.get('append_iv', False)
-        _names = kwargs.get('names', None)
-        if _names is True:
-            kwargs['names'] = _names = [y.name for y in self.dep]
-        if self.indep is not None and _names not in (None, ()):
-            if self.indep.name in _names:
-                raise ValueError("Independent variable cannot share name with any dependent variable")
-
-        _param_names = kwargs.get('param_names', None)
-        if _param_names is True:
-            kwargs['param_names'] = [p.name for p in self.params]
 
         if self.autonomous_interface is None:
             self.autonomous_interface = self.autonomous_exprs

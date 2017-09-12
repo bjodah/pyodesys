@@ -139,9 +139,9 @@ class ODESys(object):
 
     def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
                  band=None, names=(), param_names=(), indep_name=None, description=None, dep_by_name=False,
-                 par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None, taken_names=None, pre_processors=None,
-                 post_processors=None, append_iv=False, autonomous_interface=None, to_arrays_callbacks=None,
-                 **kwargs):
+                 par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
+                 taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
+                 autonomous_interface=None, to_arrays_callbacks=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
