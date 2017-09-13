@@ -222,8 +222,11 @@ class SymbolicSys(ODESys):
         if _param_names is True:
             kwargs['param_names'] = [p.name for p in self.params]
 
-        # we need self.band before super().__init__
-        self.band = kwargs.get('band', None)
+
+        self.band = kwargs.get('band', None)  # needed by get_j_ty_callback
+        self.lower_bounds = lower_bounds  # needed by get_f_ty_callback
+        self.upper_bounds = upper_bounds  # needed by get_f_ty_callback
+
         super(SymbolicSys, self).__init__(
             self.get_f_ty_callback(),
             self.get_j_ty_callback(),
@@ -233,22 +236,18 @@ class SymbolicSys(ODESys):
             nroots=None if roots is None else len(roots),
             **kwargs)
 
-        self.lower_bounds = lower_bounds
-        self.upper_bounds = upper_bounds
         self.linear_invariants = linear_invariants
         self.nonlinear_invariants = nonlinear_invariants
-        linear_invariant_names = linear_invariant_names or None
-        if linear_invariant_names is not None:
-            if len(linear_invariant_names) != self.linear_invariants.shape[0]:
+        self.linear_invariant_names = linear_invariant_names or None
+        if self.linear_invariant_names is not None:
+            if len(self.linear_invariant_names) != self.linear_invariants.shape[0]:
                 raise ValueError("Incorrect length of linear_invariant_names: %d (expected %d)" % (
-                    len(linear_invariant_names), linear_invariants.shape[0]))
-        self.linear_invariant_names = linear_invariant_names
-        nonlinear_invariant_names = nonlinear_invariant_names or None
-        if nonlinear_invariant_names is not None:
-            if len(nonlinear_invariant_names) != len(nonlinear_invariants):
+                    len(self.linear_invariant_names), linear_invariants.shape[0]))
+        self.nonlinear_invariant_names = nonlinear_invariant_names or None
+        if self.nonlinear_invariant_names is not None:
+            if len(self.nonlinear_invariant_names) != len(nonlinear_invariants):
                 raise ValueError("Incorrect length of nonlinear_invariant_names: %d (expected %d)" % (
-                    len(nonlinear_invariant_names), len(nonlinear_invariants)))
-        self.nonlinear_invariant_names = nonlinear_invariant_names
+                    len(self.nonlinear_invariant_names), len(nonlinear_invariants)))
 
         if self.autonomous_interface is None:
             self.autonomous_interface = self.autonomous_exprs
@@ -546,8 +545,8 @@ class SymbolicSys(ODESys):
     def get_f_ty_callback(self):
         """ Generates a callback for evaluating ``self.exprs``. """
         cb = self._callback_factory(self.exprs)
-        lb = getattr(self, 'lower_bounds', None)
-        ub = getattr(self, 'upper_bounds', None)
+        lb = self.lower_bounds
+        ub = self.upper_bounds
         if lb is not None or ub is not None:
             def _bounds_wrapper(t, y, p=(), be=None):
                 if lb is not None:
