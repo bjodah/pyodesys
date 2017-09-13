@@ -1,0 +1,820 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pyodesys.native package &mdash; pyodesys 0.10.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="pyodesys 0.10.0 documentation" href="index.html"/>
+        <link rel="up" title="pyodesys package" href="pyodesys.html"/>
+        <link rel="prev" title="pyodesys package" href="pyodesys.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> pyodesys
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.10.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="pyodesys.html">pyodesys package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="pyodesys.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">pyodesys.native package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pyodesys-native">pyodesys.native</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-pyodesys.native.cvode">pyodesys.native.cvode module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-pyodesys.native.gsl">pyodesys.native.gsl module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-pyodesys.native.odeint">pyodesys.native.odeint module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-pyodesys.native.util">pyodesys.native.util module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.convergence">pyodesys.convergence module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.core">pyodesys.core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.integrators">pyodesys.integrators module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.plotting">pyodesys.plotting module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.results">pyodesys.results module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.symbolic">pyodesys.symbolic module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyodesys.html#module-pyodesys.util">pyodesys.util module</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">pyodesys</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="pyodesys.html">pyodesys package</a> &raquo;</li>
+      
+    <li>pyodesys.native package</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/bjodah/pyodesys/blob/v0.10.0/doc/pyodesys.native.rst" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-pyodesys.native">
+<span id="pyodesys-native-package"></span><h1>pyodesys.native package<a class="headerlink" href="#module-pyodesys.native" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="pyodesys-native">
+<h2>pyodesys.native<a class="headerlink" href="#pyodesys-native" title="Permalink to this headline">¶</a></h2>
+<p>This module contains a <a class="reference internal" href="pyodesys.html#pyodesys.symbolic.SymbolicSys" title="pyodesys.symbolic.SymbolicSys"><code class="xref py py-class docutils literal"><span class="pre">pyodesys.symbolic.SymbolicSys</span></code></a> subclass which can be used to generate
+source code representing the system of equations in a native language.</p>
+<p>For some integrators (Sundials and GSL), the compiled objects from the
+generated code are dynamically linked against respective library. You
+may need to match the choice of BLAS/LAPACK implementation to link against.
+This can be modified by setting the environment variables <code class="docutils literal"><span class="pre">PYODESYS_LBLAS</span></code> and <code class="docutils literal"><span class="pre">PYODESYS_LLAPACK</span></code>
+respectively.</p>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pyodesys.native.cvode">
+<span id="pyodesys-native-cvode-module"></span><h2>pyodesys.native.cvode module<a class="headerlink" href="#module-pyodesys.native.cvode" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyodesys.native.cvode.NativeCvodeCode">
+<em class="property">class </em><code class="descclassname">pyodesys.native.cvode.</code><code class="descname">NativeCvodeCode</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/cvode.html#NativeCvodeCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.cvode.NativeCvodeCode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyodesys.native._base._NativeCodeBase</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">binary_path</span></code></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">mod</span></code></td>
+<td>Cached compiled binary of the Generic_Code class.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="58%" />
+<col width="42%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>compile_kwargs</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>extension_name</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>so_file</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CompilerRunner</span></code></td>
+<td>alias of <code class="xref py py-class docutils literal"><span class="pre">CppCompilerRunner</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">as_arrayified_code</span></code>(expr[,&nbsp;dummy_groups,&nbsp;…])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">clean</span></code>()</td>
+<td>Delete temp dir if not save_temp set at __init__</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">clear_mod_cache</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">compile_and_import_binary</span></code>()</td>
+<td>Returnes a module instance of the extension module.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_cse_code</span></code>(exprs[,&nbsp;basename,&nbsp;…])</td>
+<td>Get arrayified code for common subexpression.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">variables</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">write_code</span></code>()</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="pyodesys.native.cvode.NativeCvodeCode.namespace">
+<code class="descname">namespace</code><em class="property"> = {'p_support_recoverable_error': True, 'p_jacobian_set_to_zero_by_solver': True, 'p_includes': ['&quot;odesys_anyode_iterative.hpp&quot;']}</em><a class="headerlink" href="#pyodesys.native.cvode.NativeCvodeCode.namespace" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pyodesys.native.cvode.NativeCvodeCode.wrapper_name">
+<code class="descname">wrapper_name</code><em class="property"> = '_cvode_wrapper'</em><a class="headerlink" href="#pyodesys.native.cvode.NativeCvodeCode.wrapper_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.native.cvode.NativeCvodeSys">
+<em class="property">class </em><code class="descclassname">pyodesys.native.cvode.</code><code class="descname">NativeCvodeSys</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/cvode.html#NativeCvodeSys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.cvode.NativeCvodeSys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyodesys.native._base._NativeSysBase</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">autonomous_exprs</span></code></td>
+<td>Whether the expressions for the dependent variables are autonomous.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">linear_invariants</span></code></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ny</span></code></td>
+<td>Number of dependent variables in the system.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariant_names</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariants</span></code>([linear_invariants,&nbsp;…])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">analytic_stiffness</span></code>([xyp])</td>
+<td>Running stiffness ratio from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">as_autonomous</span></code>([indep_name,&nbsp;latex_indep_name])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#pyodesys.native.cvode.NativeCvodeSys.as_standalone" title="pyodesys.native.cvode.NativeCvodeSys.as_standalone"><code class="xref py py-obj docutils literal"><span class="pre">as_standalone</span></code></a>([out_file,&nbsp;compile_kwargs])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">from_callback</span></code>(rhs[,&nbsp;ny,&nbsp;nparams,&nbsp;…])</td>
+<td>Create an instance from a callback.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">from_other</span></code>(ori,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx</span></code>()</td>
+<td>Calculates 2nd derivatives of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx_callback</span></code>()</td>
+<td>Generate a callback for evaluating derivative of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_f_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating <code class="docutils literal"><span class="pre">self.exprs</span></code>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_first_step_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_invariants_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_j_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating the jacobian.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_jac</span></code>()</td>
+<td>Derives the jacobian from <code class="docutils literal"><span class="pre">self.exprs</span></code> and <code class="docutils literal"><span class="pre">self.dep</span></code>.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_roots_callback</span></code>()</td>
+<td>Generate a callback for evaluating <code class="docutils literal"><span class="pre">self.roots</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code>(*args,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">jacobian_singular</span></code>()</td>
+<td>Returns True if Jacobian is singular, else False.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td>Transforms input to internal values, used internally.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">to_arrays</span></code>(x,&nbsp;y,&nbsp;p[,&nbsp;callbacks])</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="pyodesys.native.cvode.NativeCvodeSys.as_standalone">
+<code class="descname">as_standalone</code><span class="sig-paren">(</span><em>out_file=None</em>, <em>compile_kwargs=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/cvode.html#NativeCvodeSys.as_standalone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.cvode.NativeCvodeSys.as_standalone" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyodesys.native.gsl">
+<span id="pyodesys-native-gsl-module"></span><h2>pyodesys.native.gsl module<a class="headerlink" href="#module-pyodesys.native.gsl" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyodesys.native.gsl.NativeGSLCode">
+<em class="property">class </em><code class="descclassname">pyodesys.native.gsl.</code><code class="descname">NativeGSLCode</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/gsl.html#NativeGSLCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.gsl.NativeGSLCode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyodesys.native._base._NativeCodeBase</span></code></p>
+<p>Looks for the environment variable: <code class="docutils literal"><span class="pre">PYODESYS_BLAS</span></code> (<code class="docutils literal"><span class="pre">gslcblas</span></code>)</p>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">binary_path</span></code></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">mod</span></code></td>
+<td>Cached compiled binary of the Generic_Code class.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="58%" />
+<col width="42%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>compile_kwargs</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>extension_name</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>so_file</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CompilerRunner</span></code></td>
+<td>alias of <code class="xref py py-class docutils literal"><span class="pre">CppCompilerRunner</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">as_arrayified_code</span></code>(expr[,&nbsp;dummy_groups,&nbsp;…])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">clean</span></code>()</td>
+<td>Delete temp dir if not save_temp set at __init__</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">clear_mod_cache</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">compile_and_import_binary</span></code>()</td>
+<td>Returnes a module instance of the extension module.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_cse_code</span></code>(exprs[,&nbsp;basename,&nbsp;…])</td>
+<td>Get arrayified code for common subexpression.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">variables</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">write_code</span></code>()</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="pyodesys.native.gsl.NativeGSLCode.wrapper_name">
+<code class="descname">wrapper_name</code><em class="property"> = '_gsl_wrapper'</em><a class="headerlink" href="#pyodesys.native.gsl.NativeGSLCode.wrapper_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.native.gsl.NativeGSLSys">
+<em class="property">class </em><code class="descclassname">pyodesys.native.gsl.</code><code class="descname">NativeGSLSys</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/gsl.html#NativeGSLSys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.gsl.NativeGSLSys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyodesys.native._base._NativeSysBase</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">autonomous_exprs</span></code></td>
+<td>Whether the expressions for the dependent variables are autonomous.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">linear_invariants</span></code></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ny</span></code></td>
+<td>Number of dependent variables in the system.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariant_names</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariants</span></code>([linear_invariants,&nbsp;…])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">analytic_stiffness</span></code>([xyp])</td>
+<td>Running stiffness ratio from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">as_autonomous</span></code>([indep_name,&nbsp;latex_indep_name])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">from_callback</span></code>(rhs[,&nbsp;ny,&nbsp;nparams,&nbsp;…])</td>
+<td>Create an instance from a callback.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">from_other</span></code>(ori,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx</span></code>()</td>
+<td>Calculates 2nd derivatives of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx_callback</span></code>()</td>
+<td>Generate a callback for evaluating derivative of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_f_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating <code class="docutils literal"><span class="pre">self.exprs</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_first_step_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_invariants_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_j_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating the jacobian.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_jac</span></code>()</td>
+<td>Derives the jacobian from <code class="docutils literal"><span class="pre">self.exprs</span></code> and <code class="docutils literal"><span class="pre">self.dep</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_roots_callback</span></code>()</td>
+<td>Generate a callback for evaluating <code class="docutils literal"><span class="pre">self.roots</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code>(*args,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">jacobian_singular</span></code>()</td>
+<td>Returns True if Jacobian is singular, else False.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td>Transforms input to internal values, used internally.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">to_arrays</span></code>(x,&nbsp;y,&nbsp;p[,&nbsp;callbacks])</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyodesys.native.odeint">
+<span id="pyodesys-native-odeint-module"></span><h2>pyodesys.native.odeint module<a class="headerlink" href="#module-pyodesys.native.odeint" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyodesys.native.odeint.NativeOdeintCode">
+<em class="property">class </em><code class="descclassname">pyodesys.native.odeint.</code><code class="descname">NativeOdeintCode</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/odeint.html#NativeOdeintCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.odeint.NativeOdeintCode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyodesys.native._base._NativeCodeBase</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">binary_path</span></code></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">mod</span></code></td>
+<td>Cached compiled binary of the Generic_Code class.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="58%" />
+<col width="42%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>compile_kwargs</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>extension_name</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>so_file</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CompilerRunner</span></code></td>
+<td>alias of <code class="xref py py-class docutils literal"><span class="pre">CppCompilerRunner</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">as_arrayified_code</span></code>(expr[,&nbsp;dummy_groups,&nbsp;…])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">clean</span></code>()</td>
+<td>Delete temp dir if not save_temp set at __init__</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">clear_mod_cache</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">compile_and_import_binary</span></code>()</td>
+<td>Returnes a module instance of the extension module.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_cse_code</span></code>(exprs[,&nbsp;basename,&nbsp;…])</td>
+<td>Get arrayified code for common subexpression.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">variables</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">write_code</span></code>()</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="pyodesys.native.odeint.NativeOdeintCode.wrapper_name">
+<code class="descname">wrapper_name</code><em class="property"> = '_odeint_wrapper'</em><a class="headerlink" href="#pyodesys.native.odeint.NativeOdeintCode.wrapper_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyodesys.native.odeint.NativeOdeintSys">
+<em class="property">class </em><code class="descclassname">pyodesys.native.odeint.</code><code class="descname">NativeOdeintSys</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/odeint.html#NativeOdeintSys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.odeint.NativeOdeintSys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">pyodesys.native._base._NativeSysBase</span></code></p>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">autonomous_exprs</span></code></td>
+<td>Whether the expressions for the dependent variables are autonomous.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">linear_invariants</span></code></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ny</span></code></td>
+<td>Number of dependent variables in the system.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">adaptive</span></code>(y0,&nbsp;x0,&nbsp;xend[,&nbsp;params])</td>
+<td>Integrate with integrator chosen output.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariant_names</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">all_invariants</span></code>([linear_invariants,&nbsp;…])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">analytic_stiffness</span></code>([xyp])</td>
+<td>Running stiffness ratio from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">as_autonomous</span></code>([indep_name,&nbsp;latex_indep_name])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">from_callback</span></code>(rhs[,&nbsp;ny,&nbsp;nparams,&nbsp;…])</td>
+<td>Create an instance from a callback.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">from_other</span></code>(ori,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx</span></code>()</td>
+<td>Calculates 2nd derivatives of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_dfdx_callback</span></code>()</td>
+<td>Generate a callback for evaluating derivative of <code class="docutils literal"><span class="pre">self.exprs</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_f_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating <code class="docutils literal"><span class="pre">self.exprs</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_first_step_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_invariants_callback</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_j_ty_callback</span></code>()</td>
+<td>Generates a callback for evaluating the jacobian.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">get_jac</span></code>()</td>
+<td>Derives the jacobian from <code class="docutils literal"><span class="pre">self.exprs</span></code> and <code class="docutils literal"><span class="pre">self.dep</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">get_roots_callback</span></code>()</td>
+<td>Generate a callback for evaluating <code class="docutils literal"><span class="pre">self.roots</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">integrate</span></code>(*args,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">jacobian_singular</span></code>()</td>
+<td>Returns True if Jacobian is singular, else False.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_phase_plane</span></code>([indices])</td>
+<td>Plots a phase portrait from last integration.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plot_result</span></code>(**kwargs)</td>
+<td>Plots the integrated dependent variables from last integration.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">post_process</span></code>(xout,&nbsp;yout,&nbsp;params)</td>
+<td>Transforms internal values to output, used internally.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">pre_process</span></code>(xout,&nbsp;y0[,&nbsp;params])</td>
+<td>Transforms input to internal values, used internally.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">predefined</span></code>(y0,&nbsp;xout[,&nbsp;params])</td>
+<td>Integrate with user chosen output.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">stiffness</span></code>([xyp,&nbsp;eigenvals_cb])</td>
+<td>[DEPRECATED] Use <code class="xref py py-meth docutils literal"><span class="pre">Result.stiffness()</span></code>, stiffness ration</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">to_arrays</span></code>(x,&nbsp;y,&nbsp;p[,&nbsp;callbacks])</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyodesys.native.util">
+<span id="pyodesys-native-util-module"></span><h2>pyodesys.native.util module<a class="headerlink" href="#module-pyodesys.native.util" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pyodesys.native.util.parse_standalone_output">
+<code class="descclassname">pyodesys.native.util.</code><code class="descname">parse_standalone_output</code><span class="sig-paren">(</span><em>lines</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/util.html#parse_standalone_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.util.parse_standalone_output" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pyodesys.native.util.render_mako">
+<code class="descclassname">pyodesys.native.util.</code><code class="descname">render_mako</code><span class="sig-paren">(</span><em>tmpl</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyodesys/native/util.html#render_mako"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyodesys.native.util.render_mako" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="pyodesys.html" class="btn btn-neutral" title="pyodesys package" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Bjoern I. Dahlgren &lt;bjodah@gmail.com&gt;.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.10.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
