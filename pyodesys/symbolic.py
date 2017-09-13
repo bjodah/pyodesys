@@ -90,7 +90,8 @@ class SymbolicSys(ODESys):
     indep : Symbol
         Independent variable (default: None => autonomous system).
     params : iterable of symbols
-        Problem parameters.
+        Problem parameters. If ``None``: zero parameters assumed (violation of this will
+        raise a ValueError), If ``True``: params are deduced from (sorted) free_symbols.
     jac : ImmutableMatrix or bool (default: True)
         if True:
             calculate jacobian from exprs
@@ -181,9 +182,13 @@ class SymbolicSys(ODESys):
                  init_dep=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
-        if params is None:
-            params = tuple(filter(lambda x: x not in self.dep + (self.indep,),
-                                  set.union(*[expr.free_symbols for expr in self.exprs])))
+        if params is True or params is None:
+            all_free = tuple(filter(lambda x: x not in self.dep + (self.indep,),
+                                    sorted(set.union(*[expr.free_symbols for expr in self.exprs]), key=str)))
+            if params is None and all_free:
+                raise ValueError("Pass params explicitly or pass True to have them deduced.")
+            params = all_free
+
         self.params = params
         self._jac = jac
         self._dfdx = dfdx
@@ -221,7 +226,6 @@ class SymbolicSys(ODESys):
         _param_names = kwargs.get('param_names', None)
         if _param_names is True:
             kwargs['param_names'] = [p.name for p in self.params]
-
 
         self.band = kwargs.get('band', None)  # needed by get_j_ty_callback
         self.lower_bounds = lower_bounds  # needed by get_f_ty_callback
@@ -394,7 +398,8 @@ class SymbolicSys(ODESys):
                 kwargs['first_step_expr'] = _ensure_4args(first_step_factory)(x, _y, _p, be)
         if kwargs.get('dep_by_name', False):
             exprs = [exprs[k] for k in names]
-        return cls(zip(y, exprs), x, None if len(p) == 0 else p, backend=be, names=names, **kwargs)
+        return cls(zip(y, exprs), x, kwargs.pop('params', None) if len(p) == 0 else p,
+                   backend=be, names=names, **kwargs)
 
     @classmethod
     def from_other(cls, ori, **kwargs):
@@ -502,7 +507,7 @@ class SymbolicSys(ODESys):
 
         new_kw['pre_processors'] = self.pre_processors + [autonomous_pre_processor]
         new_kw['post_processors'] = [autonomous_post_processor] + self.post_processors
-        return self.__class__(zip(new_dep, new_exprs), indep=new_indep, **new_kw)
+        return self.__class__(zip(new_dep, new_exprs), indep=new_indep, params=self.params, **new_kw)
 
     def get_jac(self):
         """ Derives the jacobian from ``self.exprs`` and ``self.dep``. """

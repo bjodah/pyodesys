@@ -1194,7 +1194,7 @@ def test_SymbolicSys__roots():
 def test_SymbolicSys__reference_parameters_using_symbols(method):
     be = sym.Backend('sympy')
     x, p = map(be.Symbol, 'x p'.split())
-    symsys = SymbolicSys([(x, -p*x)])
+    symsys = SymbolicSys([(x, -p*x)], params=True)
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
     for y_symb in [False, True]:
         for p_symb in [False, True]:
@@ -1213,8 +1213,8 @@ def test_SymbolicSys__reference_parameters_using_symbols_from_callback(method):
     def dydt(t, y):       # external symbolic parameter 'k', should be allowed
         return [-k*y[0]]  # even though reminiscent of global variables.
 
-    odesys1 = SymbolicSys.from_callback(dydt, 1, backend=be)
-    odesys2 = SymbolicSys.from_callback(dydt, 1, backend=be, par_by_name=True, param_names=[])
+    odesys1 = SymbolicSys.from_callback(dydt, 1, backend=be, params=True)
+    odesys2 = SymbolicSys.from_callback(dydt, 1, backend=be, par_by_name=True, param_names=[], params=True)
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
     for symsys in (odesys1, odesys2):
         for y_symb in [False, True]:
@@ -1299,7 +1299,7 @@ def test_SymbolicSys__indep_in_exprs():
         return [t*p[0]*y[0]]
     be = sym.Backend('sympy')
     t, y, p = map(be.Symbol, 't y p'.split())
-    odesys = SymbolicSys([(y, dydt(t, [y], [p])[0])], t)
+    odesys = SymbolicSys([(y, dydt(t, [y], [p])[0])], t, params=True)
     fout = odesys.f_cb(2, [3], [4])
     assert len(fout) == 1
     assert abs(fout[0] - 2*3*4) < 1e-14
@@ -1504,7 +1504,8 @@ def test_SymbolicSys_as_autonomous__scaling():
             r2 = k2*NO2**2
             return [-2*r1, r1, r1, r1 - 2*r2, r2]
 
-        return SymbolicSys.from_callback(rhs, 5, 4, names='HNO2 H2O NO NO2 N2O4'.split(), param_names='dH1 dS1 dH2 dS2'.split())
+        return SymbolicSys.from_callback(rhs, 5, 4, names='HNO2 H2O NO NO2 N2O4'.split(),
+                                         param_names='dH1 dS1 dH2 dS2'.split())
 
     def check(system, scaling=1):
         init_y = [1*scaling, 55*scaling, 0, 0, 0]
