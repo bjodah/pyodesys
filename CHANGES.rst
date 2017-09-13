@@ -1,3 +1,8 @@
+v0.10.0
+=======
+- Added SymbolicSys.as_autonomous()
+- SymbolicSys arg "params" now need to be ``True`` to induce deduction.
+
 v0.9.2
 ======
 - Copy pyx to cache dir prior to cythonize
