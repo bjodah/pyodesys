@@ -1482,3 +1482,41 @@ def test_SymbolicSys__by_name__as_autonomous():
 
         invar_viol = result.calc_invariant_violations()
         assert np.allclose(invar_viol, 0)
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys_as_autonomous__scaling():
+
+    # 2 HNO2 -> H2O + NO + NO2; MassAction(EyringHS.fk('dH1', 'dS1'))
+    # 2 NO2 -> N2O4; MassAction(EyringHS.fk('dH2', 'dS2'))
+    #
+    # HNO2 H2O NO NO2 N2O4
+    def get_odesys(scaling=1):
+        def rhs(t, y, p, backend=math):
+            HNO2, H2O, NO, NO2, N2O4 = y
+            dH1, dS1, dH2, dS2 = p
+            R = 8.314
+            T = 300 + 10*backend.sin(0.2*math.pi*t - math.pi/2)
+            kB_h = 2.08366e10
+            k1 = kB_h*T*backend.exp(dS1/R - dH1/(R*T))/scaling  # bimolecular => scaling**-1
+            k2 = kB_h*T*backend.exp(dS2/R - dH2/(R*T))/scaling  # bimolecular => scaling**-1
+            r1 = k1*HNO2**2
+            r2 = k2*NO2**2
+            return [-2*r1, r1, r1, r1 - 2*r2, r2]
+
+        return SymbolicSys.from_callback(rhs, 5, 4, names='HNO2 H2O NO NO2 N2O4'.split(), param_names='dH1 dS1 dH2 dS2'.split())
+
+    def check(system, scaling=1):
+        init_y = [1*scaling, 55*scaling, 0, 0, 0]
+        p = [85e3, 10, 70e3, 20]
+        return system.integrate(np.linspace(0, 60, 200), init_y, p, integrator='cvode', nsteps=5000)
+
+    def compare_autonomous(scaling):
+        odesys = get_odesys(scaling)
+        autsys = odesys.as_autonomous()
+        res1 = check(odesys, scaling=scaling)
+        res2 = check(autsys, scaling=scaling)
+        assert np.allclose(res1.yout, res2.yout, atol=1e-6)
+
+    compare_autonomous(1)
+    compare_autonomous(1000)
