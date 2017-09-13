@@ -67,6 +67,8 @@ class ODESys(object):
         and for labels in plots.
     param_names : iterable of strings (default: None)
         Names of the parameters, used for referencing parameters by name.
+    indep_name : str
+        Name of the independent variable
     dep_by_name : bool
         When ``True`` :meth:`integrate` expects a dictionary as input for y0.
     par_by_name : bool
@@ -75,6 +77,10 @@ class ODESys(object):
         Names of variables in LaTeX format (e.g. for labels in plots).
     latex_param_names : iterable of strings (default : None)
         Names of parameters in LaTeX format (e.g. for labels in plots).
+    latex_indep_name : str
+        LaTeX formatted name of independent variable.
+    taken_names : iterable of str
+        Names of dependent variables which are calculated in pre_processors
     pre_processors : iterable of callables (optional)
         signature: f(x1[:], y1[:], params1[:]) -> x2[:], y2[:], params2[:].
         When modifying: insert at beginning.
@@ -132,10 +138,10 @@ class ODESys(object):
     """
 
     def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
-                 band=None, names=(), param_names=(), description=None, dep_by_name=False,
-                 par_by_name=False, latex_names=(), latex_param_names=(), pre_processors=None,
-                 post_processors=None, append_iv=False, autonomous_interface=None, to_arrays_callbacks=None,
-                 **kwargs):
+                 band=None, names=(), param_names=(), indep_name=None, description=None, dep_by_name=False,
+                 par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
+                 taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
+                 autonomous_interface=None, to_arrays_callbacks=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -148,11 +154,14 @@ class ODESys(object):
         self.band = band
         self.names = tuple(names or ())
         self.param_names = tuple(param_names or ())
+        self.indep_name = indep_name
         self.description = description
         self.dep_by_name = dep_by_name
         self.par_by_name = par_by_name
         self.latex_names = tuple(latex_names or ())
         self.latex_param_names = tuple(latex_param_names or ())
+        self.latex_indep_name = latex_indep_name
+        self.taken_names = tuple(taken_names or ())
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.append_iv = append_iv
@@ -211,7 +220,8 @@ class ODESys(object):
         else:
             _x = (0*x[0], x[0]) if nx == 0 else x
 
-        _y, tp_y = self._conditional_from_dict(y, self.dep_by_name, self.names)
+        _names = [n for n in self.names if n not in self.taken_names]
+        _y, tp_y = self._conditional_from_dict(y, self.dep_by_name, _names)
         _p, tp_p = self._conditional_from_dict(p, self.par_by_name, self.param_names)
 
         callbacks = callbacks or self.to_arrays_callbacks

@@ -1194,7 +1194,7 @@ def test_SymbolicSys__roots():
 def test_SymbolicSys__reference_parameters_using_symbols(method):
     be = sym.Backend('sympy')
     x, p = map(be.Symbol, 'x p'.split())
-    symsys = SymbolicSys([(x, -p*x)])
+    symsys = SymbolicSys([(x, -p*x)], params=True)
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
     for y_symb in [False, True]:
         for p_symb in [False, True]:
@@ -1213,8 +1213,8 @@ def test_SymbolicSys__reference_parameters_using_symbols_from_callback(method):
     def dydt(t, y):       # external symbolic parameter 'k', should be allowed
         return [-k*y[0]]  # even though reminiscent of global variables.
 
-    odesys1 = SymbolicSys.from_callback(dydt, 1, backend=be)
-    odesys2 = SymbolicSys.from_callback(dydt, 1, backend=be, par_by_name=True, param_names=[])
+    odesys1 = SymbolicSys.from_callback(dydt, 1, backend=be, params=True)
+    odesys2 = SymbolicSys.from_callback(dydt, 1, backend=be, par_by_name=True, param_names=[], params=True)
     tout = [0, 1e-9, 1e-7, 1e-5, 1e-3, 0.1]
     for symsys in (odesys1, odesys2):
         for y_symb in [False, True]:
@@ -1299,7 +1299,7 @@ def test_SymbolicSys__indep_in_exprs():
         return [t*p[0]*y[0]]
     be = sym.Backend('sympy')
     t, y, p = map(be.Symbol, 't y p'.split())
-    odesys = SymbolicSys([(y, dydt(t, [y], [p])[0])], t)
+    odesys = SymbolicSys([(y, dydt(t, [y], [p])[0])], t, params=True)
     fout = odesys.f_cb(2, [3], [4])
     assert len(fout) == 1
     assert abs(fout[0] - 2*3*4) < 1e-14
@@ -1394,3 +1394,130 @@ def test__group_invariants():
     lin, nonlin = _group_invariants([x + be.exp(y)], symbs, be)
     assert lin == []
     assert nonlin == [x+be.exp(y)]
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys_as_autonomous():
+    import sympy
+
+    def rhs(t, y, p, backend=math):
+        return [y[1], backend.sin(t)-p[0]*y[0]]
+    odesys = SymbolicSys.from_callback(rhs, 2, 1)
+
+    def analytic(tout, init_y, p):
+        t, (k,) = odesys.indep, odesys.params
+        c1, c2 = sympy.symbols('c1 c2')
+        sqk = sympy.sqrt(k)
+        f = c1*sympy.cos(sqk*t) + c2*sympy.sin(sqk*t) + sympy.sin(t)/(k-1)
+        dfdt = f.diff(t)
+        t0 = tout[0]
+        sol, = sympy.solve([f.subs(t, t0) - init_y[0],
+                           dfdt.subs(t, t0) - init_y[1]],
+                           [c1, c2], dict=True)
+        sol[k] = p[0]
+        exprs = [f.subs(sol), dfdt.subs(sol)]
+        cb = sympy.lambdify([t], exprs)
+        return np.array(cb(tout)).T
+
+    def integrate_and_check(system):
+        init_y = [0, 0]
+        p = [2]
+        result = system.integrate([0, 80], init_y, p, integrator='cvode', nsteps=5000)
+        yref = analytic(result.xout, init_y, p)
+        assert np.all(result.yout - yref < 1.6e-5)
+
+    integrate_and_check(odesys)
+    assert len(odesys.dep) == 2
+    assert not odesys.autonomous_interface
+    assert not odesys.autonomous_exprs
+    asys = odesys.as_autonomous()
+    integrate_and_check(asys)
+    assert len(asys.dep) == 3
+    assert not asys.autonomous_interface
+    assert asys.autonomous_exprs
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys_as_autonomous__linear_invariants():
+    def rhs(t, y, p):
+        k = t**p[0]
+        return [-k*y[0], k*y[0]]
+
+    def analytic(tout, init_y, params):
+        y0ref = init_y[0]*np.exp(-tout**(params[0]+1)/(params[0]+1))
+        return np.array([y0ref, init_y[0] - y0ref + init_y[1]]).T
+
+    odes = SymbolicSys.from_callback(rhs, 2, 1, linear_invariants=[[1, 1]])
+    for odesys in [odes, odes.as_autonomous()]:
+        result = odesys.integrate(4, [5, 2], [3], integrator='cvode')
+        ref = analytic(result.xout, result.yout[0, :], result.params)
+        assert np.allclose(result.yout, ref, atol=1e-6)
+
+        invar_viol = result.calc_invariant_violations()
+        assert np.allclose(invar_viol, 0)
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys__by_name__as_autonomous():
+    def f(t, y, p):
+        k = t**p['e']
+        return {
+            'a': -k*y['a'],
+            'b': +k*y['a']
+        }
+
+    def analytic(tout, init_y, p):
+        y0ref = init_y[0]*np.exp(-tout**(p[0]+1)/(p[0]+1))
+        return np.array([y0ref, init_y[0] - y0ref + init_y[1]]).T
+
+    odes = SymbolicSys.from_callback(
+        f, names='ab', param_names='e', dep_by_name=True, par_by_name=True,
+        linear_invariants=[{'a': 1, 'b': 1}]
+    )
+
+    for odesys in [odes, odes.as_autonomous()]:
+        result = odesys.integrate(3, {'a': 2, 'b': 1}, {'e': 2}, integrator='cvode')
+        ref = analytic(result.xout, result.yout[0, :], result.params)
+        assert np.allclose(result.yout, ref, atol=1e-6)
+
+        invar_viol = result.calc_invariant_violations()
+        assert np.allclose(invar_viol, 0)
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys_as_autonomous__scaling():
+
+    # 2 HNO2 -> H2O + NO + NO2; MassAction(EyringHS.fk('dH1', 'dS1'))
+    # 2 NO2 -> N2O4; MassAction(EyringHS.fk('dH2', 'dS2'))
+    #
+    # HNO2 H2O NO NO2 N2O4
+    def get_odesys(scaling=1):
+        def rhs(t, y, p, backend=math):
+            HNO2, H2O, NO, NO2, N2O4 = y
+            dH1, dS1, dH2, dS2 = p
+            R = 8.314
+            T = 300 + 10*backend.sin(0.2*math.pi*t - math.pi/2)
+            kB_h = 2.08366e10
+            k1 = kB_h*T*backend.exp(dS1/R - dH1/(R*T))/scaling  # bimolecular => scaling**-1
+            k2 = kB_h*T*backend.exp(dS2/R - dH2/(R*T))/scaling  # bimolecular => scaling**-1
+            r1 = k1*HNO2**2
+            r2 = k2*NO2**2
+            return [-2*r1, r1, r1, r1 - 2*r2, r2]
+
+        return SymbolicSys.from_callback(rhs, 5, 4, names='HNO2 H2O NO NO2 N2O4'.split(),
+                                         param_names='dH1 dS1 dH2 dS2'.split())
+
+    def check(system, scaling=1):
+        init_y = [1*scaling, 55*scaling, 0, 0, 0]
+        p = [85e3, 10, 70e3, 20]
+        return system.integrate(np.linspace(0, 60, 200), init_y, p, integrator='cvode', nsteps=5000)
+
+    def compare_autonomous(scaling):
+        odesys = get_odesys(scaling)
+        autsys = odesys.as_autonomous()
+        res1 = check(odesys, scaling=scaling)
+        res2 = check(autsys, scaling=scaling)
+        assert np.allclose(res1.yout, res2.yout, atol=1e-6)
+
+    compare_autonomous(1)
+    compare_autonomous(1000)
