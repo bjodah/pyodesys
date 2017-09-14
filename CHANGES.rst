@@ -1,3 +1,8 @@
+v0.10.2
+=======
+- Softer bounds checking
+- with_jtimes (pycvodes >= 0.8.3)
+
 v0.10.1
 =======
 - Bump AnyODE
