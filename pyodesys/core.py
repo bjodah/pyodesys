@@ -746,7 +746,7 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
     """ Auto-switching between formulations of ODE system.
 
     In case one has a formulation of a system of ODEs which is preferential in
-    the beginning of the intergration this function allows the user to run the
+    the beginning of the integration, this function allows the user to run the
     integration with this system where it takes a user-specified maximum number
     of steps before switching to another formulation (unless final value of the
     independent variables has been reached). Number of systems used i returned
