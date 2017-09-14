@@ -1,11 +1,11 @@
 #ifdef ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37
 
-#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 8
+#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 9
 #error "Multiple anyode.hpp files included with version mismatch"
 #endif
 
 #else
-#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 8
+#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 9
 
 
 #include <string>
@@ -31,6 +31,7 @@ namespace AnyODE {
         bool record_jac_xvals = false;
         bool record_order = false;
         bool record_fpe = false;
+        bool record_steps = false;
         virtual ~OdeSysBase() {}
         virtual int get_ny() const = 0;
         virtual int get_mlower() const { return -1; } // -1 denotes "not banded"
