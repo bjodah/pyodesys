@@ -373,7 +373,7 @@ class ODESys(object):
             if _y.shape[-1] != self.ny:
                 raise ValueError("Incorrect shape of intern_y0")
         if isinstance(atol, dict):
-            kwargs['atol'] = [kwargs['atol'][k] for k in self.names]
+            kwargs['atol'] = [atol[k] for k in self.names]
         else:
             kwargs['atol'] = atol
         kwargs['rtol'] = rtol
