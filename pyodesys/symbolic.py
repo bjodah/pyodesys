@@ -228,8 +228,9 @@ class SymbolicSys(ODESys):
             kwargs['param_names'] = [p.name for p in self.params]
 
         self.band = kwargs.get('band', None)  # needed by get_j_ty_callback
-        self.lower_bounds = None if lower_bounds is None else np.array(lower_bounds)  # needed by get_f_ty_callback
-        self.upper_bounds = None if upper_bounds is None else np.array(upper_bounds)  # needed by get_f_ty_callback
+        # bounds needed by get_f_ty_callback:
+        self.lower_bounds = None if lower_bounds is None else np.array(lower_bounds)*np.ones(self.ny)
+        self.upper_bounds = None if upper_bounds is None else np.array(upper_bounds)*np.ones(self.ny)
 
         super(SymbolicSys, self).__init__(
             self.get_f_ty_callback(),
@@ -727,7 +728,11 @@ class TransformedSys(SymbolicSys):
                                           list(kwargs.get('nonlinear_invariant_names') or ())))
 
         lower_b = kwargs.pop('lower_bounds', None)
+        if lower_b is not None:
+            lower_b *= np.ones(len(dep))
         upper_b = kwargs.pop('upper_bounds', None)
+        if upper_b is not None:
+            upper_b *= np.ones(len(dep))
         pre_processors = kwargs.pop('pre_processors', [])
         post_processors = kwargs.pop('post_processors', [])
         super(TransformedSys, self).__init__(

@@ -1,3 +1,7 @@
+v0.10.3
+=======
+- Fix for scalar bounds in SymbolicSys
+  
 v0.10.2
 =======
 - Softer bounds checking
