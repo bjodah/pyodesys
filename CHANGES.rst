@@ -1,3 +1,7 @@
+v0.10.1
+=======
+- Bump AnyODE
+
 v0.10.0
 =======
 - Added SymbolicSys.as_autonomous()
