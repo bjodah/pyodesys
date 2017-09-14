@@ -228,8 +228,8 @@ class SymbolicSys(ODESys):
             kwargs['param_names'] = [p.name for p in self.params]
 
         self.band = kwargs.get('band', None)  # needed by get_j_ty_callback
-        self.lower_bounds = lower_bounds  # needed by get_f_ty_callback
-        self.upper_bounds = upper_bounds  # needed by get_f_ty_callback
+        self.lower_bounds = None if lower_bounds is None else np.array(lower_bounds)  # needed by get_f_ty_callback
+        self.upper_bounds = None if upper_bounds is None else np.array(upper_bounds)  # needed by get_f_ty_callback
 
         super(SymbolicSys, self).__init__(
             self.get_f_ty_callback(),
@@ -555,11 +555,15 @@ class SymbolicSys(ODESys):
         if lb is not None or ub is not None:
             def _bounds_wrapper(t, y, p=(), be=None):
                 if lb is not None:
-                    if np.any(y < lb):
+                    if np.any(y < lb - 10*self._current_integration_kwargs['atol']):
                         raise RecoverableError
+                    y = np.array(y)
+                    y[y < lb] = lb[y < lb]
                 if ub is not None:
-                    if np.any(y > ub):
+                    if np.any(y > ub + 10*self._current_integration_kwargs['atol']):
                         raise RecoverableError
+                    y = np.array(y)
+                    y[y > ub] = ub[y > ub]
                 return cb(t, y, p, be)
             return _bounds_wrapper
         else:

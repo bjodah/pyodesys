@@ -23,6 +23,7 @@ int main(int argc, char *argv[]){
         ("return-on-root", po::value<bool>()->default_value(false), "Return on root")
         ("autorestart", po::value<int>()->default_value(0), "Autorestart (autonomous)")
         ("return-on-error", po::value<bool>()->default_value(false), "Return on error")
+        ("with-jtimes", po::value<bool>()->default_value(false), "With jtimes")
         ("get-dx-max-factor", po::value<realtype>()->default_value(1.0), "get_dx_max multiplicative factor")
         ("error-outside-bounds", po::value<bool>()->default_value(false), "Return recoverable error to solver when outside bounds")
         ("max-invariant-violation", po::value<realtype>()->default_value(0.0), "Limit at which to return recoverable error when supported by integrator.")
@@ -68,6 +69,7 @@ int main(int argc, char *argv[]){
     bool return_on_root(vm["return-on-root"].as<bool>());
     int autorestart(vm["autorestart"].as<int>());
     bool return_on_error(vm["return-on-error"].as<bool>());
+    bool with_jtimes(vm["with-jtimes"].as<bool>());
 
     std::vector<realtype> params;
     const realtype get_dx_max_factor(vm["get-dx-max-factor"].as<realtype>());
@@ -141,14 +143,14 @@ int main(int argc, char *argv[]){
         xy_ri = cvodes_anyode_parallel::multi_adaptive(
         systems, atol, rtol, lmm, &y0[0], &t0[0], &tend[0], mxsteps, &dx0[0],
         &dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
-        eps_lin, nderiv, return_on_root, autorestart, return_on_error);
+        eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes);
 
     } else {
         yout.resize(systems.size()*ny*nout);
         ri_ro = cvodes_anyode_parallel::multi_predefined(
         systems, atol, rtol, lmm, &y0[0], nout, &tout[0], &yout[0], mxsteps, &dx0[0],
         &dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
-        eps_lin, nderiv, autorestart, return_on_error);
+        eps_lin, nderiv, autorestart, return_on_error, with_jtimes);
     }
     // Output:
     for (int si=0; si<systems.size(); ++si){

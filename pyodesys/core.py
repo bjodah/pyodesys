@@ -308,7 +308,7 @@ class ODESys(object):
                                           force_predefined=True, **kwargs)
         return yout, info
 
-    def integrate(self, x, y0, params=(), **kwargs):
+    def integrate(self, x, y0, params=(), atol=1e-8, rtol=1e-8, **kwargs):
         """ Integrate the system of ordinary differential equations.
 
         Solves the initial value problem (IVP).
@@ -372,14 +372,19 @@ class ODESys(object):
         if hasattr(self, 'ny'):
             if _y.shape[-1] != self.ny:
                 raise ValueError("Incorrect shape of intern_y0")
-        if isinstance(kwargs.get('atol', None), dict):
-            kwargs['atol'] = [kwargs['atol'][k] for k in self.names]
+        if isinstance(atol, dict):
+            kwargs['atol'] = [atol[k] for k in self.names]
+        else:
+            kwargs['atol'] = atol
+        kwargs['rtol'] = rtol
+
         integrator = kwargs.pop('integrator', None)
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
 
         args = tuple(map(np.atleast_2d, (_x, _y, _p)))
 
+        self._current_integration_kwargs = kwargs
         if isinstance(integrator, str):
             nfo = getattr(self, '_integrate_' + integrator)(*args, **kwargs)
         else:
@@ -741,7 +746,7 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
     """ Auto-switching between formulations of ODE system.
 
     In case one has a formulation of a system of ODEs which is preferential in
-    the beginning of the intergration this function allows the user to run the
+    the beginning of the integration, this function allows the user to run the
     integration with this system where it takes a user-specified maximum number
     of steps before switching to another formulation (unless final value of the
     independent variables has been reached). Number of systems used i returned
