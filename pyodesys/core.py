@@ -308,7 +308,7 @@ class ODESys(object):
                                           force_predefined=True, **kwargs)
         return yout, info
 
-    def integrate(self, x, y0, params=(), **kwargs):
+    def integrate(self, x, y0, params=(), atol=1e-8, rtol=1e-8, **kwargs):
         """ Integrate the system of ordinary differential equations.
 
         Solves the initial value problem (IVP).
@@ -372,14 +372,19 @@ class ODESys(object):
         if hasattr(self, 'ny'):
             if _y.shape[-1] != self.ny:
                 raise ValueError("Incorrect shape of intern_y0")
-        if isinstance(kwargs.get('atol', None), dict):
+        if isinstance(atol, dict):
             kwargs['atol'] = [kwargs['atol'][k] for k in self.names]
+        else:
+            kwargs['atol'] = atol
+        kwargs['rtol'] = rtol
+
         integrator = kwargs.pop('integrator', None)
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
 
         args = tuple(map(np.atleast_2d, (_x, _y, _p)))
 
+        self._current_integration_kwargs = kwargs
         if isinstance(integrator, str):
             nfo = getattr(self, '_integrate_' + integrator)(*args, **kwargs)
         else:
