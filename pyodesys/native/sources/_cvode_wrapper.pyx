@@ -64,7 +64,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        bool record_order=False, bool record_fpe=False,
                        double get_dx_max_factor=-1.0, bool error_outside_bounds=False,
                        double max_invariant_violation=0.0, vector[double] special_settings=[],
-                       bool autonomous_exprs=False):
+                       bool autonomous_exprs=False, int nprealloc=500):
     cdef:
         double ** xyout_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
         int * td_arr = <int *>malloc(y0.shape[0]*sizeof(int))
@@ -125,8 +125,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems[idx].record_jac_xvals = record_jac_xvals
         systems[idx].record_order = record_order
         systems[idx].record_fpe = record_fpe
-        td_arr[idx] = 1
-        xyout_arr[idx] = <double *>malloc((y0.shape[1]+1)*sizeof(double))
+        td_arr[idx] = nprealloc
+        xyout_arr[idx] = <double *>malloc(nprealloc*(y0.shape[1]+1)*sizeof(double))
         xyout_arr[idx][0] = x0[idx]
         for yi in range(y0.shape[1]):
             xyout_arr[idx][yi+1] = y0[idx, yi]
