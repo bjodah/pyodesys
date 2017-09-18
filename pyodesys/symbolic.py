@@ -85,7 +85,7 @@ def _is_autonomous(indep, exprs):
     """
     if indep is None:
         return True
-    for expr in self.exprs:
+    for expr in exprs:
         try:
             in_there = indep in expr.free_symbols
         except:

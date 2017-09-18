@@ -145,7 +145,7 @@ class ODESys(object):
                  band=None, names=(), param_names=(), indep_name=None, description=None, dep_by_name=False,
                  par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
                  taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
-                 autonomous_interface=None, to_arrays_callbacks=None, **kwargs):
+                 autonomous_interface=None, to_arrays_callbacks=None, autonomous_exprs=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -169,11 +169,12 @@ class ODESys(object):
         self.pre_processors = pre_processors or []
         self.post_processors = post_processors or []
         self.append_iv = append_iv
+        self.autonomous_exprs = autonomous_exprs
         if hasattr(self, 'autonomous_interface'):
             if autonomous_interface is not None and autonomous_interface != self.autonomous_interface:
                 raise ValueError("Got conflicting autonomous_interface infomation.")
         else:
-            if (autonomous_interface is None and getattr(self, 'autonomous_exprs', False) and
+            if (autonomous_interface is None and self.autonomous_exprs and
                len(self.post_processors) == 0 and len(self.pre_processors) == 0):
                 self.autonomous_interface = True
             else:

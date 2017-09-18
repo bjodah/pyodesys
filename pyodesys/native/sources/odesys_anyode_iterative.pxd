@@ -14,6 +14,7 @@ cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
         unordered_map[string, double] last_integration_info_dbl
         unordered_map[string, vector[double]] last_integration_info_vecdbl
         unordered_map[string, vector[int]] last_integration_info_vecint
+        bool autonomous_exprs
         bool record_rhs_xvals
         bool record_jac_xvals
         bool record_order
