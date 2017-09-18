@@ -90,9 +90,13 @@ class ODESys(object):
         When modifying: insert at end.
     append_iv :  bool
         See :attr:`append_iv`.
-    autonomous_interface : bool (optional)
+    autonomous_interface : bool
         If given, sets the :attr:`autonomous` to indicate whether
         the system appears autonomous or not upon call to :meth:`integrate`.
+    autonomous_exprs : bool
+        Describes whether the independent variable appears in the rhs expressions.
+        If set to ``True`` the underlying solver is allowed to shift the
+        independent variable during integration.
 
     Attributes
     ----------
@@ -650,6 +654,7 @@ class ODESys(object):
                              " initialization instead)")
         if self.band is not None:
             kwargs['lband'], kwargs['uband'] = self.band
+        kwargs['autonomous_exprs'] = self.autonomous_exprs
         return self._integrate(pycvodes.integrate_adaptive,
                                pycvodes.integrate_predefined,
                                *args, **kwargs)
