@@ -458,6 +458,11 @@ class SymbolicSys(ODESys):
         self._autonomous_exprs = True
         return True
 
+    def integrate(self, *args, **kwargs):
+        if kwargs.get('autorestart', 0) > 0 and not self.autonomous_exprs:
+            raise ValueError("autorestart assumes autonomous_exprs")
+        return super(SymbolicSys, self).integrate(*args, **kwargs)
+
     def as_autonomous(self, indep_name=None, latex_indep_name=None):
         if self.autonomous_exprs:
             return self
