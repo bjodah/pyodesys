@@ -18,7 +18,7 @@ PYTHON=python2 ./scripts/run_tests.sh
 PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 
 ./scripts/render_notebooks.sh
-(cd $PKG_NAME/tests; jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
+(cd $PKG_NAME/tests; OMP_NUM_THREADS=1 ANYODE_NUM_THREADS=1 jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
 python3 -m pip install --user --force-reinstall docutils==0.12  # see https://github.com/sphinx-doc/sphinx/pull/3217
 ./scripts/generate_docs.sh
 
