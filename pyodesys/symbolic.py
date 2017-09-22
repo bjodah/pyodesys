@@ -776,9 +776,6 @@ class TransformedSys(SymbolicSys):
                    indep_transf, p, backend=be, **kwargs)
 
     def _back_transform_out(self, xout, yout, params):
-        _x = xout if self.b_indep is None else self.b_indep(xout, yout, params).squeeze(axis=-1)
-        _y = yout if self.b_dep is None else self.b_dep(xout, yout, params)
-        return _x, _y, params
         try:
             yout[0][0, 0]
         except:
@@ -786,10 +783,9 @@ class TransformedSys(SymbolicSys):
         else:
             return zip(*[self._back_transform_out(_x, _y, _p) for
                          _x, _y, _p in zip(xout, yout, params)])
-        xout, yout, params = map(np.asarray, (xout, yout, params))
-        xbt = xout if self.b_indep is None else self.b_indep(xout.ravel(), yout, params)
-        ybt = yout if self.b_dep is None else self.b_dep(xout.ravel(), yout, params)
-        return xbt, ybt, params
+        x = xout if self.b_indep is None else self.b_indep(xout, yout, params).squeeze(axis=-1)
+        y = yout if self.b_dep is None else self.b_dep(xout, yout, params)
+        return x, y, params
 
     def _forward_transform_xy(self, x, y, p):
         x, y, p = map(np.asarray, (x, y, p))
