@@ -144,12 +144,23 @@ def _default(arg, default):
     return default if arg is None else arg
 
 
-class _Wrapper(_Blessed):
+def _concat(*args):
+    return np.concatenate(list(map(np.atleast_1d, args)))
 
-    def __init__(self, callback, ny, take_params=None):
-        self.callback = callback
-        self.ny = ny
-        self.take_params = take_params
+
+class _Callback(_Blessed):
+
+    def __init__(self, indep, dep, params, exprs, Lambdify=None):
+        self.indep, self.dep, self.params = indep, dep, params
+        if indep is None:
+            self.args = _concat(self.dep, self.params)
+        else:
+            self.args = _concat(self.indep, self.dep, self.params)
+        self.input_width = len(self.args)
+        self.exprs = exprs
+        self.callback = Lambdify(self.args, self.exprs)
+        self.ny = len(dep)
+        self.take_params = len(params)
 
     def __call__(self, x, y, params=(), backend=None):
         _x = np.asarray(x)
@@ -157,18 +168,16 @@ class _Wrapper(_Blessed):
         _p = np.asarray(params)[..., :self.take_params]
         if _y.shape[-1] != self.ny:
             raise TypeError("Incorrect shape of y")
-        input_width = 1 + self.ny + _p.shape[-1]
-        if _x.ndim == 0:
-            inp_shape = (input_width,)
-        elif _x.ndim == 1:
-            inp_shape = (_x.size, input_width)
+        inp = np.empty(_x.shape + (self.input_width,))
+        if self.indep is None:
+            nx = 0
         else:
-            raise NotImplementedError("Don't know what to do with multi-dimensional x")
-        inp = np.empty(inp_shape)
-        inp[..., 0] = _x
-        inp[..., 1:(1+self.ny)] = _y
-        inp[..., (1+self.ny):] = _p
-        return self.callback(inp)
+            inp[..., 0] = _x = np.asarray(x)
+            nx = 1
+        inp[..., nx:(nx+self.ny)] = _y
+        inp[..., (nx+self.ny):] = _p
+        result = self.callback(inp)
+        return result
 
 
 class requires(object):
