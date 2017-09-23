@@ -1,3 +1,7 @@
+v0.10.4
+=======
+- Optimized away bottleneck for back transforming data.
+
 v0.10.3
 =======
 - Fix for scalar bounds in SymbolicSys
