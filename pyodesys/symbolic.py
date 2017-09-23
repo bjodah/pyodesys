@@ -16,7 +16,7 @@ import numpy as np
 from .util import import_
 from .core import ODESys, RecoverableError
 from .util import (
-    transform_exprs_dep, transform_exprs_indep, _ensure_4args, _Wrapper
+    transform_exprs_dep, transform_exprs_indep, _ensure_4args, _Callback
 )
 
 Backend = import_('sym', 'Backend')
@@ -544,9 +544,7 @@ class SymbolicSys(ODESys):
         return self._dfdx
 
     def _callback_factory(self, exprs):
-        args = [self.indep] + list(self.dep) + list(self.params)
-        return _Wrapper(self.be.Lambdify(args, exprs),
-                        len(self.dep), len(self.params))
+        return _Callback(self.indep, self.dep, self.params, exprs, self.be.Lambdify)
 
     def get_f_ty_callback(self):
         """ Generates a callback for evaluating ``self.exprs``. """
@@ -600,31 +598,6 @@ class SymbolicSys(ODESys):
         if len(invar) == 0:
             return None
         return self._callback_factory(invar)
-
-    # Not working yet:
-    def _integrate_mpmath(self, xout, y0, params=()):
-        """ Not working at the moment, need to fix
-        (low priority - taylor series is a poor method)"""
-        raise NotImplementedError
-        xout, y0, self.internal_params = self.pre_process(xout, y0, params)
-        from mpmath import odefun
-
-        def rhs(x, y):
-            rhs.ncall += 1
-            return [
-                e.subs(
-                    ([(self.indep, x)] if self.indep is not None else []) +
-                    list(zip(self.dep, y))
-                ) for e in self.exprs
-            ]
-        rhs.ncall = 0
-
-        cb = odefun(rhs, xout[0], y0)
-        yout = []
-        for x in xout:
-            yout.append(cb(x))
-        info = {'nrhs': rhs.ncall}
-        return self.post_process(xout, yout, self.internal_params)[:2] + (info,)
 
     def _get_analytic_stiffness_cb(self):
         J = self.get_jac()
@@ -810,20 +783,16 @@ class TransformedSys(SymbolicSys):
         else:
             return zip(*[self._back_transform_out(_x, _y, _p) for
                          _x, _y, _p in zip(xout, yout, params)])
-        xout, yout, params = map(np.asarray, (xout, yout, params))
-        xbt = np.empty(xout.size)
-        ybt = np.empty((xout.size, self.ny))
-        for idx, (x, y) in enumerate(zip(xout.flat, yout)):
-            xbt[idx] = x if self.b_indep is None else self.b_indep(x, y, params)
-            ybt[idx, :] = y if self.b_dep is None else self.b_dep(x, y, params)
-        return xbt, ybt, params
+        x = xout if self.b_indep is None else self.b_indep(xout, yout, params).squeeze(axis=-1)
+        y = yout if self.b_dep is None else self.b_dep(xout, yout, params)
+        return x, y, params
 
     def _forward_transform_xy(self, x, y, p):
         x, y, p = map(np.asarray, (x, y, p))
         if y.ndim == 1:
-            return (x if self.f_indep is None else
-                    np.concatenate([self.f_indep(_, y, p) for _ in x]),
-                    y if self.f_dep is None else self.f_dep(x[0], y, p), p)
+            _x = x if self.f_indep is None else self.f_indep(x, y[..., None, :], p[..., None, :])[..., 0]
+            _y = y if self.f_dep is None else self.f_dep(x[..., 0], y, p)
+            return _x, _y, p
         elif y.ndim == 2:
             return zip(*[self._forward_transform_xy(_x, _y, _p) for _x, _y, _p in zip(x, y, p)])
         else:
@@ -1007,8 +976,8 @@ def _append(arr, *iterables):
     return arr
 
 
-def _concat(*args):
-    return np.concatenate(list(map(np.atleast_1d, args)))
+# def _concat(*args):
+#     return np.concatenate(list(map(np.atleast_1d, args)))
 
 
 class PartiallySolvedSystem(SymbolicSys):
@@ -1216,8 +1185,8 @@ class PartiallySolvedSystem(SymbolicSys):
 
     @staticmethod
     def _get_analytic_callback(ori_sys, analytic_exprs, new_dep, new_params):
-        args = _concat(ori_sys.indep, new_dep, new_params)
-        return _Wrapper(ori_sys.be.Lambdify(args, analytic_exprs), len(new_dep), len(new_params))
+        # args = _concat()
+        return _Callback(ori_sys.indep, new_dep, new_params, analytic_exprs, ori_sys.be.Lambdify)
 
     def __getitem__(self, key):
         ori_dep = self.original_dep[self.names.index(key)]

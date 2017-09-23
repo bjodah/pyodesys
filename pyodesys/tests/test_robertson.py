@@ -110,7 +110,7 @@ def test_get_ode_exprs_symbolic():
     _test_goe(symbolic=True, logc=False, logt=True, zero_conc=0, zero_time=1e-12,
               atol=1e-8, rtol=1e-12, extra_forgive=0.4)
     for reduced in range(4):
-        _test_goe(symbolic=True, reduced=reduced, first_step=1e-14)
+        _test_goe(symbolic=True, reduced=reduced, first_step=1e-14, extra_forgive=5)
         if reduced != 2:
             _test_goe(symbolic=True, reduced=reduced, logc=True, logt=False, zero_conc=1e-16,
                       atol=1e-8, rtol=1e-10, extra_forgive=2, first_step=1e-14)
@@ -123,7 +123,7 @@ def test_get_ode_exprs_symbolic():
                       atol=1e-8, rtol=1e-10, extra_forgive=1, first_step=1e-14)
 
             _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14,
-                      first_step=1e-10)
+                      first_step=1e-10, extra_forgive=2)
 
 
 @pytest.mark.veryslow
