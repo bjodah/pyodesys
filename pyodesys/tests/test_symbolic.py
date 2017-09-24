@@ -919,7 +919,7 @@ def test_integrate_auto_switch(integrator, method):
         forgive = (5+p)*1.2
 
         xout, yout, info = integrate_auto_switch([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
-                                             return_on_error=True, **kw)
+                                                 return_on_error=True, **kw)
         assert info['success'] == False  # noqa
         ntot = 400
         nlinear = 60*(p+3)
@@ -945,8 +945,8 @@ def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
     elif y0.ndim == 2:
         tout = np.asarray([(t0, tend)]*y0.shape[0])
 
-    comb_res = integrate_auto_switch([tsys, odesys], {'nsteps': [500*stepx, 20*stepx]}, tout, y0/molar_unitless, params,
-                                 return_on_error=True, autorestart=2, **kwargs)
+    comb_res = integrate_auto_switch([tsys, odesys], {'nsteps': [500*stepx, 20*stepx]}, tout, y0/molar_unitless,
+                                     params, return_on_error=True, autorestart=2, **kwargs)
     if isinstance(comb_res, list):
         for r in comb_res:
             assert r.info['success']
