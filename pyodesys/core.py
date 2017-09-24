@@ -91,7 +91,7 @@ class ODESys(object):
     append_iv :  bool
         See :attr:`append_iv`.
     autonomous_interface : bool (optional)
-        If given, sets the :attr:`autonomous` to indicate whether
+        If given, sets the :attr:`autonomous_interface` to indicate whether
         the system appears autonomous or not upon call to :meth:`integrate`.
 
     Attributes
@@ -735,6 +735,11 @@ class ODESys(object):
                 np.abs(singular_values).min(axis=-1))
 
 
+class OdeSys(ODESys):
+    """ DEPRECATED, use ODESys instead. """
+    pass
+
+
 def _new_x(xout, x, guaranteed_autonomous):
     if guaranteed_autonomous:
         return 0, abs(x[-1] - xout[-1])  # rounding
@@ -742,7 +747,7 @@ def _new_x(xout, x, guaranteed_autonomous):
         return xout[-1], x[-1]
 
 
-def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
+def integrate_auto_switch(odes, kw, x, y0, params=(), **kwargs):
     """ Auto-switching between formulations of ODE system.
 
     In case one has a formulation of a system of ODEs which is preferential in
@@ -836,6 +841,54 @@ def integrate_chained(odes, kw, x, y0, params=(), **kwargs):
         return Result(tot_x, tot_y, res.params, tot_nfo, odes[0])
 
 
-class OdeSys(ODESys):
-    """ DEPRECATED, use ODESys instead. """
-    pass
+integrate_chained = integrate_auto_switch  # deprecated name
+
+
+def chained_parameter_variation(subject, durations, y0, varied_params, default_params=None,
+                                integrate_kwargs=None, x0=None):
+    """ Integrate an ODE-system for a serie of durations with some parameters changed in-between
+
+    Parameters
+    ----------
+    subject : function or ODESys instance
+        If a function: should have the signature of :meth:`pyodesys.ODESys.integrate`
+        (and resturn a :class:`pyodesys.results.Result` object).
+        If a ODESys instance: the ``integrate`` method will be used.
+    durations : iterable of floats
+        Spans of the independent variable.
+    y0 : dict or array_like
+    varied_params : dict mapping parameter name (or index) to array_like
+        Each array_like need to be of same length as durations.
+    default_params : dict or array_like
+        Default values for the parameters of the ODE system.
+    integrate_kwargs : dict
+        Keyword arguments passed on to ``integrate``.
+    x0 : float-like
+        First value of independent variable. default: 0.
+
+    """
+    assert len(durations) > 0, 'need at least 1 duration (preferably many)'
+    for k, v in varied_params.items():
+        if len(v) != len(durations):
+            raise ValueError("Mismathced lengths of durations and varied_params")
+
+    if isinstance(subject, ODESys):
+        integrate = subject.integrate
+    else:
+        integrate = subject
+
+    default_params = default_params or {}
+    integrate_kwargs = integrate_kwargs or {}
+
+    durations = np.cumsum(durations)
+    for idx in range(len(durations)):
+        params = default_params.copy()
+        for k, v in varied_params.items():
+            params[k] = v[idx]
+        if idx == 0:
+            if x0 is None:
+                x0 = durations[0]*0
+            result = integrate(x0 + durations[0], y0, params, **integrate_kwargs)
+        else:
+            result.extend_by_integration(durations[idx], params, **integrate_kwargs)
+    return result

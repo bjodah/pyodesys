@@ -147,14 +147,12 @@ class SymbolicSys(ODESys):
         Closed form expression for how to compute the first step.
     roots : iterable of expressions or None
         Roots to report for during integration.
-    be : module
-        Symbolic backend, e.g. ``sympy`` or ``symcxx``.
+    backend : module
+        Symbolic backend, e.g. 'sympy', 'symengine'.
     ny : int
         ``len(self.dep)`` note that this is not neccessarily the expected length of
         ``y0`` in the case of e.g. :class:`PartiallySolvedSystem`. i.e. ``ny`` refers
         to the number of dependent variables after pre processors have been applied.
-    be : module
-        Symbolic backend.
     init_indep : Symbol,  ``None``
         Symbol for initial value of independent variable (before pre processors).
     init_dep : tuple of Symbols or ``None``
@@ -189,7 +187,7 @@ class SymbolicSys(ODESys):
                 raise ValueError("Pass params explicitly or pass True to have them deduced.")
             params = all_free
 
-        self.params = params
+        self.params = tuple(params)
         self._jac = jac
         self._dfdx = dfdx
         self.first_step_expr = first_step_expr

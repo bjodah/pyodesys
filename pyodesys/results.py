@@ -227,9 +227,9 @@ class Result(object):
         """
         return self._plot(plot_phase_plane, indices=indices, **kwargs)
 
-    def calc_invariant_violations(self):
+    def calc_invariant_violations(self, xyp=None):
         invar = self.odesys.get_invariants_callback()
-        val = invar(*self._internals())
+        val = invar(*(xyp or self._internals()))
         return val - val[0, :]
 
     def plot_invariant_violations(self, **kwargs):
@@ -249,10 +249,14 @@ class Result(object):
                                params or self.params, **kwargs)
         self.xout = np.concatenate((self.xout, res.xout[1:] + (x0 if autonomous else 0)))
         self.yout = np.concatenate((self.yout, res.yout[..., 1:, :]))
-        new_info = {k: v for k, v in self.info.items() if not k.startswith('internal')}
+        new_info = {k: v for k, v in self.info.items() if not (
+            k.startswith('internal') and odesys is not self.odesys)}
         for k, v in res.info.items():
             if k.startswith('internal'):
-                continue
+                if odesys is self.odesys:
+                    new_info[k] = np.concatenate((new_info[k], v))
+                else:
+                    continue
             elif k == 'success':
                 new_info[k] = new_info[k] and v
             elif k.endswith('_xvals'):
