@@ -1523,6 +1523,7 @@ def test_SymbolicSys_as_autonomous__scaling():
     compare_autonomous(1000)
 
 
+@requires('sym', 'pycvodes')
 def test_chained_parameter_variation():
     def f(t, y, p):
         k = t**p['e']
