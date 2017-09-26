@@ -21,11 +21,11 @@ import numpy as np
 from odesys_util cimport adaptive_return
 
 
-cdef dict _as_dict(unordered_map[string, int] nfo,
-                   unordered_map[string, double] nfo_dbl,
-                   unordered_map[string, vector[double]] nfo_vecdbl,
-                   unordered_map[string, vector[int]] nfo_vecint,
-                   root_indices, bool success, root_out=None, mode=None, nreached=None):
+def _as_dict(unordered_map[string, int] nfo,
+             unordered_map[string, double] nfo_dbl,
+             unordered_map[string, vector[double]] nfo_vecdbl,
+             unordered_map[string, vector[int]] nfo_vecint,
+             root_indices, bool success, root_out=None, mode=None, nreached=None):
     dct = {str(k.decode('utf-8')): v for k, v in dict(nfo).items()}
     dct.update({str(k.decode('utf-8')): v for k, v in dict(nfo_dbl).items()})
     dct.update({str(k.decode('utf-8')): np.array(v, dtype=np.float64) for k, v in dict(nfo_vecdbl).items()})
@@ -169,8 +169,6 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          double max_invariant_violation=0.0, vector[double] special_settings=[]):
     cdef:
         vector[OdeSys *] systems
-        vector[vector[int]] root_indices
-        vector[vector[double]] root_out
         list nfos = []
         cnp.ndarray[cnp.float64_t, ndim=3, mode='c'] yout
         string _lmm = method.lower().encode('UTF-8')
@@ -237,14 +235,13 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         nreached = result[idx].first
-        root_indices.push_back(result[idx].second.first)
-        root_out.push_back(result[idx].second.second)
         success = False if return_on_error and nreached < xout.shape[1] else True
         nfos.append(_as_dict(systems[idx].last_integration_info,
                              systems[idx].last_integration_info_dbl,
                              systems[idx].last_integration_info_vecdbl,
                              systems[idx].last_integration_info_vecint,
-                             root_indices, root_out=root_out, mode='predefined',
+                             root_indices=result[idx].second.first,
+                             root_out=result[idx].second.second, mode='predefined',
                              success=success, nreached=nreached))
         del systems[idx]
 
