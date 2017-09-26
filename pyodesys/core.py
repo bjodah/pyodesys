@@ -230,7 +230,8 @@ class ODESys(object):
                 raise ValueError("Need 3 callbacks/None values.")
             _x, _y, _p = [e if cb is None else cb(e) for cb, e in zip(callbacks, [_x, _y, _p])]
 
-        arrs = [arr.T if tp else arr for tp, arr in zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
+        arrs = [arr.T if tp else arr for tp, arr in
+                zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
         extra_shape = None
         for a in arrs:
             if a.ndim == 1:
@@ -880,15 +881,28 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
     default_params = default_params or {}
     integrate_kwargs = integrate_kwargs or {}
 
+    def _get_idx(cont, idx):
+        if isinstance(cont, dict):
+            return {k: (v[idx] if hasattr(v, '__len__') and getattr(v, 'ndim', 1) > 0 else v)
+                    for k, v in cont.items()}
+        else:
+            return cont[idx]
+
     durations = np.cumsum(durations)
-    for idx in range(len(durations)):
+    for idx_dur in range(len(durations)):
         params = default_params.copy()
         for k, v in varied_params.items():
-            params[k] = v[idx]
-        if idx == 0:
+            params[k] = v[idx_dur]
+        if idx_dur == 0:
             if x0 is None:
                 x0 = durations[0]*0
-            result = integrate(x0 + durations[0], y0, params, **integrate_kwargs)
+            out = integrate(x0 + durations[0], y0, params, **integrate_kwargs)
         else:
-            result.extend_by_integration(durations[idx], params, **integrate_kwargs)
-    return result
+            if isinstance(out, Result):
+                out.extend_by_integration(durations[idx_dur], params, **integrate_kwargs)
+            else:
+                for idx_res, r in enumerate(out):
+                    r.extend_by_integration(durations[idx_dur], _get_idx(params, idx_res),
+                                            **integrate_kwargs)
+
+    return out
