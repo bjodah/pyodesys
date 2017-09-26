@@ -141,7 +141,7 @@ class ODESys(object):
                  band=None, names=(), param_names=(), indep_name=None, description=None, dep_by_name=False,
                  par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
                  taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
-                 autonomous_interface=None, to_arrays_callbacks=None, **kwargs):
+                 autonomous_interface=None, to_arrays_callbacks=None, _indep_autonomous_key=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -177,6 +177,7 @@ class ODESys(object):
 
         if self.autonomous_interface not in (True, False, None):
             raise ValueError("autonomous_interface needs to be a boolean value or None.")
+        self._indep_autonomous_key = _indep_autonomous_key
         self.to_arrays_callbacks = to_arrays_callbacks
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s" % str(kwargs))
@@ -221,8 +222,23 @@ class ODESys(object):
             _x = (0*x[0], x[0]) if nx == 0 else x
 
         _names = [n for n in self.names if n not in self.taken_names]
+        if self._indep_autonomous_key:
+            if isinstance(y, dict):
+                if self._indep_autonomous_key not in y:
+                    y = y.copy()
+                    y[self._indep_autonomous_key] = _x[0]
+            else:  # y is array like
+                y = np.atleast_1d(y)
+                if y.shape[-1] == self.ny:
+                    pass
+                elif y.shape[-1] == self.ny - 1:
+                    y = np.concatenate((y, _x[0]*np.ones(y.shape[:-1] + (1,))), axis=-1)
+                else:
+                    raise ValueError("y of incorrect size")
+
         _y, tp_y = self._conditional_from_dict(y, self.dep_by_name, _names)
         _p, tp_p = self._conditional_from_dict(p, self.par_by_name, self.param_names)
+        del _names
 
         callbacks = callbacks or self.to_arrays_callbacks
         if callbacks is not None:  # e.g. dedimensionalisation
@@ -230,7 +246,8 @@ class ODESys(object):
                 raise ValueError("Need 3 callbacks/None values.")
             _x, _y, _p = [e if cb is None else cb(e) for cb, e in zip(callbacks, [_x, _y, _p])]
 
-        arrs = [arr.T if tp else arr for tp, arr in zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
+        arrs = [arr.T if tp else arr for tp, arr in
+                zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
         extra_shape = None
         for a in arrs:
             if a.ndim == 1:
@@ -880,15 +897,28 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
     default_params = default_params or {}
     integrate_kwargs = integrate_kwargs or {}
 
+    def _get_idx(cont, idx):
+        if isinstance(cont, dict):
+            return {k: (v[idx] if hasattr(v, '__len__') and getattr(v, 'ndim', 1) > 0 else v)
+                    for k, v in cont.items()}
+        else:
+            return cont[idx]
+
     durations = np.cumsum(durations)
-    for idx in range(len(durations)):
+    for idx_dur in range(len(durations)):
         params = default_params.copy()
         for k, v in varied_params.items():
-            params[k] = v[idx]
-        if idx == 0:
+            params[k] = v[idx_dur]
+        if idx_dur == 0:
             if x0 is None:
                 x0 = durations[0]*0
-            result = integrate(x0 + durations[0], y0, params, **integrate_kwargs)
+            out = integrate(x0 + durations[0], y0, params, **integrate_kwargs)
         else:
-            result.extend_by_integration(durations[idx], params, **integrate_kwargs)
-    return result
+            if isinstance(out, Result):
+                out.extend_by_integration(durations[idx_dur], params, **integrate_kwargs)
+            else:
+                for idx_res, r in enumerate(out):
+                    r.extend_by_integration(durations[idx_dur], _get_idx(params, idx_res),
+                                            **integrate_kwargs)
+
+    return out

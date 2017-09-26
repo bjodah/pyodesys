@@ -18,6 +18,7 @@ from ._tests import (
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
+from pyodesys.tests.test_symbolic import _test_chained_parameter_variation
 
 
 @pytest.mark.veryslow
@@ -206,3 +207,9 @@ def test_return_on_error_success():
 @requires('pycvodes')
 def test__PartiallySolvedSystem_Native():
     _test_PartiallySolvedSystem_Native(NativeSys, 'cvode')
+
+
+@pytest.mark.slow
+@requires('sym', 'pycvodes')
+def test_chained_parameter_variation_native_cvode():
+    _test_chained_parameter_variation(NativeSys.from_other)

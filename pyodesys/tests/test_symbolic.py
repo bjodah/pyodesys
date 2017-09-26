@@ -1524,7 +1524,7 @@ def test_SymbolicSys_as_autonomous__scaling():
 
 
 @requires('sym', 'pycvodes')
-def test_chained_parameter_variation():
+def _test_chained_parameter_variation(odesys_proc):
     def f(t, y, p):
         k = t**p['e']
         return {
@@ -1541,11 +1541,12 @@ def test_chained_parameter_variation():
         linear_invariants=[{'a': 1, 'b': 1}]
     )
 
-    dur1, dur2 = 1.0, 3.0
-    e1, e2 = 2, 0
-    for odesys in [odes, odes.as_autonomous()]:
-        result = chained_parameter_variation(odesys, [dur1, dur2], {'a': 2, 'b': 1}, {'e': [e1, e2]},
-                                             integrate_kwargs=dict(integrator='cvode'))
+    durs = dur1, dur2 = 1.0, 3.0
+    ndurs = 2
+    e2 = 0
+
+    def _check_result(result):
+        e1 = result.params[0]  # only the initial parameter is stored in result.params
         mask1 = result.xout <= dur1
         mask2 = result.xout >= dur1
         x1 = result.xout[mask1]
@@ -1560,3 +1561,23 @@ def test_chained_parameter_variation():
 
         invar_viol = result.calc_invariant_violations()
         assert np.allclose(invar_viol, 0)
+
+    for odesys in map(odesys_proc, [odes, odes.as_autonomous()]):
+        for e1 in 2, 3:
+            pars = {'e': [e1, e2]}
+            result = chained_parameter_variation(odesys, durs, {'a': 2, 'b': 1}, pars,
+                                                 integrate_kwargs=dict(integrator='cvode'))
+            _check_result(result)
+
+        for force_p in [False, True]:
+            results = chained_parameter_variation(
+                odesys, durs, {'a': [2, 3, 4], 'b': 1}, pars,
+                integrate_kwargs=dict(integrator='cvode', force_predefined=force_p))
+            for res in results:
+                assert res.info['mode'] == ['predefined']*ndurs if force_p else ['adaptive']*ndurs
+                _check_result(res)
+
+
+@requires('sym', 'pycvodes')
+def test_chained_parameter_variation():
+    _test_chained_parameter_variation(lambda x: x)
