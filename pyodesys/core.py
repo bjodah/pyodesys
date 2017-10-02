@@ -862,7 +862,7 @@ integrate_chained = integrate_auto_switch  # deprecated name
 
 
 def chained_parameter_variation(subject, durations, y0, varied_params, default_params=None,
-                                integrate_kwargs=None, x0=None):
+                                integrate_kwargs=None, x0=None, npoints=1):
     """ Integrate an ODE-system for a serie of durations with some parameters changed in-between
 
     Parameters
@@ -882,6 +882,8 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
         Keyword arguments passed on to ``integrate``.
     x0 : float-like
         First value of independent variable. default: 0.
+    npoints : int
+        Number of points per sub-interval.
 
     """
     assert len(durations) > 0, 'need at least 1 duration (preferably many)'
@@ -912,13 +914,13 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
         if idx_dur == 0:
             if x0 is None:
                 x0 = durations[0]*0
-            out = integrate(x0 + durations[0], y0, params, **integrate_kwargs)
+            out = integrate(np.linspace(x0, durations[0], npoints + 1), y0, params, **integrate_kwargs)
         else:
             if isinstance(out, Result):
-                out.extend_by_integration(durations[idx_dur], params, **integrate_kwargs)
+                out.extend_by_integration(durations[idx_dur], params, npoints=npoints, **integrate_kwargs)
             else:
                 for idx_res, r in enumerate(out):
                     r.extend_by_integration(durations[idx_dur], _get_idx(params, idx_res),
-                                            **integrate_kwargs)
+                                            npoints=npoints, **integrate_kwargs)
 
     return out
