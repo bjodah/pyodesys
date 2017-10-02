@@ -239,14 +239,14 @@ class Result(object):
         return self._plot(plot_result, x=self._internal('xout'), y=abs_viol, names=invar_names,
                           latex_names=kwargs.pop('latex_names', invar_names), indices=None, **kwargs)
 
-    def extend_by_integration(self, xend, params=None, odesys=None, autonomous=None, **kwargs):
+    def extend_by_integration(self, xend, params=None, odesys=None, autonomous=None, npoints=1, **kwargs):
         odesys = odesys or self.odesys
         if autonomous is None:
             autonomous = odesys.autonomous_interface
         x0 = self.xout[-1]
         nx0 = self.xout.size
-        res = odesys.integrate((xend - x0) if autonomous else (x0, xend), self.yout[..., -1, :],
-                               params or self.params, **kwargs)
+        res = odesys.integrate(np.linspace(0, (xend - x0), npoints+1) if autonomous else np.linspace(x0, xend, npoints+1),
+                               self.yout[..., -1, :], params or self.params, **kwargs)
         self.xout = np.concatenate((self.xout, res.xout[1:] + (x0 if autonomous else 0)))
         self.yout = np.concatenate((self.yout, res.yout[..., 1:, :]))
         new_info = {k: v for k, v in self.info.items() if not (
