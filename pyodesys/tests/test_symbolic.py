@@ -19,7 +19,7 @@ else:
     sym_backends = sym.Backend.backends.keys()
 
 from .. import ODESys
-from ..core import integrate_chained
+from ..core import integrate_auto_switch, chained_parameter_variation
 from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem, get_logexp, _group_invariants
 from ..util import requires
 from .bateman import bateman_full  # analytic, never mind the details
@@ -571,7 +571,7 @@ def test_long_chain_banded_cvode(n):
 @pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
-def test_no_diff_adaptive_chained_single(integrator):
+def test_no_diff_adaptive_auto_switch_single(integrator):
     odesys = _get_decay3()
     tout, y0, k = [3, 5], [3, 2, 1], [3.5, 2.5, 1.5]
     xout1, yout1, info1 = odesys.integrate(tout, y0, k, integrator=integrator)
@@ -581,7 +581,7 @@ def test_no_diff_adaptive_chained_single(integrator):
     assert xout1.size == yout1.shape[0]
     assert np.allclose(yout1, ref)
 
-    xout2, yout2, info2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator)
+    xout2, yout2, info2 = integrate_auto_switch([odesys], {}, tout, y0, k, integrator=integrator)
     assert info1['success']
     assert xout2.size == xout1.size
     assert np.allclose(yout2, ref)
@@ -590,7 +590,7 @@ def test_no_diff_adaptive_chained_single(integrator):
 @pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator', ['cvode', 'gsl'])
-def test_no_diff_adaptive_chained_single__multimode(integrator):
+def test_no_diff_adaptive_auto_switch_single__multimode(integrator):
     odesys = _get_decay3()
     tout = [[3, 5], [4, 6], [6, 8], [9, 11]]
     _y0 = [3, 2, 1]
@@ -606,7 +606,7 @@ def test_no_diff_adaptive_chained_single__multimode(integrator):
         assert xout1.size == yout1.shape[0]
         assert np.allclose(yout1, ref)
 
-    res2 = integrate_chained([odesys], {}, tout, y0, k, integrator=integrator, first_step=1e-14)
+    res2 = integrate_auto_switch([odesys], {}, tout, y0, k, integrator=integrator, first_step=1e-14)
     for res in res2:
         xout2, yout2, info2 = res.xout, res.yout, res.info
         assert info2['success']
@@ -904,7 +904,7 @@ def test_SymbolicSys_from_callback__symcxx():
 @pytest.mark.slow
 @requires('sym', 'pycvodes', 'pygslodeiv2')
 @pytest.mark.parametrize('integrator,method', [('cvode', 'adams'), ('gsl', 'msadams')])
-def test_integrate_chained(integrator, method):
+def test_integrate_auto_switch(integrator, method):
     for p in (0, 1, 2, 3):
         n, a = 7, 5
         atol, rtol = 1e-10, 1e-10
@@ -918,13 +918,13 @@ def test_integrate_chained(integrator, method):
         )
         forgive = (5+p)*1.2
 
-        xout, yout, info = integrate_chained([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
-                                             return_on_error=True, **kw)
+        xout, yout, info = integrate_auto_switch([logsys, linsys], {'nsteps': [1, 1]}, tout, y0,
+                                                 return_on_error=True, **kw)
         assert info['success'] == False  # noqa
         ntot = 400
         nlinear = 60*(p+3)
 
-        xout, yout, info = integrate_chained([logsys, linsys], {
+        xout, yout, info = integrate_auto_switch([logsys, linsys], {
             'nsteps': [ntot - nlinear, nlinear],
             'first_step': [30.0, 1e-5],
             'return_on_error': [True, False]
@@ -945,8 +945,8 @@ def _test_cetsa(y0, params, extra=False, stepx=1, **kwargs):
     elif y0.ndim == 2:
         tout = np.asarray([(t0, tend)]*y0.shape[0])
 
-    comb_res = integrate_chained([tsys, odesys], {'nsteps': [500*stepx, 20*stepx]}, tout, y0/molar_unitless, params,
-                                 return_on_error=True, autorestart=2, **kwargs)
+    comb_res = integrate_auto_switch([tsys, odesys], {'nsteps': [500*stepx, 20*stepx]}, tout, y0/molar_unitless,
+                                     params, return_on_error=True, autorestart=2, **kwargs)
     if isinstance(comb_res, list):
         for r in comb_res:
             assert r.info['success']
@@ -1521,3 +1521,63 @@ def test_SymbolicSys_as_autonomous__scaling():
 
     compare_autonomous(1)
     compare_autonomous(1000)
+
+
+@requires('sym', 'pycvodes')
+def _test_chained_parameter_variation(odesys_proc):
+    def f(t, y, p):
+        k = t**p['e']
+        return {
+            'a': -k*y['a'],
+            'b': +k*y['a']
+        }
+
+    def analytic(tout, init_y, p):
+        y0ref = init_y['a']*np.exp(-tout**(p['e']+1)/(p['e']+1))
+        return np.array([y0ref, init_y['a'] - y0ref + init_y['b']]).T
+
+    odes = SymbolicSys.from_callback(
+        f, names='ab', param_names='e', dep_by_name=True, par_by_name=True,
+        linear_invariants=[{'a': 1, 'b': 1}]
+    )
+
+    durs = dur1, dur2 = 1.0, 3.0
+    ndurs = 2
+    e2 = 0
+
+    def _check_result(result):
+        e1 = result.params[0]  # only the initial parameter is stored in result.params
+        mask1 = result.xout <= dur1
+        mask2 = result.xout >= dur1
+        x1 = result.xout[mask1]
+        x2 = result.xout[mask2] - dur1
+        y1 = result.yout[mask1, :]
+        y2 = result.yout[mask2, :]
+        ref1 = analytic(x1, dict(zip('ab', y1[0, :])), {'e': e1})
+        assert np.allclose(y1, ref1, atol=1e-6)
+
+        ref2 = analytic(x2, dict(zip('ab', y2[0, :])), {'e': e2})
+        assert np.allclose(y2, ref2, atol=1e-6)
+
+        invar_viol = result.calc_invariant_violations()
+        assert np.allclose(invar_viol, 0)
+
+    for odesys in map(odesys_proc, [odes, odes.as_autonomous()]):
+        for e1 in 2, 3:
+            pars = {'e': [e1, e2]}
+            result = chained_parameter_variation(odesys, durs, {'a': 2, 'b': 1}, pars,
+                                                 integrate_kwargs=dict(integrator='cvode'))
+            _check_result(result)
+
+        for force_p in [False, True]:
+            results = chained_parameter_variation(
+                odesys, durs, {'a': [2, 3, 4], 'b': 1}, pars,
+                integrate_kwargs=dict(integrator='cvode', force_predefined=force_p))
+            for res in results:
+                assert res.info['mode'] == ['predefined']*ndurs if force_p else ['adaptive']*ndurs
+                _check_result(res)
+
+
+@requires('sym', 'pycvodes')
+def test_chained_parameter_variation():
+    _test_chained_parameter_variation(lambda x: x)

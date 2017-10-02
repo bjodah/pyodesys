@@ -278,7 +278,7 @@ def merge_dicts(*dicts):
 
     Parameters
     ----------
-    \*dicts: iterable of dict
+    \\*dicts: dictionaries
 
     Examples
     --------

@@ -165,14 +165,12 @@ class SymbolicSys(ODESys):
         Closed form expression for how to compute the first step.
     roots : iterable of expressions or None
         Roots to report for during integration.
-    be : module
-        Symbolic backend, e.g. ``sympy`` or ``symcxx``.
+    backend : module
+        Symbolic backend, e.g. 'sympy', 'symengine'.
     ny : int
         ``len(self.dep)`` note that this is not neccessarily the expected length of
         ``y0`` in the case of e.g. :class:`PartiallySolvedSystem`. i.e. ``ny`` refers
         to the number of dependent variables after pre processors have been applied.
-    be : module
-        Symbolic backend.
     init_indep : Symbol,  ``None``
         Symbol for initial value of independent variable (before pre processors).
     init_dep : tuple of Symbols or ``None``
@@ -182,7 +180,7 @@ class SymbolicSys(ODESys):
 
     _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
                       'latex_names', 'latex_param_names', 'description', 'linear_invariants',
-                      'linear_invariant_names', 'to_arrays_callbacks')
+                      'linear_invariant_names', 'to_arrays_callbacks', '_indep_autonomous_key')
     append_iv = True
 
     @property
@@ -207,7 +205,7 @@ class SymbolicSys(ODESys):
                 raise ValueError("Pass params explicitly or pass True to have them deduced.")
             params = all_free
 
-        self.params = params
+        self.params = tuple(params)
         self._jac = jac
         self._dfdx = dfdx
         self.first_step_expr = first_step_expr
@@ -457,9 +455,9 @@ class SymbolicSys(ODESys):
     def as_autonomous(self, indep_name=None, latex_indep_name=None):
         if self.autonomous_exprs:
             return self
-        new_names = () if not self.names else (self.names + (self.indep_name,))
+        new_names = () if not self.names else (self.names + (self.indep_name or _get_indep_name(self.names),))
         new_indep_name = indep_name or _get_indep_name(new_names)
-        new_latex_indep_name = latex_indep_name or new_indep_name
+        new_latex_indep_name = latex_indep_name
         new_latex_names = () if not self.latex_names else (
             self.latex_names + (new_latex_indep_name,))
         new_indep = self.be.Symbol(new_indep_name)
@@ -480,17 +478,6 @@ class SymbolicSys(ODESys):
         for attr in filter(lambda k: k not in new_kw, self._attrs_to_copy):
             new_kw[attr] = getattr(self, attr)
 
-        def autonomous_pre_processor(x, y, p):
-            if isinstance(y, dict) and not self.dep_by_name:
-                y = [y[k] for k in self._ori_sys.dep]
-            if isinstance(p, dict) and not self.par_by_name:
-                p = [p[k] for k in self._ori_sys.params]
-            x, y, p = map(np.atleast_1d, (x, y, p))
-            if y.ndim == 2:
-                return zip(*[autonomous_pre_processor(_x, _y, _p)
-                             for _x, _y, _p in zip(x, y, p)])
-            return x, _append(y, [x[0]]), p
-
         def autonomous_post_processor(x, y, p):
             try:
                 y[0][0, 0]
@@ -502,8 +489,9 @@ class SymbolicSys(ODESys):
             # one could check here that x and y[..., -1] do not differ too much
             return y[..., -1], y[..., :-1], p
 
-        new_kw['pre_processors'] = self.pre_processors + [autonomous_pre_processor]
         new_kw['post_processors'] = [autonomous_post_processor] + self.post_processors
+
+        new_kw['_indep_autonomous_key'] = new_names[-1] if new_names else True
         return self.__class__(zip(new_dep, new_exprs), indep=new_indep, params=self.params, **new_kw)
 
     def get_jac(self):
