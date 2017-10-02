@@ -9,8 +9,6 @@ build:
   commands:
     - python2 -m pip install --ignore-installed --no-deps quantities==0.12.1  # https://github.com/python-quantities/python-quantities/issues/122
     - python3 -m pip install --ignore-installed --no-deps quantities==0.12.1
-    - PYCVODES_LAPACK=lapack,blas python2 -m pip install https://github.com/bjodah/pycvodes/archive/more-efficient-simple-funcs.tar.gz
-    - PYCVODES_LAPACK=lapack,blas python3 -m pip install https://github.com/bjodah/pycvodes/archive/more-efficient-simple-funcs.tar.gz
     - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
     - rm -r ~/.cache/python*pyodesys*/
