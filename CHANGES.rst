@@ -1,3 +1,7 @@
+v0.11.0
+=======
+- Using new upstream pycvodes-0.9.0 (new ABI for native_sys['cvode'])
+
 v0.10.4
 =======
 - Optimized away bottleneck for back transforming data.
