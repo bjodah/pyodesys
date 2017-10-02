@@ -127,23 +127,36 @@ int main(int argc, char *argv[]){
                                                     max_invariant_violation, special_settings));
     }
     // Computations:
-    std::vector<std::pair<cvodes_anyode_parallel::sa_t, std::vector<int> > > xy_ri;
+    int nprealloc = 500;
+    int * td_arr;
+    double ** xyout_arr;
+    std::vector<std::pair<int, std::vector<int> > > n_ri;
     std::vector<std::pair<int, std::pair<std::vector<int>, std::vector<double> > > > ri_ro;
     std::vector<realtype> yout;
 
     if (nout < 2){
         std::cerr << "Got too few (" << nout << ") time points." << std::endl;
     } else if (nout == 2) {
+        xyout_arr = (double **)malloc(systems.size()*sizeof(double*));
+        for (int i=0; i<systems.size(); ++i) {
+            xyout_arr[i] = (double*)malloc((ny+1)*nprealloc*sizeof(double));
+            td_arr[i] = nprealloc;
+        }
         std::vector<realtype> t0;
         std::vector<realtype> tend;
         for (int idx=0; idx<systems.size(); ++idx){
-            t0.push_back(tout[2*idx]);
             tend.push_back(tout[2*idx + 1]);
+            xyout_arr[idx][0] = tout[2*idx];
+            for (int iy=0; iy<ny; ++iy){
+                xyout_arr[idx][iy + 1] = y0[ny*idx + iy];
+            }
         }
-        xy_ri = cvodes_anyode_parallel::multi_adaptive(
-        systems, atol, rtol, lmm, &y0[0], &t0[0], &tend[0], mxsteps, &dx0[0],
-        &dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
-        eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes);
+        n_ri = cvodes_anyode_parallel::multi_adaptive(
+	    xyout_arr, td_arr, systems, atol, rtol, lmm, &tend[0], mxsteps, &dx0[0],
+            &dx_min[0], &dx_max[0], with_jacobian, iter_type, linear_solver, maxl,
+            eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes
+        );
+
 
     } else {
         yout.resize(systems.size()*ny*nout);
@@ -164,12 +177,10 @@ int main(int argc, char *argv[]){
         }
         std::cout << '\n';
         if (nout == 2) {
-            const auto& xout_ = xy_ri[si].first.first;
-            const auto& yout_ = xy_ri[si].first.second;
-            for (int ti=0; ti<xout_.size(); ++ti){
-                std::cout << xout_[ti];
+            for (int ti=0; ti <= n_ri[si].first; ++ti){
+                std::cout << xyout_arr[si][(1+ny)*ti];
                 for (int yi=0; yi<ny; ++yi)
-                    std::cout << ' ' << yout_[ti*ny + yi];
+                    std::cout << ' ' << xyout_arr[si][(1+ny)*ti+yi+1];
                 std::cout << '\n';
             }
         } else {

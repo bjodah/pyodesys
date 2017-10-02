@@ -1,6 +1,8 @@
 build:
   image: bjodah/bjodahimg16dev:v1.3
   environment:
+    - OMP_NUM_THREADS=1
+    - ANYODE_NUM_THREADS=2
     - CPLUS_INCLUDE_PATH=/opt/boost_1_65_0/include
     - LIBRARY_PATH=/opt/boost_1_65_0/lib
     - LD_LIBRARY_PATH=/opt/boost_1_65_0/lib

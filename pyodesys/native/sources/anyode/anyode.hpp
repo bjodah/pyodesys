@@ -1,11 +1,11 @@
 #ifdef ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37
 
-#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 9
+#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 10
 #error "Multiple anyode.hpp files included with version mismatch"
 #endif
 
 #else
-#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 9
+#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 10
 
 
 #include <string>
@@ -26,6 +26,7 @@ namespace AnyODE {
         std::unordered_map<std::string, std::vector<double> > last_integration_info_vecdbl;
         std::unordered_map<std::string, std::vector<int> > last_integration_info_vecint;
         Real_t default_dx0 = 0.0;  // *may* be used by `get_dx0`, 0 signifies solver default
+        bool autonomous_exprs = false;
         bool use_get_dx_max = false;  // whether get_dx_max should be called
         bool record_rhs_xvals = false;
         bool record_jac_xvals = false;

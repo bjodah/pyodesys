@@ -77,6 +77,24 @@ def _get_lin_invar_mtx(lin_invar, be, ny, names=None):
         return li_mtx
 
 
+def _is_autonomous(indep, exprs):
+    """ Whether the expressions for the dependent variables are autonomous.
+
+    Note that the system may still behave as an autonomous system on the interface
+    of :meth:`integrate` due to use of pre-/post-processors.
+    """
+    if indep is None:
+        return True
+    for expr in exprs:
+        try:
+            in_there = indep in expr.free_symbols
+        except:
+            in_there = expr.has(indep)
+        if in_there:
+            return False
+    return True
+
+
 class SymbolicSys(ODESys):
     """ ODE System from symbolic expressions
 
@@ -237,6 +255,7 @@ class SymbolicSys(ODESys):
             self.get_first_step_callback(),
             self.get_roots_callback(),
             nroots=None if roots is None else len(roots),
+            autonomous_exprs=_is_autonomous(self.indep, self.exprs),
             **kwargs)
 
         self.linear_invariants = linear_invariants
@@ -432,29 +451,6 @@ class SymbolicSys(ODESys):
     def ny(self):
         """ Number of dependent variables in the system. """
         return len(self.exprs)
-
-    @property
-    def autonomous_exprs(self):
-        """ Whether the expressions for the dependent variables are autonomous.
-
-        Note that the system may still behave as an autonomous system on the interface
-        of :meth:`integrate` due to use of pre-/post-processors.
-        """
-        if hasattr(self, '_autonomous_exprs'):
-            return self._autonomous_exprs
-        if self.indep is None:
-            self._autonomous_exprs = True
-            return True
-        for expr in self.exprs:
-            try:
-                in_there = self.indep in expr.free_symbols
-            except:
-                in_there = expr.has(self.indep)
-            if in_there:
-                self._autonomous_exprs = False
-                return False
-        self._autonomous_exprs = True
-        return True
 
     def as_autonomous(self, indep_name=None, latex_indep_name=None):
         if self.autonomous_exprs:

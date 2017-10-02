@@ -27,11 +27,9 @@ namespace AnyODE {
             //     (4.6.8 in cvs_guide.pdf for sundials 2.7.0)
             auto status = AnyODE::Status::success;
             const int ny = this->get_ny();
-            if (m_jac_cache == nullptr){
-                m_jac_cache = std::make_unique<JacMat_t>(nullptr, ny, ny, ny, true);
-            }
-            status = this->dense_jac_cmaj(t, y, fy, m_jac_cache->m_data, m_jac_cache->m_ld);
-            m_jac_cache->dot_vec(vec, out);
+            auto jac = std::make_unique<JacMat_t>(nullptr, ny, ny, ny, true);
+            status = this->dense_jac_cmaj(t, y, fy, jac->m_data, jac->m_ld);
+            jac->dot_vec(vec, out);
             m_njacvec_dot++;
             return status;
         }
