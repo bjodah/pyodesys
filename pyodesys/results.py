@@ -245,8 +245,10 @@ class Result(object):
             autonomous = odesys.autonomous_interface
         x0 = self.xout[-1]
         nx0 = self.xout.size
-        res = odesys.integrate(np.linspace(0, (xend - x0), npoints+1) if autonomous else np.linspace(x0, xend, npoints+1),
-                               self.yout[..., -1, :], params or self.params, **kwargs)
+        res = odesys.integrate(
+            np.linspace(0, (xend - x0), npoints+1) if autonomous else np.linspace(x0, xend, npoints+1),
+            self.yout[..., -1, :], params or self.params, **kwargs
+        )
         self.xout = np.concatenate((self.xout, res.xout[1:] + (x0 if autonomous else 0)))
         self.yout = np.concatenate((self.yout, res.yout[..., 1:, :]))
         new_info = {k: v for k, v in self.info.items() if not (
