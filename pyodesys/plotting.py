@@ -119,7 +119,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
             idx, lines=lines, labels=labels))
         if markers:
             ax.plot(x, _y[:, idx], **plot_kwargs_cb(
-                idx, lines=False, markers=markers, labels=latex_names or names))
+                idx, lines=False, markers=markers, labels=labels))
 
     if xlabel is None:
         try:

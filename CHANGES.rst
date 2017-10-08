@@ -1,3 +1,9 @@
+v0.11.1
+=======
+- Fixes to to_arrays (in combination with as_autonomous & from_other)
+- chained_parameter_variation got a new parameter: npoints
+- latex_names in plotting are now assumed not to be wrapped in $$.
+
 v0.11.0
 =======
 - Using new upstream pycvodes-0.9.0 (new ABI for native_sys['cvode'])
