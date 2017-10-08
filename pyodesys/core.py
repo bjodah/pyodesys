@@ -228,19 +228,19 @@ class ODESys(object):
             _x = (0*x[0], x[0]) if nx == 0 else x
 
         _names = [n for n in self.names if n not in self.taken_names]
-        if self._indep_autonomous_key:
-            if isinstance(y, dict):
-                if self._indep_autonomous_key not in y:
-                    y = y.copy()
-                    y[self._indep_autonomous_key] = _x[0]
-            else:  # y is array like
-                y = np.atleast_1d(y)
-                if y.shape[-1] == self.ny:
-                    pass
-                elif y.shape[-1] == self.ny - 1:
-                    y = np.concatenate((y, _x[0]*np.ones(y.shape[:-1] + (1,))), axis=-1)
-                else:
-                    raise ValueError("y of incorrect size")
+        # if self._indep_autonomous_key:
+        #     if isinstance(y, dict):
+        #         if self._indep_autonomous_key not in y:
+        #             y = y.copy()
+        #             y[self._indep_autonomous_key] = _x[0]
+        #     else:  # y is array like
+        #         y = np.atleast_1d(y)
+        #         if y.shape[-1] == self.ny:
+        #             pass
+        #         elif y.shape[-1] == self.ny - 1:
+        #             y = np.concatenate((y, _x[0]*np.ones(y.shape[:-1] + (1,))), axis=-1)
+        #         else:
+        #             raise ValueError("y of incorrect size")
 
         _y, tp_y = self._conditional_from_dict(y, self.dep_by_name, _names)
         _p, tp_p = self._conditional_from_dict(p, self.par_by_name, self.param_names)
@@ -251,6 +251,14 @@ class ODESys(object):
             if len(callbacks) != 3:
                 raise ValueError("Need 3 callbacks/None values.")
             _x, _y, _p = [e if cb is None else cb(e) for cb, e in zip(callbacks, [_x, _y, _p])]
+        _y = np.atleast_1d(_y)
+        if self._indep_autonomous_key:
+            if _y.shape[-1] == self.ny:
+                pass
+            elif _y.shape[-1] == self.ny - 1:
+                _y = np.concatenate((_y, _x[0]*np.ones(_y.shape[:-1] + (1,))), axis=-1)
+            else:
+                raise ValueError("y of incorrect shape")
 
         arrs = [arr.T if tp else arr for tp, arr in
                 zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
