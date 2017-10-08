@@ -1456,9 +1456,12 @@ def test_SymbolicSys_as_autonomous__to_arrays(auto):
         None
     ))
     odesys = odes.as_autonomous() if auto else odes
-    result = odesys.integrate(4*pq.s, [5*pq.molar, 2*pq.molar], [3], integrator='cvode')
-    ref = analytic(result.xout, result.yout[0, :], result.params)
-    assert np.allclose(result.yout, ref, atol=1e-6)
+    for from_other in [False, True]:
+        if from_other:
+            odesys = SymbolicSys.from_other(odesys)
+        result = odesys.integrate(4*pq.s, [5*pq.molar, 2*pq.molar], [3], integrator='cvode')
+        ref = analytic(result.xout, result.yout[0, :], result.params)
+        assert np.allclose(result.yout, ref, atol=1e-6)
 
 
 @requires('sym', 'pycvodes')
@@ -1522,14 +1525,16 @@ def test_SymbolicSys_as_autonomous__scaling():
             R = 8.314
             T = 300 + 10*backend.sin(0.2*math.pi*t - math.pi/2)
             kB_h = 2.08366e10
-            k1 = kB_h*T*backend.exp(dS1/R - dH1/(R*T))/scaling  # bimolecular => scaling**-1
-            k2 = kB_h*T*backend.exp(dS2/R - dH2/(R*T))/scaling  # bimolecular => scaling**-1
+            k1 = kB_h*T*backend.exp(dS1/R - dH1/(R*T))/scaling
+            k2 = kB_h*T*backend.exp(dS2/R - dH2/(R*T))/scaling
             r1 = k1*HNO2**2
             r2 = k2*NO2**2
             return [-2*r1, r1, r1, r1 - 2*r2, r2]
 
-        return SymbolicSys.from_callback(rhs, 5, 4, names='HNO2 H2O NO NO2 N2O4'.split(),
-                                         param_names='dH1 dS1 dH2 dS2'.split())
+        return SymbolicSys.from_callback(
+            rhs, 5, 4, names='HNO2 H2O NO NO2 N2O4'.split(),
+            param_names='dH1 dS1 dH2 dS2'.split(),
+        )
 
     def check(system, scaling=1):
         init_y = [1*scaling, 55*scaling, 0, 0, 0]
@@ -1539,12 +1544,62 @@ def test_SymbolicSys_as_autonomous__scaling():
     def compare_autonomous(scaling):
         odesys = get_odesys(scaling)
         autsys = odesys.as_autonomous()
+        copsys = SymbolicSys.from_other(autsys)
         res1 = check(odesys, scaling=scaling)
         res2 = check(autsys, scaling=scaling)
+        res3 = check(copsys, scaling=scaling)
         assert np.allclose(res1.yout, res2.yout, atol=1e-6)
+        assert np.allclose(res1.yout, res3.yout, atol=1e-6)
 
     compare_autonomous(1)
     compare_autonomous(1000)
+
+
+@requires('sym', 'pycvodes')
+def test_SymbolicSys_as_autonomous__scaling__by_name():
+
+    # 2 HNO2 -> H2O + NO + NO2; MassAction(EyringHS.fk('dH1', 'dS1'))
+    # 2 NO2 -> N2O4; MassAction(EyringHS.fk('dH2', 'dS2'))
+    #
+    # HNO2 H2O NO NO2 N2O4
+    def get_odesys(scaling=1):
+        def rhs(t, y, p, backend=math):
+            R = 8.314
+            T = 300 + 10*backend.sin(0.2*math.pi*t - math.pi/2)
+            kB_h = 2.08366e10
+            k1 = kB_h*T*backend.exp(p['dS1']/R - p['dH1']/(R*T))/scaling  # bimolecular => scaling**-1
+            k2 = kB_h*T*backend.exp(p['dS2']/R - p['dH2']/(R*T))/scaling  # bimolecular => scaling**-1
+            r1 = k1*y['HNO2']**2
+            r2 = k2*y['NO2']**2
+            return {'HNO2': -2*r1, 'H2O': r1, 'NO': r1, 'NO2': r1 - 2*r2, 'N2O4': r2}
+
+        return SymbolicSys.from_callback(
+            rhs, 5, 4, names='HNO2 H2O NO NO2 N2O4'.split(),
+            param_names='dH1 dS1 dH2 dS2'.split(), dep_by_name=True, par_by_name=True,
+            to_arrays_callbacks=(
+                None,
+                lambda y: [_y*scaling for _y in y],
+                None
+            ))
+
+    def check(system):
+        init_y = {'HNO2': 1, 'H2O': 55, 'NO': 0, 'NO2': 0, 'N2O4': 0}
+        p = {'dH1': 85e3, 'dS1': 10, 'dH2': 70e3, 'dS2': 20}
+        return system.integrate(np.linspace(0, 60, 200), init_y, p, integrator='cvode', nsteps=5000)
+
+    def compare_autonomous(scaling):
+        odesys = get_odesys(scaling)
+        autsys = odesys.as_autonomous()
+        copsys = SymbolicSys.from_other(autsys)
+        res1 = check(odesys)
+        res2 = check(autsys)
+        res3 = check(copsys)
+        assert np.allclose(res1.yout, res2.yout, atol=1e-6)
+        assert np.allclose(res1.yout, res3.yout, atol=1e-6)
+
+    compare_autonomous(1)
+    compare_autonomous(1000)
+
 
 
 @requires('sym', 'pycvodes')

@@ -180,7 +180,8 @@ class SymbolicSys(ODESys):
 
     _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
                       'latex_names', 'latex_param_names', 'description', 'linear_invariants',
-                      'linear_invariant_names', 'to_arrays_callbacks', '_indep_autonomous_key')
+                      'linear_invariant_names', 'to_arrays_callbacks', '_indep_autonomous_key',
+                      'taken_names')
     append_iv = True
 
     @property
