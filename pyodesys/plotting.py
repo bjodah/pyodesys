@@ -112,7 +112,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
         ax.axhline(thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)
         ax.axhline(-thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)
 
-    labels = names if latex_names is None else ['$%s$' % ln for ln in latex_names]
+    labels = names if latex_names is None else ['$%s$' % ln.strip('$') for ln in latex_names]
 
     for idx in indices:
         ax.plot(x, _y[:, idx], **plot_kwargs_cb(
