@@ -1601,7 +1601,6 @@ def test_SymbolicSys_as_autonomous__scaling__by_name():
     compare_autonomous(1000)
 
 
-
 @requires('sym', 'pycvodes')
 def _test_chained_parameter_variation(odesys_proc):
     def f(t, y, p):
