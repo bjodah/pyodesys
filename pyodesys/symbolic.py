@@ -180,7 +180,8 @@ class SymbolicSys(ODESys):
 
     _attrs_to_copy = ('first_step_expr', 'names', 'param_names', 'dep_by_name', 'par_by_name',
                       'latex_names', 'latex_param_names', 'description', 'linear_invariants',
-                      'linear_invariant_names', 'to_arrays_callbacks', '_indep_autonomous_key')
+                      'linear_invariant_names', 'to_arrays_callbacks', '_indep_autonomous_key',
+                      'taken_names')
     append_iv = True
 
     @property
@@ -452,12 +453,13 @@ class SymbolicSys(ODESys):
         """ Number of dependent variables in the system. """
         return len(self.exprs)
 
-    def as_autonomous(self, indep_name=None, latex_indep_name=None):
+    def as_autonomous(self, new_indep_name=None, new_latex_indep_name=None):
         if self.autonomous_exprs:
             return self
-        new_names = () if not self.names else (self.names + (self.indep_name or _get_indep_name(self.names),))
-        new_indep_name = indep_name or _get_indep_name(new_names)
-        new_latex_indep_name = latex_indep_name
+        old_indep_name = self.indep_name or _get_indep_name(self.names)
+        new_names = () if not self.names else (self.names + (old_indep_name,))
+        new_indep_name = new_indep_name or _get_indep_name(new_names)
+        new_latex_indep_name = new_latex_indep_name
         new_latex_names = () if not self.latex_names else (
             self.latex_names + (new_latex_indep_name,))
         new_indep = self.be.Symbol(new_indep_name)
@@ -471,7 +473,7 @@ class SymbolicSys(ODESys):
             autonomous_interface=False,  # see pre-processor below
         )
         if new_names:
-            new_kw['taken_names'] = self.taken_names + (self.indep_name,)
+            new_kw['taken_names'] = self.taken_names + (old_indep_name,)
         if self.linear_invariants:
             new_kw['linear_invariants'] = np.concatenate(
                 (self.linear_invariants, np.zeros((self.linear_invariants.shape[0], 1))), axis=-1)

@@ -213,6 +213,7 @@ class Result(object):
                 (', success' if self.info['success'] else ', failed'),
                 {'fontsize': 'medium'} if title_info > 1 else {}
             )
+        return ax
 
     def plot_phase_plane(self, indices=None, **kwargs):
         """ Plots a phase portrait from last integration.
