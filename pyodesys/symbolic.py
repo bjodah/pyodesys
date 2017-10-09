@@ -9,7 +9,8 @@ solved systems.
 from __future__ import absolute_import, division, print_function
 
 from collections import OrderedDict
-from itertools import repeat
+from itertools import repeat, chain
+import warnings
 
 import numpy as np
 
@@ -195,8 +196,8 @@ class SymbolicSys(ODESys):
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
                  linear_invariants=None, nonlinear_invariants=None,
-                 linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False, init_indep=None,
-                 init_dep=None, **kwargs):
+                 linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False,
+                 init_indep=None, init_dep=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
         if params is True or params is None:
@@ -422,6 +423,19 @@ class SymbolicSys(ODESys):
 
     @classmethod
     def from_other(cls, ori, **kwargs):
+        """ Creates a new instance with an existing one as a template.
+
+        Parameters
+        ----------
+        ori : SymbolicSys instance
+        \\*\\*kwargs:
+            Keyword arguments used to create the new instance.
+
+        Returns
+        -------
+        A new instance of the class.
+
+        """
         for k in cls._attrs_to_copy + ('params', 'roots', 'init_indep', 'init_dep'):
             if k not in kwargs:
                 val = getattr(ori, k)
@@ -441,12 +455,81 @@ class SymbolicSys(ODESys):
             if 'post_processors' not in kwargs:
                 kwargs['post_processors'] = []
             kwargs['post_processors'] = ori.post_processors + kwargs['post_processors']
+        if 'dep_exprs' not in kwargs:
+            kwargs['dep_exprs'] = zip(ori.dep, ori.exprs)
+        if 'indep' not in kwargs:
+            kwargs['indep'] = ori.indep
 
-        instance = cls(zip(ori.dep, ori.exprs), ori.indep, **kwargs)
+        instance = cls(**kwargs)
         for attr in ori._attrs_to_copy:
             if attr not in cls._attrs_to_copy:
                 setattr(instance, attr, getattr(ori, attr))
         return instance
+
+    @classmethod
+    def from_other_new_params(cls, ori, par_subs, new_pars, new_par_names=None,
+                              new_latex_par_names=None, **kwargs):
+        """ Creates a new instance with an existing one as a template (with new parameters)
+
+        Calls ``.from_other`` but first it replaces some parameters according to ``par_subs``
+        and (optionally) introduces new parameters given in ``new_pars``.
+
+        Parameters
+        ----------
+        ori : SymbolicSys instance
+        par_subs : dict
+            Dictionary with substitutions (mapping symbols to new expressions) for parameters.
+            Parameters appearing in this instance will be omitted in the new instance.
+        new_pars : iterable (optional)
+            Iterable of symbols for new parameters.
+        new_par_names : iterable of str
+            Names of the new parameters given in ``new_pars``.
+        new_latex_par_names : iterable of str
+            TeX formatted names of the new parameters given in ``new_pars``.
+        \\*\\*kwargs:
+            Keyword arguments passed to ``.from_other``.
+
+        """
+        new_exprs = [expr.subs(par_subs) for expr in ori.exprs]
+        drop_idxs = [ori.params.index(par) for par in par_subs]
+
+        #new = list(zip(ori.params, ori.param_names, ori.latex_param_names))
+        return cls.from_other(
+            ori, dep_exprs=zip(ori.dep, new_exprs),
+            params=[p for idx, p in enumerate(ori.params) if idx not in drop_idxs] + list(new_pars),
+            param_names=[pn for idx, pn in enumerate(ori.param_names) if idx not in drop_idxs] + list(new_par_names or []),
+            latex_param_names=[ln for idx, ln in enumerate(ori.latex_param_names) if idx not in drop_idxs] + list(new_latex_par_names or []),
+        )
+
+    @classmethod
+    def from_other_new_params_by_name(cls, ori, par_subs, new_par_names=(), **kwargs):
+        """ Creates a new instance with an existing one as a template (with new parameters)
+
+        Calls ``.from_other_new_params`` but first it creates the new instances from user provided
+        callbacks generating the expressions the parameter substitutions.
+
+        Parameters
+        ----------
+        ori : SymbolicSys instance
+        par_subs : dict mapping str to ``f(t, y{}, p{}) -> expr``
+            User provided callbacks for parameter names in ``ori``.
+        new_par_names : iterable of str
+        \\*\\*kwargs:
+            Keyword arguments passed to ``.from_other_new_params``.
+
+        """
+        if not ori.dep_by_name:
+            warnings.warn('dep_by_name is not True')
+        if not ori.par_by_name:
+            warnings.warn('par_by_name is not True')
+        dep = dict(zip(ori.names, ori.dep))
+        new_pars = ori.be.real_symarray(
+            'p', len(ori.params) + len(new_par_names))[-len(new_par_names):]
+        par = dict(chain(zip(ori.param_names, ori.params), zip(new_par_names, new_pars)))
+        par_symb_subs = {ori.params[ori.param_names.index(pk)]: cb(ori.indep, dep, par) for
+                         pk, cb in par_subs.items()}
+        return cls.from_other_new_params(
+            ori, par_symb_subs, new_pars, new_par_names=new_par_names, **kwargs)
 
     @property
     def ny(self):
