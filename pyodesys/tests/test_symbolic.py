@@ -1664,9 +1664,11 @@ def test_chained_parameter_variation():
 @requires('sym', 'pycvodes')
 def test_SymbolicSys_from_other_new_params():
     odesys = _get_decay3()
+    assert len(odesys.params) == 3
     p0, p1, p2 = odesys.params
     p3, = odesys.be.real_symarray('p', len(odesys.params)+1)[-1:]
     newode = SymbolicSys.from_other_new_params(odesys, {p0: p3 - 1, p1: p3 + 1}, (p3,))
+    assert len(newode.params) == 2
     tout = np.array([0.3, 0.4, 0.7, 0.9, 1.3, 1.7, 1.8, 2.1])
     y0 = [7, 5, 2]
     p_vals = [5, 3]
@@ -1675,14 +1677,17 @@ def test_SymbolicSys_from_other_new_params():
     ref1 = np.array(bateman_full(y0, k, res1.xout - res1.xout[0], exp=np.exp)).T
     assert np.allclose(res1.yout, ref1)
 
+
 @requires('sym', 'pycvodes')
 def test_SymbolicSys_from_other_new_params_by_name():
     yn, pn = 'x y z'.split(), 'p q r'.split()
     odesys = _get_decay3_names(yn, pn)
+    assert len(odesys.params) == 3
     newode = SymbolicSys.from_other_new_params_by_name(odesys, {
-        'p': lambda x, y, p: p['s'] - 1,
-        'q': lambda x, y, p: p['s'] + 1,
+        'p': lambda x, y, p, backend: p['s'] - 1,
+        'q': lambda x, y, p, backend: p['s'] + 1,
     }, ('s',))
+    assert len(newode.params) == 2
     tout = np.array([0.3, 0.4, 0.7, 0.9, 1.3, 1.7, 1.8, 2.1])
     y0 = {'x': 7, 'y': 5, 'z': 2}
     p_vals = {'r': 5, 's': 3}

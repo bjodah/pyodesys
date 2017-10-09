@@ -492,8 +492,6 @@ class SymbolicSys(ODESys):
         """
         new_exprs = [expr.subs(par_subs) for expr in ori.exprs]
         drop_idxs = [ori.params.index(par) for par in par_subs]
-
-        #new = list(zip(ori.params, ori.param_names, ori.latex_param_names))
         return cls.from_other(
             ori, dep_exprs=zip(ori.dep, new_exprs),
             params=[p for idx, p in enumerate(ori.params) if idx not in drop_idxs] + list(new_pars),
@@ -524,10 +522,10 @@ class SymbolicSys(ODESys):
             warnings.warn('par_by_name is not True')
         dep = dict(zip(ori.names, ori.dep))
         new_pars = ori.be.real_symarray(
-            'p', len(ori.params) + len(new_par_names))[-len(new_par_names):]
+            'p', len(ori.params) + len(new_par_names))[len(ori.params):]
         par = dict(chain(zip(ori.param_names, ori.params), zip(new_par_names, new_pars)))
-        par_symb_subs = {ori.params[ori.param_names.index(pk)]: cb(ori.indep, dep, par) for
-                         pk, cb in par_subs.items()}
+        par_symb_subs = {ori.params[ori.param_names.index(pk)]: cb(
+            ori.indep, dep, par, backend=ori.be) for pk, cb in par_subs.items()}
         return cls.from_other_new_params(
             ori, par_symb_subs, new_pars, new_par_names=new_par_names, **kwargs)
 
@@ -542,7 +540,7 @@ class SymbolicSys(ODESys):
         old_indep_name = self.indep_name or _get_indep_name(self.names)
         new_names = () if not self.names else (self.names + (old_indep_name,))
         new_indep_name = new_indep_name or _get_indep_name(new_names)
-        new_latex_indep_name = new_latex_indep_name
+        new_latex_indep_name = new_latex_indep_name or new_indep_name
         new_latex_names = () if not self.latex_names else (
             self.latex_names + (new_latex_indep_name,))
         new_indep = self.be.Symbol(new_indep_name)
