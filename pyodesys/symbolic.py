@@ -96,6 +96,25 @@ def _is_autonomous(indep, exprs):
     return True
 
 
+def _skip(indices, iterable, as_array=True):
+    result = [elem for idx, elem in enumerate(iterable) if idx not in indices]
+    return np.asarray(result) if as_array else result
+
+
+def _reinsert(indices, arr, new):
+    trail_dim = arr.shape[-1]+len(indices)
+    new_arr = np.empty(arr.shape[:-1] + (trail_dim,))
+    idx_arr, idx_insert = 0, 0
+    for glbl in range(trail_dim):
+        if glbl in indices:
+            new_arr[..., glbl] = new[..., idx_insert]
+            idx_insert += 1
+        else:
+            new_arr[..., glbl] = arr[..., idx_arr]
+            idx_arr += 1
+    return new_arr
+
+
 class SymbolicSys(ODESys):
     """ ODE System from symbolic expressions
 
@@ -322,10 +341,10 @@ class SymbolicSys(ODESys):
             cont = [cont[k] for k in keys]
         return cont
 
-    def to_arrays(self, x, y, p, callbacks=None):
+    def to_arrays(self, x, y, p, **kwargs):
         y = self._to_array(y, self.dep_by_name, self.names, self.dep)
         p = self._to_array(p, self.par_by_name, self.param_names, self.params)
-        return super(SymbolicSys, self).to_arrays(x, y, p, callbacks=callbacks)
+        return super(SymbolicSys, self).to_arrays(x, y, p, **kwargs)
 
     @staticmethod
     def _kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be):
@@ -489,15 +508,31 @@ class SymbolicSys(ODESys):
         \\*\\*kwargs:
             Keyword arguments passed to ``.from_other``.
 
+        Returns
+        -------
+        Intance of the class
+        extra : dict with keys:
+            - recalc_params : ``f(t, y, p1) -> p0``
+
         """
         new_exprs = [expr.subs(par_subs) for expr in ori.exprs]
         drop_idxs = [ori.params.index(par) for par in par_subs]
+        params = _skip(drop_idxs, ori.params, False) + list(new_pars)
+        back_substitute = _Callback(ori.indep, ori.dep, params, list(par_subs.values()),
+                                    ori.be.Lambdify)
+
+        def recalc_params(t, y, p):
+            rev = back_substitute(t, y, p)
+            return _reinsert(drop_idxs, np.repeat(np.atleast_2d(p), rev.shape[0], axis=0),
+                             rev)[..., :len(ori.params)]
+
         return cls.from_other(
             ori, dep_exprs=zip(ori.dep, new_exprs),
-            params=[p for idx, p in enumerate(ori.params) if idx not in drop_idxs] + list(new_pars),
-            param_names=[pn for idx, pn in enumerate(ori.param_names) if idx not in drop_idxs] + list(new_par_names or []),
-            latex_param_names=[ln for idx, ln in enumerate(ori.latex_param_names) if idx not in drop_idxs] + list(new_latex_par_names or []),
-        )
+            params=params,
+            param_names=_skip(drop_idxs, ori.param_names, False) + list(new_par_names or []),
+            latex_param_names=_skip(drop_idxs, ori.latex_param_names, False) + list(new_latex_par_names or []),
+            **kwargs
+        ), {'recalc_params': recalc_params}
 
     @classmethod
     def from_other_new_params_by_name(cls, ori, par_subs, new_par_names=(), **kwargs):
@@ -524,8 +559,8 @@ class SymbolicSys(ODESys):
         new_pars = ori.be.real_symarray(
             'p', len(ori.params) + len(new_par_names))[len(ori.params):]
         par = dict(chain(zip(ori.param_names, ori.params), zip(new_par_names, new_pars)))
-        par_symb_subs = {ori.params[ori.param_names.index(pk)]: cb(
-            ori.indep, dep, par, backend=ori.be) for pk, cb in par_subs.items()}
+        par_symb_subs = OrderedDict([(ori.params[ori.param_names.index(pk)], cb(
+            ori.indep, dep, par, backend=ori.be)) for pk, cb in par_subs.items()])
         return cls.from_other_new_params(
             ori, par_symb_subs, new_pars, new_par_names=new_par_names, **kwargs)
 
@@ -1030,9 +1065,6 @@ class ScaledSys(TransformedSys):
         )
 
 
-def _skip(indices, iterable):
-    return np.asarray([elem for idx, elem in enumerate(iterable) if idx not in indices])
-
 
 def _append(arr, *iterables):
     if isinstance(arr, np.ndarray):
@@ -1041,10 +1073,6 @@ def _append(arr, *iterables):
     for iterable in iterables:
         arr += type(arr)(iterable)
     return arr
-
-
-# def _concat(*args):
-#     return np.concatenate(list(map(np.atleast_1d, args)))
 
 
 class PartiallySolvedSystem(SymbolicSys):
@@ -1154,11 +1182,11 @@ class PartiallySolvedSystem(SymbolicSys):
                                                                               if i not in self.ori_analyt_idx_map]]
 
         def partially_solved_pre_processor(x, y, p):
-            if isinstance(y, dict) and not self.dep_by_name:
-                y = [y[k] for k in self._ori_sys.dep]
-            if isinstance(p, dict) and not self.par_by_name:
-                p = [p[k] for k in self._ori_sys.params]
-            x, y, p = map(np.atleast_1d, (x, y, p))
+            # if isinstance(y, dict) and not self.dep_by_name:
+            #     y = [y[k] for k in self._ori_sys.dep]
+            # if isinstance(p, dict) and not self.par_by_name:
+            #     p = [p[k] for k in self._ori_sys.params]
+            # x, y, p = map(np.atleast_1d, (x, y, p))
             if y.ndim == 2:
                 return zip(*[partially_solved_pre_processor(_x, _y, _p)
                              for _x, _y, _p in zip(x, y, p)])
@@ -1252,7 +1280,6 @@ class PartiallySolvedSystem(SymbolicSys):
 
     @staticmethod
     def _get_analytic_callback(ori_sys, analytic_exprs, new_dep, new_params):
-        # args = _concat()
         return _Callback(ori_sys.indep, new_dep, new_params, analytic_exprs, ori_sys.be.Lambdify)
 
     def __getitem__(self, key):
