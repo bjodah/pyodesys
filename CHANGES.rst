@@ -1,3 +1,10 @@
+v0.11.2
+=======
+- to_arrays now accepts a kwarg 'reshape'
+- New (convenience) methods for SymbolicSys:
+    - from_other_new_params
+    - from_other_new_params_by_name
+
 v0.11.1
 =======
 - Fixes to to_arrays (in combination with as_autonomous & from_other)
