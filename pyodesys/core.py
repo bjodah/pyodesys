@@ -219,7 +219,7 @@ class ODESys(object):
             tp = False
         return cont, tp
 
-    def to_arrays(self, x, y, p, callbacks=None):
+    def to_arrays(self, x, y, p, callbacks=None, reshape=True):
         try:
             nx = len(x)
         except TypeError:
@@ -248,20 +248,21 @@ class ODESys(object):
 
         arrs = [arr.T if tp else arr for tp, arr in
                 zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
-        extra_shape = None
-        for a in arrs:
-            if a.ndim == 1:
-                continue
-            elif a.ndim == 2:
-                if extra_shape is None:
-                    extra_shape = a.shape[0]
+        if reshape:
+            extra_shape = None
+            for a in arrs:
+                if a.ndim == 1:
+                    continue
+                elif a.ndim == 2:
+                    if extra_shape is None:
+                        extra_shape = a.shape[0]
+                    else:
+                        if extra_shape != a.shape[0]:
+                            raise ValueError("Size mismatch!")
                 else:
-                    if extra_shape != a.shape[0]:
-                        raise ValueError("Size mismatch!")
-            else:
-                raise NotImplementedError("Only 2 dimensions currently supported.")
-        if extra_shape is not None:
-            arrs = [a if a.ndim == 2 else np.tile(a, (extra_shape, 1)) for a in arrs]
+                    raise NotImplementedError("Only 2 dimensions currently supported.")
+            if extra_shape is not None:
+                arrs = [a if a.ndim == 2 else np.tile(a, (extra_shape, 1)) for a in arrs]
         return arrs
 
     def pre_process(self, xout, y0, params=()):

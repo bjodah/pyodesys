@@ -9,7 +9,8 @@ solved systems.
 from __future__ import absolute_import, division, print_function
 
 from collections import OrderedDict
-from itertools import repeat
+from itertools import repeat, chain
+import warnings
 
 import numpy as np
 
@@ -93,6 +94,25 @@ def _is_autonomous(indep, exprs):
         if in_there:
             return False
     return True
+
+
+def _skip(indices, iterable, as_array=True):
+    result = [elem for idx, elem in enumerate(iterable) if idx not in indices]
+    return np.asarray(result) if as_array else result
+
+
+def _reinsert(indices, arr, new):
+    trail_dim = arr.shape[-1]+len(indices)
+    new_arr = np.empty(arr.shape[:-1] + (trail_dim,))
+    idx_arr, idx_insert = 0, 0
+    for glbl in range(trail_dim):
+        if glbl in indices:
+            new_arr[..., glbl] = new[..., idx_insert]
+            idx_insert += 1
+        else:
+            new_arr[..., glbl] = arr[..., idx_arr]
+            idx_arr += 1
+    return new_arr
 
 
 class SymbolicSys(ODESys):
@@ -195,8 +215,8 @@ class SymbolicSys(ODESys):
     def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
                  linear_invariants=None, nonlinear_invariants=None,
-                 linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False, init_indep=None,
-                 init_dep=None, **kwargs):
+                 linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False,
+                 init_indep=None, init_dep=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
         if params is True or params is None:
@@ -321,10 +341,10 @@ class SymbolicSys(ODESys):
             cont = [cont[k] for k in keys]
         return cont
 
-    def to_arrays(self, x, y, p, callbacks=None):
+    def to_arrays(self, x, y, p, **kwargs):
         y = self._to_array(y, self.dep_by_name, self.names, self.dep)
         p = self._to_array(p, self.par_by_name, self.param_names, self.params)
-        return super(SymbolicSys, self).to_arrays(x, y, p, callbacks=callbacks)
+        return super(SymbolicSys, self).to_arrays(x, y, p, **kwargs)
 
     @staticmethod
     def _kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be):
@@ -422,6 +442,19 @@ class SymbolicSys(ODESys):
 
     @classmethod
     def from_other(cls, ori, **kwargs):
+        """ Creates a new instance with an existing one as a template.
+
+        Parameters
+        ----------
+        ori : SymbolicSys instance
+        \\*\\*kwargs:
+            Keyword arguments used to create the new instance.
+
+        Returns
+        -------
+        A new instance of the class.
+
+        """
         for k in cls._attrs_to_copy + ('params', 'roots', 'init_indep', 'init_dep'):
             if k not in kwargs:
                 val = getattr(ori, k)
@@ -441,12 +474,95 @@ class SymbolicSys(ODESys):
             if 'post_processors' not in kwargs:
                 kwargs['post_processors'] = []
             kwargs['post_processors'] = ori.post_processors + kwargs['post_processors']
+        if 'dep_exprs' not in kwargs:
+            kwargs['dep_exprs'] = zip(ori.dep, ori.exprs)
+        if 'indep' not in kwargs:
+            kwargs['indep'] = ori.indep
 
-        instance = cls(zip(ori.dep, ori.exprs), ori.indep, **kwargs)
+        instance = cls(**kwargs)
         for attr in ori._attrs_to_copy:
             if attr not in cls._attrs_to_copy:
                 setattr(instance, attr, getattr(ori, attr))
         return instance
+
+    @classmethod
+    def from_other_new_params(cls, ori, par_subs, new_pars, new_par_names=None,
+                              new_latex_par_names=None, **kwargs):
+        """ Creates a new instance with an existing one as a template (with new parameters)
+
+        Calls ``.from_other`` but first it replaces some parameters according to ``par_subs``
+        and (optionally) introduces new parameters given in ``new_pars``.
+
+        Parameters
+        ----------
+        ori : SymbolicSys instance
+        par_subs : dict
+            Dictionary with substitutions (mapping symbols to new expressions) for parameters.
+            Parameters appearing in this instance will be omitted in the new instance.
+        new_pars : iterable (optional)
+            Iterable of symbols for new parameters.
+        new_par_names : iterable of str
+            Names of the new parameters given in ``new_pars``.
+        new_latex_par_names : iterable of str
+            TeX formatted names of the new parameters given in ``new_pars``.
+        \\*\\*kwargs:
+            Keyword arguments passed to ``.from_other``.
+
+        Returns
+        -------
+        Intance of the class
+        extra : dict with keys:
+            - recalc_params : ``f(t, y, p1) -> p0``
+
+        """
+        new_exprs = [expr.subs(par_subs) for expr in ori.exprs]
+        drop_idxs = [ori.params.index(par) for par in par_subs]
+        params = _skip(drop_idxs, ori.params, False) + list(new_pars)
+        back_substitute = _Callback(ori.indep, ori.dep, params, list(par_subs.values()),
+                                    ori.be.Lambdify)
+
+        def recalc_params(t, y, p):
+            rev = back_substitute(t, y, p)
+            return _reinsert(drop_idxs, np.repeat(np.atleast_2d(p), rev.shape[0], axis=0),
+                             rev)[..., :len(ori.params)]
+
+        return cls.from_other(
+            ori, dep_exprs=zip(ori.dep, new_exprs),
+            params=params,
+            param_names=_skip(drop_idxs, ori.param_names, False) + list(new_par_names or []),
+            latex_param_names=_skip(drop_idxs, ori.latex_param_names, False) + list(new_latex_par_names or []),
+            **kwargs
+        ), {'recalc_params': recalc_params}
+
+    @classmethod
+    def from_other_new_params_by_name(cls, ori, par_subs, new_par_names=(), **kwargs):
+        """ Creates a new instance with an existing one as a template (with new parameters)
+
+        Calls ``.from_other_new_params`` but first it creates the new instances from user provided
+        callbacks generating the expressions the parameter substitutions.
+
+        Parameters
+        ----------
+        ori : SymbolicSys instance
+        par_subs : dict mapping str to ``f(t, y{}, p{}) -> expr``
+            User provided callbacks for parameter names in ``ori``.
+        new_par_names : iterable of str
+        \\*\\*kwargs:
+            Keyword arguments passed to ``.from_other_new_params``.
+
+        """
+        if not ori.dep_by_name:
+            warnings.warn('dep_by_name is not True')
+        if not ori.par_by_name:
+            warnings.warn('par_by_name is not True')
+        dep = dict(zip(ori.names, ori.dep))
+        new_pars = ori.be.real_symarray(
+            'p', len(ori.params) + len(new_par_names))[len(ori.params):]
+        par = dict(chain(zip(ori.param_names, ori.params), zip(new_par_names, new_pars)))
+        par_symb_subs = OrderedDict([(ori.params[ori.param_names.index(pk)], cb(
+            ori.indep, dep, par, backend=ori.be)) for pk, cb in par_subs.items()])
+        return cls.from_other_new_params(
+            ori, par_symb_subs, new_pars, new_par_names=new_par_names, **kwargs)
 
     @property
     def ny(self):
@@ -459,7 +575,7 @@ class SymbolicSys(ODESys):
         old_indep_name = self.indep_name or _get_indep_name(self.names)
         new_names = () if not self.names else (self.names + (old_indep_name,))
         new_indep_name = new_indep_name or _get_indep_name(new_names)
-        new_latex_indep_name = new_latex_indep_name
+        new_latex_indep_name = new_latex_indep_name or new_indep_name
         new_latex_names = () if not self.latex_names else (
             self.latex_names + (new_latex_indep_name,))
         new_indep = self.be.Symbol(new_indep_name)
@@ -949,10 +1065,6 @@ class ScaledSys(TransformedSys):
         )
 
 
-def _skip(indices, iterable):
-    return np.asarray([elem for idx, elem in enumerate(iterable) if idx not in indices])
-
-
 def _append(arr, *iterables):
     if isinstance(arr, np.ndarray):
         return np.concatenate((arr,) + iterables)
@@ -960,10 +1072,6 @@ def _append(arr, *iterables):
     for iterable in iterables:
         arr += type(arr)(iterable)
     return arr
-
-
-# def _concat(*args):
-#     return np.concatenate(list(map(np.atleast_1d, args)))
 
 
 class PartiallySolvedSystem(SymbolicSys):
@@ -1073,11 +1181,11 @@ class PartiallySolvedSystem(SymbolicSys):
                                                                               if i not in self.ori_analyt_idx_map]]
 
         def partially_solved_pre_processor(x, y, p):
-            if isinstance(y, dict) and not self.dep_by_name:
-                y = [y[k] for k in self._ori_sys.dep]
-            if isinstance(p, dict) and not self.par_by_name:
-                p = [p[k] for k in self._ori_sys.params]
-            x, y, p = map(np.atleast_1d, (x, y, p))
+            # if isinstance(y, dict) and not self.dep_by_name:
+            #     y = [y[k] for k in self._ori_sys.dep]
+            # if isinstance(p, dict) and not self.par_by_name:
+            #     p = [p[k] for k in self._ori_sys.params]
+            # x, y, p = map(np.atleast_1d, (x, y, p))
             if y.ndim == 2:
                 return zip(*[partially_solved_pre_processor(_x, _y, _p)
                              for _x, _y, _p in zip(x, y, p)])
@@ -1171,7 +1279,6 @@ class PartiallySolvedSystem(SymbolicSys):
 
     @staticmethod
     def _get_analytic_callback(ori_sys, analytic_exprs, new_dep, new_params):
-        # args = _concat()
         return _Callback(ori_sys.indep, new_dep, new_params, analytic_exprs, ori_sys.be.Lambdify)
 
     def __getitem__(self, key):
