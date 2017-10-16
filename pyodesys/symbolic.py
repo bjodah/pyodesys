@@ -1065,7 +1065,6 @@ class ScaledSys(TransformedSys):
         )
 
 
-
 def _append(arr, *iterables):
     if isinstance(arr, np.ndarray):
         return np.concatenate((arr,) + iterables)

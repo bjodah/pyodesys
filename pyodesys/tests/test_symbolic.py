@@ -2,7 +2,7 @@
 
 from __future__ import print_function, absolute_import, division
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from itertools import product
 import math
 
@@ -1685,10 +1685,12 @@ def test_SymbolicSys_from_other_new_params_by_name():
     yn, pn = 'x y z'.split(), 'p q r'.split()
     odesys = _get_decay3_names(yn, pn)
     assert len(odesys.params) == 3
-    newode, extra = SymbolicSys.from_other_new_params_by_name(odesys, {
-        'p': lambda x, y, p, backend: p['s'] - 1,
-        'q': lambda x, y, p, backend: p['s'] + 1,
-    }, ('s',))
+    newode, extra = SymbolicSys.from_other_new_params_by_name(
+        odesys, OrderedDict([
+            ('p', lambda x, y, p, backend: p['s'] - 1),
+            ('q', lambda x, y, p, backend: p['s'] + 1)
+        ]), ('s',)
+    )
     assert len(newode.params) == 2
     tout = np.array([0.3, 0.4, 0.7, 0.9, 1.3, 1.7, 1.8, 2.1])
     y0 = {'x': 7, 'y': 5, 'z': 2}
@@ -1702,4 +1704,4 @@ def test_SymbolicSys_from_other_new_params_by_name():
     )).T
     assert np.allclose(res1.yout, ref1)
     orip = extra['recalc_params'](res1.xout, res1.yout, res1.params)
-    assert np.allclose(orip, np.atleast_2d([3-1, 3+1, 5]))
+    assert np.allclose(orip, np.atleast_2d(k))
