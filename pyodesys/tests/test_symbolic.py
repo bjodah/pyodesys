@@ -1667,7 +1667,10 @@ def test_SymbolicSys_from_other_new_params():
     assert len(odesys.params) == 3
     p0, p1, p2 = odesys.params
     p3, = odesys.be.real_symarray('p', len(odesys.params)+1)[-1:]
-    newode, extra = SymbolicSys.from_other_new_params(odesys, {p0: p3 - 1, p1: p3 + 1}, (p3,))
+    newode, extra = SymbolicSys.from_other_new_params(odesys, OrderedDict([
+            (p0, p3 - 1),
+            (p1, p3 + 1)
+        ]), (p3,))
     assert len(newode.params) == 2
     tout = np.array([0.3, 0.4, 0.7, 0.9, 1.3, 1.7, 1.8, 2.1])
     y0 = [7, 5, 2]

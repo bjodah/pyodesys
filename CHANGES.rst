@@ -1,3 +1,7 @@
+v0.11.3
+=======
+- Harden a intermittently failing test (dict ordering)
+
 v0.11.2
 =======
 - to_arrays now accepts a kwarg 'reshape'
