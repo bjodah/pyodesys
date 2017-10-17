@@ -1,3 +1,7 @@
+v0.11.4
+=======
+- Make sure nonlinear_invariants are copied in SymbolicSys.from_other.
+
 v0.11.3
 =======
 - Harden a intermittently failing test (dict ordering)
