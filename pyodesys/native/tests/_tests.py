@@ -111,6 +111,7 @@ def _test_PartiallySolvedSystem_Native(NativeSys, integrator):
 
     odesys = _get_decay3(lower_bounds=[0, 0, 0], linear_invariants=[[1, 1, 1]])
     n_sys = NativeSys.from_other(odesys)
+    assert odesys.linear_invariants == n_sys.linear_invariants
     scaledsys = ScaledSys.from_other(odesys, dep_scaling=42)
     ns_sys = NativeSys.from_other(scaledsys)
     partsys = PartiallySolvedSystem.from_linear_invariants(scaledsys)
@@ -120,7 +121,8 @@ def _test_PartiallySolvedSystem_Native(NativeSys, integrator):
     ll_partsys = LogLogSys.from_other(partsys)
     nll_scaledsys = NativeLogLogSys.from_other(scaledsys)
     nll_partsys = NativeLogLogSys.from_other(partsys)
-
+    assert len(ll_scaledsys.nonlinear_invariants) > 1
+    assert ll_scaledsys.nonlinear_invariants == nll_scaledsys.nonlinear_invariants
     y0 = [3.3, 2.4, 1.5]
     k = [3.5, 2.5, 0]
     systems = [odesys, n_sys, scaledsys, ns_sys, partsys, np_sys, ll_scaledsys, ll_partsys, nll_scaledsys, nll_partsys]
