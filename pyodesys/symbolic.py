@@ -203,7 +203,7 @@ class SymbolicSys(ODESys):
                       'linear_invariants', 'linear_invariant_names',
                       'nonlinear_invariants', 'nonlinear_invariant_names',
                       'to_arrays_callbacks', '_indep_autonomous_key',
-                      'taken_names')
+                      'taken_names', 'numpy')
     append_iv = True
 
     @property

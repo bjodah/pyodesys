@@ -146,7 +146,7 @@ class ODESys(object):
                  par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
                  taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
                  autonomous_interface=None, to_arrays_callbacks=None, autonomous_exprs=None,
-                 _indep_autonomous_key=None, **kwargs):
+                 _indep_autonomous_key=None, numpy=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.dfdx_cb = dfdx
@@ -185,6 +185,7 @@ class ODESys(object):
             raise ValueError("autonomous_interface needs to be a boolean value or None.")
         self._indep_autonomous_key = _indep_autonomous_key
         self.to_arrays_callbacks = to_arrays_callbacks
+        self.numpy = numpy or np
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s" % str(kwargs))
 
@@ -197,7 +198,7 @@ class ODESys(object):
         else:
             if not all(l == lens[0] for l in lens):
                 raise ValueError("Mixed lenghts in dictionary.")
-            out = np.empty((lens[0], len(vals)), dtype=object)
+            out = self.numpy.empty((lens[0], len(vals)), dtype=object)
             for idx, v in enumerate(vals):
                 if getattr(v, 'ndim', -1) == 0:
                     for j in range(lens[0]):
@@ -237,17 +238,17 @@ class ODESys(object):
             if len(callbacks) != 3:
                 raise ValueError("Need 3 callbacks/None values.")
             _x, _y, _p = [e if cb is None else cb(e) for cb, e in zip(callbacks, [_x, _y, _p])]
-        _y = np.atleast_1d(_y)
+        _y = self.numpy.atleast_1d(_y)
         if self._indep_autonomous_key:
             if _y.shape[-1] == self.ny:
                 pass
             elif _y.shape[-1] == self.ny - 1:
-                _y = np.concatenate((_y, _x[0]*np.ones(_y.shape[:-1] + (1,))), axis=-1)
+                _y = self.numpy.concatenate((_y, _x[0]*self.numpy.ones(_y.shape[:-1] + (1,))), axis=-1)
             else:
                 raise ValueError("y of incorrect shape")
 
         arrs = [arr.T if tp else arr for tp, arr in
-                zip([False, tp_y, tp_p], map(np.atleast_1d, (_x, _y, _p)))]
+                zip([False, tp_y, tp_p], map(self.numpy.atleast_1d, (_x, _y, _p)))]
         if reshape:
             extra_shape = None
             for a in arrs:
@@ -262,14 +263,14 @@ class ODESys(object):
                 else:
                     raise NotImplementedError("Only 2 dimensions currently supported.")
             if extra_shape is not None:
-                arrs = [a if a.ndim == 2 else np.tile(a, (extra_shape, 1)) for a in arrs]
+                arrs = [a if a.ndim == 2 else self.numpy.tile(a, (extra_shape, 1)) for a in arrs]
         return arrs
 
     def pre_process(self, xout, y0, params=()):
         """ Transforms input to internal values, used internally. """
         for pre_processor in self.pre_processors:
             xout, y0, params = pre_processor(xout, y0, params)
-        return [np.atleast_1d(arr) for arr in (xout, y0, params)]
+        return [self.numpy.atleast_1d(arr) for arr in (xout, y0, params)]
 
     def post_process(self, xout, yout, params):
         """ Transforms internal values to output, used internally. """
@@ -385,7 +386,7 @@ class ODESys(object):
             raise ValueError("Pre-processor made ndims inconsistent?")
 
         if self.append_iv:
-            _p = np.concatenate((_p, _y), axis=-1)
+            _p = self.numpy.concatenate((_p, _y), axis=-1)
 
         if hasattr(self, 'ny'):
             if _y.shape[-1] != self.ny:
@@ -400,7 +401,7 @@ class ODESys(object):
         if integrator is None:
             integrator = os.environ.get('PYODESYS_INTEGRATOR', 'scipy')
 
-        args = tuple(map(np.atleast_2d, (_x, _y, _p)))
+        args = tuple(map(self.numpy.atleast_2d, (_x, _y, _p)))
 
         self._current_integration_kwargs = kwargs
         if isinstance(integrator, str):
@@ -864,7 +865,7 @@ integrate_chained = integrate_auto_switch  # deprecated name
 
 
 def chained_parameter_variation(subject, durations, y0, varied_params, default_params=None,
-                                integrate_kwargs=None, x0=None, npoints=1):
+                                integrate_kwargs=None, x0=None, npoints=1, numpy=None):
     """ Integrate an ODE-system for a serie of durations with some parameters changed in-between
 
     Parameters
@@ -895,8 +896,10 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
 
     if isinstance(subject, ODESys):
         integrate = subject.integrate
+        numpy = numpy or subject.numpy
     else:
         integrate = subject
+        numpy = numpy or np
 
     default_params = default_params or {}
     integrate_kwargs = integrate_kwargs or {}
@@ -908,7 +911,7 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
         else:
             return cont[idx]
 
-    durations = np.cumsum(durations)
+    durations = numpy.cumsum(durations)
     for idx_dur in range(len(durations)):
         params = default_params.copy()
         for k, v in varied_params.items():
@@ -916,7 +919,7 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
         if idx_dur == 0:
             if x0 is None:
                 x0 = durations[0]*0
-            out = integrate(np.linspace(x0, durations[0], npoints + 1), y0, params, **integrate_kwargs)
+            out = integrate(numpy.linspace(x0, durations[0], npoints + 1), y0, params, **integrate_kwargs)
         else:
             if isinstance(out, Result):
                 out.extend_by_integration(durations[idx_dur], params, npoints=npoints, **integrate_kwargs)
