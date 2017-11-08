@@ -190,7 +190,7 @@ class ODESys(object):
             raise ValueError("Unknown kwargs: %s" % str(kwargs))
 
     @staticmethod
-    def _array_from_dict(d, keys):
+    def _array_from_dict(d, keys, numpy=np):
         vals = [d[k] for k in keys]
         lens = [len(v) for v in vals if hasattr(v, '__len__') and getattr(v, 'ndim', 1) > 0]
         if len(lens) == 0:
@@ -198,7 +198,7 @@ class ODESys(object):
         else:
             if not all(l == lens[0] for l in lens):
                 raise ValueError("Mixed lenghts in dictionary.")
-            out = self.numpy.empty((lens[0], len(vals)), dtype=object)
+            out = numpy.empty((lens[0], len(vals)), dtype=object)
             for idx, v in enumerate(vals):
                 if getattr(v, 'ndim', -1) == 0:
                     for j in range(lens[0]):
@@ -215,7 +215,7 @@ class ODESys(object):
         if isinstance(cont, dict):
             if not by_name:
                 raise ValueError("not by name, yet a dictionary was passed.")
-            cont, tp = self._array_from_dict(cont, names)
+            cont, tp = self._array_from_dict(cont, names, numpy=self.numpy)
         else:
             tp = False
         return cont, tp
