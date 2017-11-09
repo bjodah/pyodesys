@@ -1,3 +1,7 @@
+v0.11.5
+=======
+- Introduced ODESys.numpy to allow user to used a patched numpy module. (e.g. for quantitites)
+
 v0.11.4
 =======
 - Make sure nonlinear_invariants are copied in SymbolicSys.from_other.
