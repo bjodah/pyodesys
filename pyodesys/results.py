@@ -247,23 +247,25 @@ class Result(object):
         x0 = self.xout[-1]
         nx0 = self.xout.size
         res = odesys.integrate(
-            np.linspace(0, (xend - x0), npoints+1) if autonomous else np.linspace(x0, xend, npoints+1),
-            self.yout[..., -1, :], params or self.params, **kwargs
+            (
+                self.odesys.numpy.linspace((xend - x0)*0, (xend - x0), npoints+1) if autonomous
+                else self.odesys.numpy.linspace(x0, xend, npoints+1)
+            ), self.yout[..., -1, :], params or self.params, **kwargs
         )
-        self.xout = np.concatenate((self.xout, res.xout[1:] + (x0 if autonomous else 0)))
-        self.yout = np.concatenate((self.yout, res.yout[..., 1:, :]))
+        self.xout = self.odesys.numpy.concatenate((self.xout, res.xout[1:] + (x0 if autonomous else 0)))
+        self.yout = self.odesys.numpy.concatenate((self.yout, res.yout[..., 1:, :]))
         new_info = {k: v for k, v in self.info.items() if not (
             k.startswith('internal') and odesys is not self.odesys)}
         for k, v in res.info.items():
             if k.startswith('internal'):
                 if odesys is self.odesys:
-                    new_info[k] = np.concatenate((new_info[k], v))
+                    new_info[k] = self.odesys.numpy.concatenate((new_info[k], v))
                 else:
                     continue
             elif k == 'success':
                 new_info[k] = new_info[k] and v
             elif k.endswith('_xvals'):
-                new_info[k] = np.concatenate((new_info[k], v + (x0 if autonomous else 0)))
+                new_info[k] = self.odesys.numpy.concatenate((new_info[k], v + (x0 if autonomous else 0)))
             elif k.endswith('_indices'):
                 new_info[k].extend([itm + nx0 - 1 for itm in v])
             elif isinstance(v, str):
