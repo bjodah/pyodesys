@@ -21,7 +21,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, latex_names=None, xlabel=None, ylabel=None,
-                xscale=None, yscale=None, legend=False, yerr=None):
+                xscale=None, yscale=None, legend=False, yerr=None, labels=None):
     """
     Plot the depepndent variables vs. the independent variable
 
@@ -60,6 +60,10 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
         if True => 20. negative integer signifies log-spaced grid.
     interp_from_deriv : callback (default: None)
         When ``None``: ``scipy.interpolate.BPoly.from_derivatives``
+    names : iterable of str
+    latex_names : iterable of str
+    labels : iterable of str
+        If ``None``, use ``latex_names`` or ``names`` (in that order).
 
     """
     import matplotlib.pyplot as plt
@@ -112,7 +116,8 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
         ax.axhline(thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)
         ax.axhline(-thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)
 
-    labels = names if latex_names is None else ['$%s$' % ln.strip('$') for ln in latex_names]
+    if labels is None:
+        labels = names if latex_names is None else ['$%s$' % ln.strip('$') for ln in latex_names]
 
     for idx in indices:
         ax.plot(x, _y[:, idx], **plot_kwargs_cb(
