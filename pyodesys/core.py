@@ -417,6 +417,8 @@ class ODESys(object):
             _params = [d['internal_params'] for d in nfo]
             res = [Result(*(self.post_process(_xout[i], _yout[i], _params[i]) + (nfo[i], self)))
                    for i in range(len(nfo))]
+            # if kwargs.get('chained', False):
+            #     res, = res
         else:
             _xout = nfo[0]['internal_xout']
             _yout = nfo[0]['internal_yout']

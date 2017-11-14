@@ -16,6 +16,7 @@ cimport numpy as cnp
 from odesys_anyode_iterative cimport OdeSys
 from cvodes_cxx cimport lmm_from_name, iter_type_from_name
 from cvodes_anyode_parallel cimport multi_predefined, multi_adaptive
+from cvodes_anyode cimport simple_adaptive
 
 import numpy as np
 
@@ -71,6 +72,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         cnp.npy_intp dims[2]
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
+        vector[int] local_root_indices
         list nfos = []
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
@@ -95,7 +97,10 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
-    if xend.size() != params.shape[0]:
+    if x0.size != y0.shape[0]:
+        raise ValueError("x0 of improper size")
+
+    if xend.size != params.shape[0]:
         raise ValueError("xend of improper size")
 
     if atol.size() == 1:
@@ -140,6 +145,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems[idx].record_jac_xvals = record_jac_xvals
         systems[idx].record_order = record_order
         systems[idx].record_fpe = record_fpe
+
+    for idx in range(y0.shape[0]):
         td_arr[idx] = nprealloc
         xyout_arr[idx] = <double *>malloc(nprealloc*(y0.shape[1]+1)*sizeof(double))
         xyout_arr[idx][0] = x0[idx]
@@ -149,16 +156,17 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     try:
         try:
             if chained:
+                durations = np.diff()
                 next_x = x0
                 for idx in range(params.shape[0]):
                     next_x += xend[idx]
                     tidx = simple_adaptive[OdeSys](
-                        xyout_arr, td_arr, atol, rtol, lmm_from_name(_lmm), next_x, root_indices, mxsteps,
+                        xyout_arr, td_arr, systems[idx], atol, rtol, lmm_from_name(_lmm), next_x, local_root_indices, mxsteps,
                         _dx0[idx], _dx_min[idx], _dx_max[idx], with_jacobian, iter_type_from_name(_iter_t),
                         linear_solver, maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error,
                         with_jtimes, tidx
                     )
-                result = [(nreached, root_indices)]
+                result = [(tidx, local_root_indices)]
             else:
                 result = multi_adaptive[OdeSys](
                     xyout_arr, td_arr,
