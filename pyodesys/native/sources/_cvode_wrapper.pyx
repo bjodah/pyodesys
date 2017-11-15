@@ -156,7 +156,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     try:
         try:
             if chained:
-                durations = np.diff()
+                # durations = np.concatenate(([xend[0] - x0[0]], np.diff(xend)))
                 next_x = x0
                 for idx in range(params.shape[0]):
                     next_x += xend[idx]

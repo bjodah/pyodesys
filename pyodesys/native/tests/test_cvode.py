@@ -252,5 +252,5 @@ def test_NativeSys__sequence_of_parameters():
 
     native = NativeSys.from_other(odesys)
     for e1 in [2, 3]:
-        res = native._integrate_native(durs, dep0, np.array([[e1], [e2]]), integrator='cvode')
+        res = native._integrate_native(np.cumsum(np.concatenate(([0], durs))), [dep0], np.array([[e1], [e2]]), chained=True)
         check(res)
