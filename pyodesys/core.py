@@ -888,6 +888,20 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
     npoints : int
         Number of points per sub-interval.
 
+    Examples
+    --------
+    >>> odesys = ODESys(lambda t, y, p: [-p[0]*y[0]])
+    >>> int_kw = dict(integrator='cvode', method='adams', atol=1e-12, rtol=1e-12)
+    >>> kwargs = dict(default_params=[0], integrate_kwargs=int_kw)
+    >>> res = chained_parameter_variation(odesys, [2, 3], [42], {0: [.7, .1]}, **kwargs)
+    >>> mask1 = res.xout <= 2
+    >>> import numpy as np
+    >>> np.allclose(res.yout[mask1, 0], 42*np.exp(-.7*res.xout[mask1]))
+    True
+    >>> mask2 = 2 <= res.xout
+    >>> np.allclose(res.yout[mask2, 0], res.yout[mask2, 0][0]*np.exp(-.1*(res.xout[mask2] - res.xout[mask2][0])))
+    True
+
     """
     assert len(durations) > 0, 'need at least 1 duration (preferably many)'
     for k, v in varied_params.items():
