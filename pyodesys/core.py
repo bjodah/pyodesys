@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function
 
 
 from collections import defaultdict
+import copy
 import os
 import warnings
 
@@ -927,7 +928,7 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
 
     durations = numpy.cumsum(durations)
     for idx_dur in range(len(durations)):
-        params = default_params.copy()
+        params = copy.copy(default_params)
         for k, v in varied_params.items():
             params[k] = v[idx_dur]
         if idx_dur == 0:
