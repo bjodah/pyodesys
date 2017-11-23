@@ -60,6 +60,8 @@ class Result(object):
             xdata = self.xout
         if ydata is None:
             ydata = self.yout
+        yunit = getattr(ydata, 'units', 1)
+        ydata = getattr(ydata, 'magnitude', ydata)
 
         if x == xdata[0]:
             res = ydata[0, :]
@@ -93,7 +95,7 @@ class Result(object):
                 res_lin = avgy + yspan/xspan*(x - avgx)
                 res, err = res_cub, np.abs(res_cub - np.asarray(res_lin))
 
-        return res, err
+        return res*yunit, err*yunit
 
     def _internal(self, key, override=None):
         if override is None:

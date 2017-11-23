@@ -506,6 +506,7 @@ def test_quantities_param_multi2():
         assert np.allclose(res.yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
 
 
+@requires('scipy')
 def test_chained_parameter_variation():
     durations = [1, 3, 2]
     y0 = [13, 7]
