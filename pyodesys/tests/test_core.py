@@ -11,6 +11,7 @@ from ..core import integrate_chained
 from ..util import requires
 
 
+@requires('pycvodes')
 def test_integrate():
     intkw = dict(integrator='cvode', method='adams')
     result2 = ODESys(lambda t, y, p: [-p[0]*y[0], p[0]*y[0]]).integrate(3, [42, 17], [.7], **intkw)
