@@ -6,9 +6,19 @@ from collections import OrderedDict
 
 import pytest
 import numpy as np
-from .. import ODESys, OdeSys  # OdeSys deprecated
+from .. import ODESys, OdeSys, chained_parameter_variation  # OdeSys deprecated
 from ..core import integrate_chained
 from ..util import requires
+
+
+@requires('pycvodes')
+def test_integrate():
+    intkw = dict(integrator='cvode', method='adams')
+    result2 = ODESys(lambda t, y, p: [-p[0]*y[0], p[0]*y[0]]).integrate(3, [42, 17], [.7], **intkw)
+    assert np.allclose(result2.yout[:, 0], 42*np.exp(-.7*result2.xout))
+    assert np.allclose(result2.yout[:, 1], 17 + 42*(1 - np.exp(-.7*result2.xout)))
+    result1 = ODESys(lambda t, y, p: [-p[0]*y[0]]).integrate(3, [42], [.7], **intkw)
+    assert np.allclose(result1.yout.squeeze(), 42*np.exp(-.7*result1.xout))
 
 
 def vdp_f(t, y, p):
@@ -495,3 +505,23 @@ def test_quantities_param_multi2():
         ]
         assert np.allclose(res.yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
         assert np.allclose(res.yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
+
+
+@requires('scipy')
+def test_chained_parameter_variation():
+    durations = [1, 3, 2]
+    y0 = [13, 7]
+    ks = [.3, .11, .7]
+    npoints = 3
+    res = chained_parameter_variation(ODESys(decay), durations, y0, {0: ks}, npoints=npoints, default_params=[0])
+    assert res.xout.size == npoints*len(durations) + 1
+    cumulative = 0.0
+    for k, dur in zip(ks, durations):
+        mask = (cumulative <= res.xout) & (res.xout <= cumulative + dur)
+        cumulative += dur
+        t, y = res.xout[mask], res.yout[mask, :]
+        a, b = y[:, 0], y[:, 1]
+        refa = a[0]*np.exp(-k*(t-t[0]))
+        refb = b[0] + a[0] - a
+        assert np.allclose(refa, a)
+        assert np.allclose(refb, b)
