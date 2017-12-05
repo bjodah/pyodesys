@@ -6,9 +6,8 @@ jobs:
       - image: continuumio/miniconda
     steps:
       - checkout
+      - run: apt-get --quiet --assume-yes install gcc g++
       - run: conda update python
-      - run: conda install gcc_linux-64
-      - run: conda install gxx_linux-64
       - run: conda install conda-build
       - run: conda config --add channels conda-forge
       - run: conda config --add channels bjodah
