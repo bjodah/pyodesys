@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Straightforward numerical integration of ODE systems from SymPy.
+Straightforward numerical integration of ODE systems from Python.
 
 The ``pyodesys`` package for enables intuitive solving of systems
 of first order differential equations numerically. The system may be

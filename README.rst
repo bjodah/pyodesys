@@ -3,7 +3,10 @@ pyodesys
 
 .. image:: http://hera.physchem.kth.se:9090/api/badges/bjodah/pyodesys/status.svg
    :target: http://hera.physchem.kth.se:9090/bjodah/pyodesys
-   :alt: Build status
+   :alt: Build status on Drone
+.. image:: https://circleci.com/gh/bjodah/pyodesys.svg?style=svg
+   :target: https://circleci.com/gh/bjodah/pyodesys
+   :alt: Build status on CircleCI
 .. image:: https://img.shields.io/pypi/v/pyodesys.svg
    :target: https://pypi.python.org/pypi/pyodesys
    :alt: PyPI version
