@@ -24,14 +24,14 @@ different forms. Furthermore, it is sometimes necessary to perform variable tran
 in order for the solution to proceed efficiently.
 
 *pyodesys* provides a unified interface to some existing solvers. It also provides an interface
-to represent their system symbolically. This allows *pyodesys* to derive the Jacobian matrix
-symbolically (which is both tedious and error prone done performed manually). In addition, this
-symbolic representation allows the user to manipulate the mathematical representation symbolically. This is achieved
+to represent the system symbolically. This allows *pyodesys* to derive the Jacobian matrix
+symbolically (which is both tedious and error prone when done manually). In addition, this 
+representation allows the user to manipulate the mathematical representation symbolically. This is achieved
 by using SymPy [@Meurer2017] (although the coupling is loose and other symbolic backends
 may be used).
 
 *pyodesys* enables the user to write his
-or her code once, and adaptions to different libraries are handled internally. This allows
+or her code once, and leave the library specific adaptions for *pyodesys* to handle. This allows
 the user to evaluate both different solvers (which implement different integration methods and
 algorithms for step size control) and alternative formulations of the system (from variable
 transformations, including scaling of variables).
@@ -39,15 +39,13 @@ transformations, including scaling of variables).
 
 # Features
 - Unified interface to ODE solvers from Sundials [@hindmarsh2005sundials],
-  GNU Scientific Library [@galassi_gnu_2009] and odeint in boost [@Ahnert2011]
+  GNU Scientific Library [@galassi_gnu_2009] and odeint [@Ahnert2011] in boost.
 - Convenince methods for working with solutions (plotting trajectories, interpolation, inspecting invariants).
 - Automatic derivation of the Jacobian matrix for use with implicit steppers.
 - Symbolic variable transformations in the system of ODEs.
 - Symbolic reduction of degrees of freedom by variable elimination using linear invariants.
-- Symbolic rewriting of system based on (possibly approximate) analytic solutions to a subset of dependent variables.
-- Code-generation (C++) and on-the-fly compilation for enhanced performance (common subexpression elimintation is
-  automatically performed).
-- Parallel execution for parameter variations. Multiple integrations may be performed in parallel
-  (multithreading using OpenMP), this feature is only availble in conjuction with code-generation.
+- Symbolic rewriting of system based on (possibly approximate) analytic solutions to a subset of the dependent variables.
+- Code-generation (C++) and on-the-fly compilation for enhanced performance (including automatic common subexpression elimintation).
+- Parallel execution for parameter variations (multithreading using OpenMP). This feature is only availble in conjuction with code-generation.
 
 # References
