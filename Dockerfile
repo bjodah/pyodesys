@@ -20,5 +20,5 @@ RUN echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/
     tar xjf boost_*.tar.bz2 && cd boost* && ./bootstrap.sh && ./b2 -j 2 --prefix=/usr/local/ install && cd -
 
 USER main
-
-RUN PYCVODES_LAPACK=lapack python -m pip install --user pyodesys[all]
+ENV PYCVODES_LAPACK lapack
+RUN echo pyodesys[all] | tee requirements.txt

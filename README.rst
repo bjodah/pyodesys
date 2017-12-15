@@ -215,7 +215,7 @@ Using only a web-browser (and an internet connection) it is possible to explore 
 notebooks here: (by the courtesy of the people behind mybinder)
 
 .. image:: http://mybinder.org/badge.svg
-   :target: https://beta.mybinder.org/v2/gh/bjodah/pyodesys/master
+   :target: https://mybinder.org/v2/gh/bjodah/pyodesys/master?filepath=index.ipynb
    :alt: Binder
 
 
