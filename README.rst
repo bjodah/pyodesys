@@ -95,7 +95,7 @@ the solvers and then their python bindings. The 3rd party requirements are as fo
 .. _SUNDIALS: https://computation.llnl.gov/projects/sundials
 
 if you want to see what packages need to be installed on a Debian based system you may look at this
-`Dockerfile <Dockerfile>`_.
+`Dockerfile <scripts/environment/Dockerfile>`_.
 
 If you manage to install all three external libraries you may install pyodesys with the option "all"::
 
@@ -109,6 +109,16 @@ versions of python installed you may want to invoke python for an explicit versi
   $ python3.6 -m pip install --user pyodesys[all]
 
 see `setup.py <setup.py>`_ for the exact list of requirements.
+
+Using Docker
+~~~~~~~~~~~~
+If you have `Docker <https://www.docker.com>` installed, you may use it to host a jupyter
+notebook server::
+
+  $ ./scripts/host-jupyter-using-docker.sh
+
+the first time you run the command some dependencies will be downloaded. When the installation
+is complete there will be a link visible which you can open in your browser.
 
 Examples
 --------
