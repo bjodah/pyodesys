@@ -1,13 +1,12 @@
-FROM andrewosh/binder-base
+FROM debian:stretch
 
 MAINTAINER Björn Dahlgren <bjodah@gmail.com>
 
-USER root
+ENV LANG C.UTF-8
 
 # This dockerfile is designed to run on binder (mybinder.org)
-RUN echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get --quiet --assume-yes install curl git g++ libgmp-dev binutils-dev bzip2 make cmake sudo \
+RUN apt-get update && \
+    apt-get --quiet --assume-yes install curl git g++-6 libgmp-dev binutils-dev bzip2 make cmake sudo \
     python-dev python-pip libgsl-dev liblapack-dev && \
     apt-get clean && \
     curl -LOs http://computation.llnl.gov/projects/sundials/download/sundials-2.7.0.tar.gz && \ 
@@ -19,6 +18,5 @@ RUN echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/
     curl -LOs http://dl.bintray.com/boostorg/release/1.65.0/source/boost_1_65_0.tar.bz2 && \
     tar xjf boost_*.tar.bz2 && cd boost* && ./bootstrap.sh && ./b2 -j 2 --prefix=/usr/local/ install && cd -
 
-USER main
-ENV PYCVODES_LAPACK lapack
-RUN echo pyodesys[all] | tee requirements.txt
+# At this point the system should be able to pip-install pyodesys and all of its dependencies. We'll do so
+# when running the image using the ``host-jupyter-using-docker.sh`` script. Installed packages are cached.

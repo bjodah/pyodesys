@@ -1,0 +1,25 @@
+name: pyodesys
+channels:
+  - bjodah
+  - conda-forge
+  - defaults
+dependencies:
+  - python >=3.5
+  - notebook
+  - nbconvert
+  - numpy
+  - sym
+  - sympy
+  - scipy
+  - appdirs
+  - pytest
+  - pyodeint
+  - boost
+  - pygslodeiv2
+  - pycvodes
+  - pycompilation
+  - pycodeexport
+  - python-symengine
+  - symcxx
+  - pysym
+  - matplotlib
