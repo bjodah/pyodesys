@@ -16,7 +16,7 @@ dependencies:
   - pyodeint
   - boost
   - pygslodeiv2
-  - pycvodes
+  - pycvodes >=0.9.1
   - pycompilation
   - pycodeexport
   - python-symengine
