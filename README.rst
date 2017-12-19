@@ -36,10 +36,10 @@ between libraries.
 
 The numerical integration is performed using either:
 
-    - `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html>`_
-    - `pygslodeiv2 <https://github.com/bjodah/pygslodeiv2>`_
-    - `pyodeint <https://github.com/bjodah/pyodeint>`_
-    - `pycvodes <https://github.com/bjodah/pycvodes>`_
+- `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html>`_
+- `pygslodeiv2 <https://github.com/bjodah/pygslodeiv2>`_
+- `pyodeint <https://github.com/bjodah/pyodeint>`_
+- `pycvodes <https://github.com/bjodah/pycvodes>`_
 
 Note that implicit steppers require a user supplied callback for calculating the Jacobian.
 ``pyodesys.SymbolicSys`` derives the Jacobian automatically.
@@ -71,13 +71,60 @@ Simplest way to install pyodesys and its (optional) dependencies is to use the
    $ conda install -c bjodah pyodesys pytest
    $ python -m pytest --pyargs pyodesys
 
-alternatively you may also use `pip`:
+Optional dependencies
+~~~~~~~~~~~~~~~~~~~~~
+If you used ``conda`` to install pyodesys_ you can skip this section.
+But if you use ``pip`` you may want to know that the default installation
+of ``pyodesys`` only requires SciPy::
 
-::
+   $ pip install pyodesys
+   $ pytest --pyargs pyodesys -rs
 
-   $ python -m pip install --user pyodesys[all]
+The above command should finish without errors but with some skipped tests.
+The reason for why some tests are skipped should be because missing optional solvers.
+To install the optional solvers you will first need to install third party libraries for
+the solvers and then their python bindings. The 3rd party requirements are as follows:
 
-see `setup.py <setup.py>`_ for optional requirements.
+- `pygslodeiv2 <https://github.com/bjodah/pygslodeiv2>`_ (requires GSL_ >=1.16)
+- `pyodeint <https://github.com/bjodah/pyodeint>`_ (requires boost_ >=1.65.0)
+- `pycvodes <https://github.com/bjodah/pycvodes>`_ (requires SUNDIALS_ ==2.7.0)
+
+
+.. _GSL: https://www.gnu.org/software/gsl/
+.. _boost: http://www.boost.org/
+.. _SUNDIALS: https://computation.llnl.gov/projects/sundials
+
+if you want to see what packages need to be installed on a Debian based system you may look at this
+`Dockerfile <scripts/environment/Dockerfile>`_.
+
+If you manage to install all three external libraries you may install pyodesys with the option "all"::
+
+  $ pip install pyodesys[all]
+  $ pytest --pyargs pyodesys -rs
+
+now there should be no skipped tests. If you try to install pyodesys on a machine where you do not have
+root permissions you may find the flag ``--user`` helpful when using pip. Also if there are multiple
+versions of python installed you may want to invoke python for an explicit version of python, e.g.::
+
+  $ python3.6 -m pip install --user pyodesys[all]
+
+see `setup.py <setup.py>`_ for the exact list of requirements.
+
+Using Docker
+~~~~~~~~~~~~
+If you have `Docker <https://www.docker.com>` installed, you may use it to host a jupyter
+notebook server::
+
+  $ ./scripts/host-jupyter-using-docker.sh . 8888
+
+the first time you run the command some dependencies will be downloaded. When the installation
+is complete there will be a link visible which you can open in your browser. You can also run
+the test suite using the same docker-image::
+
+  $ ./scripts/host-jupyter-using-docker.sh . 0
+
+there will be one skipped test (due to symengine missing in this pip installed environment) and
+quite a few instances of RintimeWarning.
 
 Examples
 --------
@@ -177,6 +224,16 @@ the environment variable ``ANYODE_NUM_THREADS``).
 
 For further examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered
 jupyter notebooks here: `<http://hera.physchem.kth.se/~pyodesys/branches/master/examples>`_
+
+Run notebooks using binder
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using only a web-browser (and an internet connection) it is possible to explore the
+notebooks here: (by the courtesy of the people behind mybinder)
+
+.. image:: http://mybinder.org/badge.svg
+   :target: https://mybinder.org/v2/gh/bjodah/pyodesys/master?filepath=index.ipynb
+   :alt: Binder
+
 
 License
 -------

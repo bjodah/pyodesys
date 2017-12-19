@@ -13,3 +13,7 @@ examples/thumbs/
 gks.svg
 examples/standalone.*
 examples/.metadata_CompilerRunner
+.local/
+.ipython/
+.jupyter/
+!.jupyter/jupyter_notebook_config.py
