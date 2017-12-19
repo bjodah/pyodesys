@@ -13,3 +13,4 @@ examples/thumbs/
 gks.svg
 examples/standalone.*
 examples/.metadata_CompilerRunner
+.local/

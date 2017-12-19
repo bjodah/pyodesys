@@ -1,0 +1,3 @@
+#!/bin/bash
+# See: http://mybinder.readthedocs.io/en/latest/using.html#postbuild
+python setup.py --user --develop
