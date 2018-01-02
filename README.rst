@@ -112,7 +112,7 @@ see `setup.py <setup.py>`_ for the exact list of requirements.
 
 Using Docker
 ~~~~~~~~~~~~
-If you have `Docker <https://www.docker.com>` installed, you may use it to host a jupyter
+If you have `Docker <https://www.docker.com>`_ installed, you may use it to host a jupyter
 notebook server::
 
   $ ./scripts/host-jupyter-using-docker.sh . 8888
@@ -238,7 +238,10 @@ notebooks here: (by the courtesy of the people behind mybinder)
 License
 -------
 The source code is Open Source and is released under the simplified 2-clause BSD license. See `LICENSE <LICENSE>`_ for further details.
-Contributors are welcome to suggest improvements at https://github.com/bjodah/pyodesys
+
+Contributing
+------------
+Contributors are welcome to suggest improvements at https://github.com/bjodah/pyodesys (see further details `here <CONTRIBUTORS.rst>`_).
 
 Author
 ------
