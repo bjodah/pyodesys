@@ -15,5 +15,5 @@ examples/standalone.*
 examples/.metadata_CompilerRunner
 .local/
 .ipython/
-.jupyter/
+.jupyter/*
 !.jupyter/jupyter_notebook_config.py
