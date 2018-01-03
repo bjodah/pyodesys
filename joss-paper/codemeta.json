@@ -10,7 +10,7 @@
       "affiliation": "KTH Royal Institute of Technology"
     }
   ],
-  "identifier": "http://dx.doi.org/10.5281/zenodo.1044464",
+  "identifier": "http://dx.doi.org/10.5281/zenodo.1134944",
   "codeRepository": "https://github.com/bjodah/pyodesys",
   "datePublished": "2017-12-05",
   "dateModified": "2017-12-05",
@@ -19,5 +19,5 @@
   "keywords": "ordinary differential equations, symbolic derivation, symbolic transformation, code-generation",
   "license": "BSD",
   "title": "pyodesys",
-  "version": "v0.11.5"
+  "version": "v0.11.6"
 }
