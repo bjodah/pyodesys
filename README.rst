@@ -22,6 +22,9 @@ pyodesys
 .. image:: http://hera.physchem.kth.se/~pyodesys/branches/master/htmlcov/coverage.svg
    :target: http://hera.physchem.kth.se/~pyodesys/branches/master/htmlcov
    :alt: coverage
+.. image:: http://joss.theoj.org/papers/10.21105/joss.00490/status.svg
+   :target: https://doi.org/10.21105/joss.00490
+   :alt: Journal of Open Source Software DOI
 .. image:: https://zenodo.org/badge/43131469.svg
    :target: https://zenodo.org/badge/latestdoi/43131469
    :alt: Zenodo DOI
@@ -233,6 +236,18 @@ notebooks here: (by the courtesy of the people behind mybinder)
 .. image:: http://mybinder.org/badge.svg
    :target: https://mybinder.org/v2/gh/bjodah/pyodesys/master?filepath=index.ipynb
    :alt: Binder
+
+
+Citing
+------
+If you make use of pyodesys in e.g. academic work you may cite the following peer-reviewed publication:
+
+.. image:: http://joss.theoj.org/papers/10.21105/joss.00490/status.svg
+   :target: https://doi.org/10.21105/joss.00490
+   :alt: Journal of Open Source Software DOI
+
+Depending on what underlying solver you are using you should also cite the appropriate paper
+(you can look at the list of references in the JOSS article).
 
 
 License
