@@ -25,9 +25,6 @@ pyodesys
 .. image:: http://joss.theoj.org/papers/10.21105/joss.00490/status.svg
    :target: https://doi.org/10.21105/joss.00490
    :alt: Journal of Open Source Software DOI
-.. image:: https://zenodo.org/badge/43131469.svg
-   :target: https://zenodo.org/badge/latestdoi/43131469
-   :alt: Zenodo DOI
 
 `pyodesys <https://github.com/bjodah/pyodesys>`_ provides a straightforward way
 of numerically integrating systems of ordinary differential equations (initial value problems).
@@ -234,7 +231,7 @@ Using only a web-browser (and an internet connection) it is possible to explore 
 notebooks here: (by the courtesy of the people behind mybinder)
 
 .. image:: http://mybinder.org/badge.svg
-   :target: https://mybinder.org/v2/gh/bjodah/pyodesys/master?filepath=index.ipynb
+   :target: https://mybinder.org/v2/gh/bjodah/pyodesys/v0.11.6?filepath=index.ipynb
    :alt: Binder
 
 
@@ -247,7 +244,13 @@ If you make use of pyodesys in e.g. academic work you may cite the following pee
    :alt: Journal of Open Source Software DOI
 
 Depending on what underlying solver you are using you should also cite the appropriate paper
-(you can look at the list of references in the JOSS article).
+(you can look at the list of references in the JOSS article). If you need to reference,
+in addition to the paper, a specific point version of pyodesys (for e.g. reproducibility)
+you can get per-version DOIs from the zendodo archive:
+
+.. image:: https://zenodo.org/badge/43131469.svg
+   :target: https://zenodo.org/badge/latestdoi/43131469
+   :alt: Zenodo DOI
 
 
 License
