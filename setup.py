@@ -102,7 +102,7 @@ setup_kwargs = dict(
     packages=[pkg_name] + submodules + tests,
     include_package_data=True,
     install_requires=['numpy>=1.8.0', 'pytest>=2.9.2', 'scipy>=0.19.1', 'sym>=0.3.0',
-                      'sympy>=1.1.1', 'matplotlib>=1.5.3', 'jupyter'],
+                      'sympy>=1.1.1', 'matplotlib>=2.0.2', 'jupyter'],
     extras_require=extras_req
 )
 

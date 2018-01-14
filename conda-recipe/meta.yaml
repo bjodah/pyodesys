@@ -44,7 +44,7 @@ test:
     - python-symengine
     - symcxx
     - pysym
-    - matplotlib
+    - matplotlib >=2.0.2
 
 about:
   home: https://github.com/bjodah/{{ name }}

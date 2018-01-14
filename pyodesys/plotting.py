@@ -17,7 +17,8 @@ def _set_scale(cb, argstr):
 
 def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
                 ls=('-', '--', ':', '-.'),
-                c=('k', 'r', 'g', 'b', 'c', 'm', 'y'),
+                c=('tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
+                   'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan', 'black'),
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, latex_names=None, xlabel=None, ylabel=None,
