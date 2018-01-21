@@ -10,6 +10,7 @@ import shutil
 import sys
 import tempfile
 
+
 import numpy as np
 import pkg_resources
 
@@ -141,8 +142,14 @@ class _NativeCodeBase(Cpp_Code):
                 yield self.odesys.be.Symbol('m_p_cse[%d]' % idx)
                 idx += 1
 
+        if os.getenv('PYODESYS_NATIVE_CSE', '1') == '1':
+            cse_cb = self.odesys.be.cse
+        else:
+            logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
+            cse_cb = lambda exprs, **kwargs: ([], exprs)
+
         try:
-            common_cses, common_exprs = self.odesys.be.cse(
+            common_cses, common_exprs = cse_cb(
                 all_exprs, symbols=self.odesys.be('cse'),
                 ignore=(self.odesys.indep,) + self.odesys.dep)
         except TypeError:  # old version of SymPy does not support ``ignore``
@@ -158,28 +165,28 @@ class _NativeCodeBase(Cpp_Code):
                        for x, expr in common_cses]
         common_exprs = [expr.xreplace(common_cse_subs) for expr in common_exprs]
 
-        rhs_cses, rhs_exprs = self.odesys.be.cse(
+        rhs_cses, rhs_exprs = cse_cb(
             common_exprs[:len(self.odesys.exprs)],
             symbols=self.odesys.be.numbered_symbols('cse'))
 
         if jac is not False:
-            jac_cses, jac_exprs = self.odesys.be.cse(
+            jac_cses, jac_exprs = cse_cb(
                 common_exprs[len(self.odesys.exprs):
                              len(self.odesys.exprs)+len(jac_dfdx)],
                 symbols=self.odesys.be.numbered_symbols('cse'))
 
         first_step = self.odesys.first_step_expr
         if first_step is not None:
-            first_step_cses, first_step_exprs = self.odesys.be.cse(
+            first_step_cses, first_step_exprs = cse_cb(
                 [first_step],
                 symbols=self.odesys.be.numbered_symbols('cse'))
 
         if self.odesys.roots is not None:
-            roots_cses, roots_exprs = self.odesys.be.cse(
+            roots_cses, roots_exprs = cse_cb(
                 self.odesys.roots,
                 symbols=self.odesys.be.numbered_symbols('cse'))
         if all_invar:
-            invar_cses, invar_exprs = self.odesys.be.cse(
+            invar_cses, invar_exprs = cse_cb(
                 common_exprs[len(self.odesys.exprs)+len(jac_dfdx):
                              len(self.odesys.exprs)+len(jac_dfdx)+len(all_invar)],
                 symbols=self.odesys.be.numbered_symbols('cse')

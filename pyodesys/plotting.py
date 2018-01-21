@@ -213,13 +213,12 @@ def plot_phase_plane(x, y, indices=None, plot=None, names=None, ax=None, **kwarg
         raise ValueError('Only two phase variables supported at the moment')
 
     if ax is None:
+        import matplotlib.pyplot as plt
         ax = plt.subplot(1, 1, 1)
 
-    if plot is None:
-        import matplotlib.pyplot as plt
-        if names is not None:
-            ax.set_xlabel(names[indices[0]])
-            ax.set_ylabel(names[indices[1]])
+    if names is not None:
+        ax.set_xlabel(names[indices[0]])
+        ax.set_ylabel(names[indices[1]])
 
     ax.plot(y[:, indices[0]], y[:, indices[1]], **kwargs)
 
