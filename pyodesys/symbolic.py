@@ -327,9 +327,9 @@ class SymbolicSys(ODESys):
 
     def all_invariants(self, linear_invariants=None, nonlinear_invariants=None, dep=None, backend=None):
         linear_invariants = linear_invariants or getattr(self, 'linear_invariants', None)
-        return (([] if linear_invariants is None else (
-            linear_invariants * (backend or self.be).Matrix(len(dep or self.dep), 1, dep or self.dep)).T.tolist()[0]) +
-                (nonlinear_invariants or getattr(self, 'nonlinear_invariants', []) or []))
+        return (([] if linear_invariants is None else (linear_invariants * (backend or self.be).Matrix(
+            len(dep or self.dep), 1, dep or self.dep
+        )).T.tolist()[0]) + (nonlinear_invariants or getattr(self, 'nonlinear_invariants', []) or []))
 
     def all_invariant_names(self):
         return (self.linear_invariant_names or []) + (self.nonlinear_invariant_names or [])

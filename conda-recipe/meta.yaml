@@ -1,5 +1,5 @@
 {% set name = "pyodesys" %}
-{% set version = "0.10.0.git" %}
+{% set version = "0.12.0.git" %}
 
 package:
   name: {{ name|lower }}
@@ -22,19 +22,8 @@ requirements:
     - sym
     - sympy
     - scipy
+    - matplotlib
     - appdirs
-
-test:
-  imports:
-    - {{ name }}
-  requires:
-    - python
-    - numpy
-    - sym
-    - sympy
-    - scipy
-    - appdirs
-    - pytest
     - pyodeint
     - boost
     - pygslodeiv2
@@ -45,6 +34,13 @@ test:
     - symcxx
     - pysym
     - matplotlib >=2.0.2
+
+test:
+  imports:
+    - {{ name }}
+  requires:
+    - pytest
+
 
 about:
   home: https://github.com/bjodah/{{ name }}

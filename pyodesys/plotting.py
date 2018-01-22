@@ -129,19 +129,19 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
 
     if xlabel is None:
         try:
-            plt.xlabel(x.dimensionality.latex)
+            ax.set_xlabel(x.dimensionality.latex)
         except AttributeError:
             pass
     else:
-        plt.xlabel(xlabel)
+        ax.set_xlabel(xlabel)
 
     if ylabel is None:
         try:
-            plt.ylabel(_y.dimensionality.latex)
+            ax.set_ylabel(_y.dimensionality.latex)
         except AttributeError:
             pass
     else:
-        plt.ylabel(ylabel)
+        ax.set_ylabel(ylabel)
 
     if interpolate:
         if interpolate is True:
@@ -188,7 +188,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
     return ax
 
 
-def plot_phase_plane(x, y, indices=None, plot=None, names=None, **kwargs):
+def plot_phase_plane(x, y, indices=None, plot=None, names=None, ax=None, **kwargs):
     """ Plot the phase portrait of two dependent variables
 
     Parameters
@@ -212,14 +212,15 @@ def plot_phase_plane(x, y, indices=None, plot=None, names=None, **kwargs):
     if len(indices) != 2:
         raise ValueError('Only two phase variables supported at the moment')
 
-    if plot is None:
+    if ax is None:
         import matplotlib.pyplot as plt
-        plot = plt.plot
-        if names is not None:
-            plt.xlabel(names[indices[0]])
-            plt.ylabel(names[indices[1]])
+        ax = plt.subplot(1, 1, 1)
 
-    plot(y[:, indices[0]], y[:, indices[1]], **kwargs)
+    if names is not None:
+        ax.set_xlabel(names[indices[0]])
+        ax.set_ylabel(names[indices[1]])
+
+    ax.plot(y[:, indices[0]], y[:, indices[1]], **kwargs)
 
 
 def right_hand_ylabels(ax, labels):
