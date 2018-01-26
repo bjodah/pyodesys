@@ -1,3 +1,7 @@
+v0.11.7
+=======
+- chained_parameter_variation now also available as a method.
+
 v0.11.6
 =======
 - Changed install_requirements in setup.py to be less minimalistic.
