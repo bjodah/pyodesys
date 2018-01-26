@@ -427,6 +427,10 @@ class ODESys(object):
             res = Result(*(self.post_process(_xout, _yout, _p) + (nfo, self)))
         return res
 
+    def chained_parameter_variation(self, *args, **kwargs):
+        """ See :func:`chained_parameter_variation`. """
+        return chained_parameter_variation(self, *args, **kwargs)
+
     def _integrate_scipy(self, intern_xout, intern_y0, intern_p,
                          atol=1e-8, rtol=1e-8, first_step=None, with_jacobian=None,
                          force_predefined=False, name=None, **kwargs):
