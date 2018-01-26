@@ -513,15 +513,19 @@ def test_chained_parameter_variation():
     y0 = [13, 7]
     ks = [.3, .11, .7]
     npoints = 3
-    res = chained_parameter_variation(ODESys(decay), durations, y0, {0: ks}, npoints=npoints, default_params=[0])
-    assert res.xout.size == npoints*len(durations) + 1
-    cumulative = 0.0
-    for k, dur in zip(ks, durations):
-        mask = (cumulative <= res.xout) & (res.xout <= cumulative + dur)
-        cumulative += dur
-        t, y = res.xout[mask], res.yout[mask, :]
-        a, b = y[:, 0], y[:, 1]
-        refa = a[0]*np.exp(-k*(t-t[0]))
-        refb = b[0] + a[0] - a
-        assert np.allclose(refa, a)
-        assert np.allclose(refb, b)
+    odesys = ODESys(decay)
+    args, kwargs = (durations, y0, {0: ks}), dict(npoints=npoints, default_params=[0])
+    res1 = chained_parameter_variation(odesys, *args, **kwargs)
+    res2 = odesys.chained_parameter_variation(*args, **kwargs)
+    for res in [res1, res2]:
+        assert res.xout.size == npoints*len(durations) + 1
+        cumulative = 0.0
+        for k, dur in zip(ks, durations):
+            mask = (cumulative <= res.xout) & (res.xout <= cumulative + dur)
+            cumulative += dur
+            t, y = res.xout[mask], res.yout[mask, :]
+            a, b = y[:, 0], y[:, 1]
+            refa = a[0]*np.exp(-k*(t-t[0]))
+            refb = b[0] + a[0] - a
+            assert np.allclose(refa, a)
+            assert np.allclose(refb, b)
