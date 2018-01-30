@@ -909,6 +909,7 @@ def chained_parameter_variation(subject, durations, y0, varied_params, default_p
 
     """
     assert len(durations) > 0, 'need at least 1 duration (preferably many)'
+    assert npoints > 0, 'need at least 1 point per duration'
     for k, v in varied_params.items():
         if len(v) != len(durations):
             raise ValueError("Mismathced lengths of durations and varied_params")
