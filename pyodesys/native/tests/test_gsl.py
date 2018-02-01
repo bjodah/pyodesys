@@ -12,7 +12,7 @@ from ._tests import (
     _test_PartiallySolved_symmetric_native,
     _test_PartiallySolved_symmetric_native_multi,
     _test_Decay_nonnegative, _test_NativeSys__first_step_cb,
-    _test_NativeSys__first_step_cb_source_code
+    _test_NativeSys__first_step_cb_source_code, _test_y_preprocessing
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..gsl import NativeGSLSys as NativeSys
@@ -108,3 +108,9 @@ def test_chained_multi_native__dx_max_scalar():
         NativeSys, logc=True, logt=True, reduced=0, zero_time=1e-10,
         zero_conc=1e-18, nonnegative=None, integrator='gsl', dx_max=1e10
     )
+
+
+@pytest.mark.slow
+@requires('sym', 'pycvodes')
+def test_y_preprocessing():
+    _test_y_preprocessing(NativeSys)

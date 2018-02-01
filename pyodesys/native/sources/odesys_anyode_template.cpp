@@ -54,6 +54,10 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
   %endif
     ${'\n    '.join(p_constructor)}
 }
+OdeSys::~OdeSys() {
+    ${'\n    '.join(p_destructor)}
+}
+
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
 }
@@ -65,8 +69,13 @@ int OdeSys::get_nroots() const {
 %endif
 }
 AnyODE::Status OdeSys::rhs(double x,
-                           const double * const __restrict__ y,
+                           const double * const __restrict__ y_,
                            double * const __restrict__ f) {
+%if isinstance(p_y_preprocessing, str):
+  ${p_y_preprocessing}
+%else:
+  const double * const __restrict__ y = y_;
+%endif
 %if isinstance(p_rhs, str):
     ${p_rhs}
 %else:
@@ -127,11 +136,16 @@ AnyODE::Status OdeSys::rhs(double x,
 %for order in ('cmaj', 'rmaj'):
 
 AnyODE::Status OdeSys::dense_jac_${order}(double x,
-                                      const double * const __restrict__ y,
+                                      const double * const __restrict__ y_,
                                       const double * const __restrict__ fy,
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt) {
+%if isinstance(p_y_preprocessing, str):
+  ${p_y_preprocessing}
+%else:
+  const double * const __restrict__ y = y_;
+%endif
 %if order in p_jac:
     ${p_jac[order]}
 %else:
@@ -167,7 +181,12 @@ AnyODE::Status OdeSys::dense_jac_${order}(double x,
 %endfor
 %endif
 
-double OdeSys::get_dx0(double x, const double * const y) {
+double OdeSys::get_dx0(double x, const double * const y_) {
+%if isinstance(p_y_preprocessing, str):
+  ${p_y_preprocessing}
+%else:
+  const double * const __restrict__ y = y_;
+%endif
 %if p_first_step is None:
     AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return 0.0;  // invokes the default behaviour of the chosen solver
@@ -183,7 +202,12 @@ double OdeSys::get_dx0(double x, const double * const y) {
 %endif
 }
 
-double OdeSys::get_dx_max(double x, const double * const y) {
+double OdeSys::get_dx_max(double x, const double * const y_) {
+%if isinstance(p_y_preprocessing, str):
+  ${p_y_preprocessing}
+%else:
+  const double * const __restrict__ y = y_;
+%endif
 %if p_get_dx_max is False:
     AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return INFINITY;
@@ -214,7 +238,12 @@ double OdeSys::get_dx_max(double x, const double * const y) {
 %endif
 }
 
-AnyODE::Status OdeSys::roots(double x, const double * const y, double * const out) {
+AnyODE::Status OdeSys::roots(double x, const double * const y_, double * const out) {
+%if isinstance(p_y_preprocessing, str):
+  ${p_y_preprocessing}
+%else:
+  const double * const __restrict__ y = y_;
+%endif
 %if p_roots is None:
     AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
     return AnyODE::Status::success;

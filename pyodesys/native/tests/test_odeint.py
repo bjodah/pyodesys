@@ -11,6 +11,7 @@ from ._tests import (
     _test_PartiallySolved_symmetric_native,
     _test_PartiallySolved_symmetric_native_multi,
     _test_Decay_nonnegative, _test_NativeSys__first_step_cb,
+    _test_y_preprocessing
 )
 from ._test_robertson_native import _test_chained_multi_native
 from ..odeint import NativeOdeintSys as NativeSys
@@ -90,3 +91,9 @@ def test_chained_multi_native__dx_max_scalar():
         zero_conc=1e-18, nonnegative=None, integrator='odeint', dx_max=1e10, rtol_close=0.03,
         first_step=1e-14, steps_fact=2.6
     )
+
+
+@pytest.mark.slow
+@requires('sym', 'pycvodes')
+def test_y_preprocessing():
+    _test_y_preprocessing(NativeSys)

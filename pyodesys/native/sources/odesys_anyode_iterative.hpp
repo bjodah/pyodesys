@@ -16,6 +16,7 @@ namespace odesys_anyode {
         std::vector<double> m_special_settings;
         OdeSys(const double * const, std::vector<double>, double, double,
                bool, double, std::vector<double>);
+        ~OdeSys();
         int nrev=0;  // number of calls to roots
         int get_ny() const override;
         int get_nroots() const override;

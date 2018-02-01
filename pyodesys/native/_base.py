@@ -227,7 +227,9 @@ class _NativeCodeBase(Cpp_Code):
             },
             p_nroots=self.odesys.nroots,
             p_constructor=[],
+            p_destructor=[],
             p_get_dx_max=False,
+            p_y_preprocessing=None,
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)

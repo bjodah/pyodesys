@@ -337,3 +337,24 @@ def _test_return_on_error_success(NativeSys):
     ref = np.array(bateman_full(y0, k+[0], result.xout[:nreached] - xout[0], exp=np.exp)).T
     assert result.info['success'] is False
     assert np.allclose(result.yout[:nreached, :], ref, rtol=1e-8, atol=1e-8)
+
+
+def _test_y_preprocessing(NativeSys):
+    k, y0 = [4, 3], (-5, 4, 2)
+
+    native = NativeSys.from_callback(decay_rhs, len(k)+1, len(k), namespace_override={
+        'p_y_preprocessing': """
+        double * y = (double *)user_data;
+        for (int i=0; i<get_ny(); ++i)
+            y[i] = (y_[i] < 0) ? 0 : y_[i];
+"""
+    }, namespace_extend={
+        'p_includes': ['<stdlib.h>'],
+        'p_constructor': ['this->user_data = malloc(sizeof(double)*get_ny());'],
+        'p_destructor': ['free(this->user_data);']
+    })
+    xout = np.array([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    result = native.integrate(xout, y0, k)
+    assert np.all(result.yout[:, 0] == y0[0])
+    assert np.allclose(result.yout[:, 1], y0[1]*np.exp(-k[1]*xout))
+    assert np.allclose(result.yout[:, 2], y0[1]*(1 - np.exp(-k[1]*xout)) + y0[2])
