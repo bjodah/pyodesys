@@ -167,6 +167,9 @@ class SymbolicSys(ODESys):
         When ``True`` construct using ``be.Symbol``. See also :attr:`init_indep`.
     init_dep : tuple of Symbols, ``True`` or ``None``
         When ``True`` construct using ``be.Symbol``. See also :attr:`init_dep`.
+    clip_to_bounds : bool
+        When bounds are given, ``f_cb`` and ``j_cb`` will be clipped to be within
+        bounds prior to evaluation.
     \*\*kwargs:
         See :py:class:`ODESys`
 
@@ -218,7 +221,7 @@ class SymbolicSys(ODESys):
                  roots=None, backend=None, lower_bounds=None, upper_bounds=None,
                  linear_invariants=None, nonlinear_invariants=None,
                  linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False,
-                 init_indep=None, init_dep=None, **kwargs):
+                 init_indep=None, init_dep=None, clip_to_bounds=False, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
         if params is True or params is None:
@@ -361,9 +364,17 @@ class SymbolicSys(ODESys):
 
             kwargs['roots'] = roots
 
+    @staticmethod
+    def _kwargs_bounds_from_bounds_cb(bounds_key, kwargs, x, _y, _p, be):
+        bounds_cb = kwargs.pop(bounds_key + '_cb', None)
+        if bounds_cb is not None:
+            if bounds_key in kwargs:
+                raise ValueError("Keyword argument ``%s`` already given." % bounds_key)
+            kwargs[bounds_key] = bounds_cb(x, _y, _p, be)
+
     @classmethod
-    def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None,
-                      roots_cb=None, indep_name=None, **kwargs):
+    def from_callback(cls, rhs, ny=None, nparams=None, first_step_factory=None, roots_cb=None,
+                      indep_name=None, lower_bounds_cb=None, upper_bounds_cb=None, **kwargs):
         """ Create an instance from a callback.
 
         Parameters
@@ -385,6 +396,10 @@ class SymbolicSys(ODESys):
             its return value from dict to array.
         par_by_name : bool
             Make ``p`` passed to ``rhs`` a dict (keys from :attr:`param_names`).
+        lower_bounds_cb : callable
+            Same signature as ``rhs``.
+        upper_bounds_cb : callable
+            Same signature as ``rhs``.
         \*\*kwargs :
             Keyword arguments passed onto :class:`SymbolicSys`.
 
@@ -429,6 +444,8 @@ class SymbolicSys(ODESys):
             raise ValueError("Callback did not return an array_like of expressions: %s" % str(exprs))
 
         cls._kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be)
+        cls._kwargs_bounds_from_bounds_cb('lower_bounds', kwargs, x, _y, _p, be)
+        cls._kwargs_bounds_from_bounds_cb('upper_bounds', kwargs, x, _y, _p, be)
 
         if first_step_factory is not None:
             if 'first_step_exprs' in kwargs:
@@ -650,34 +667,36 @@ class SymbolicSys(ODESys):
     def _callback_factory(self, exprs):
         return _Callback(self.indep, self.dep, self.params, exprs, self.be.Lambdify)
 
-    def get_f_ty_callback(self):
-        """ Generates a callback for evaluating ``self.exprs``. """
-        cb = self._callback_factory(self.exprs)
+    def _mk_bounds_wrapper(self, cb):
         lb = self.lower_bounds
         ub = self.upper_bounds
-        if lb is not None or ub is not None:
-            def _bounds_wrapper(t, y, p=(), be=None):
-                if lb is not None:
-                    if np.any(y < lb - 10*self._current_integration_kwargs['atol']):
-                        raise RecoverableError
-                    y = np.array(y)
-                    y[y < lb] = lb[y < lb]
-                if ub is not None:
-                    if np.any(y > ub + 10*self._current_integration_kwargs['atol']):
-                        raise RecoverableError
-                    y = np.array(y)
-                    y[y > ub] = ub[y > ub]
-                return cb(t, y, p, be)
-            return _bounds_wrapper
-        else:
+        if lb is None and ub is None:
             return cb
+
+        def wrapper(t, y, p=(), be=None):
+            if lb is not None:
+                if not self.clip_to_bounds and np.any(y < lb - 10*self._current_integration_kwargs['atol']):
+                    raise RecoverableError
+                y = np.array(y)
+                y[y < lb] = lb[y < lb]
+            if ub is not None:
+                if not self.clip_to_bounds and np.any(y > ub + 10*self._current_integration_kwargs['atol']):
+                    raise RecoverableError
+                y = np.array(y)
+                y[y > ub] = ub[y > ub]
+            return cb(t, y, p, be)
+        return wrapper
+
+    def get_f_ty_callback(self):
+        """ Generates a callback for evaluating ``self.exprs``. """
+        return self._mk_bounds_wrapper(self._callback_factory(self.exprs))
 
     def get_j_ty_callback(self):
         """ Generates a callback for evaluating the jacobian. """
         j_exprs = self.get_jac()
         if j_exprs is False:
             return None
-        return self._callback_factory(j_exprs)
+        return self._mk_bounds_wrapper(self._callback_factory(j_exprs))
 
     def get_dfdx_callback(self):
         """ Generate a callback for evaluating derivative of ``self.exprs`` """
@@ -875,6 +894,8 @@ class TransformedSys(SymbolicSys):
             exprs = [exprs[k] for k in kwargs['names']]
 
         cls._kwargs_roots_from_roots_cb(roots_cb, kwargs, x, _y, _p, be)
+        cls._kwargs_bounds_from_bounds_cb('lower_bounds', kwargs, x, _y, _p, be)
+        cls._kwargs_bounds_from_bounds_cb('upper_bounds', kwargs, x, _y, _p, be)
 
         return cls(list(zip(y, exprs)), x, dep_transf,
                    indep_transf, p, backend=be, **kwargs)
