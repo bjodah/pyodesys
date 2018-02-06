@@ -1,3 +1,7 @@
+v0.11.8
+=======
+- Certain gcc versions giving trouble with ``std::abs``, switching to C's ``fabs``.
+
 v0.11.7
 =======
 - chained_parameter_variation now also available as a method.

@@ -195,9 +195,9 @@ double OdeSys::get_dx_max(double x, const double * const y) {
         if (fvec[idx] == 0) {
             hvec[idx] = std::numeric_limits<double>::infinity();
         } else if (fvec[idx] > 0) {
-            hvec[idx] = std::abs(m_upper_bounds[idx] - y[idx])/fvec[idx];
+            hvec[idx] = fabs(m_upper_bounds[idx] - y[idx])/fvec[idx];
         } else { // fvec[idx] < 0
-            hvec[idx] = std::abs((m_lower_bounds[idx] - y[idx])/fvec[idx]);
+            hvec[idx] = fabs((m_lower_bounds[idx] - y[idx])/fvec[idx]);
         }
     }
     const auto result = *std::min_element(std::begin(hvec), std::end(hvec));
