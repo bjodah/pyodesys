@@ -14,7 +14,8 @@ for PY in python2 python3; do
     $PY -m pip install --upgrade --upgrade-strategy only-if-needed .[all]
 done
 
-PYTHON=python2 ./scripts/run_tests.sh
+export PYTHONHASHSEED=$(python -c "import random; print random.randint(1,2**32-1)")
+PYTHON="python2 -R" ./scripts/run_tests.sh
 PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 
 ./scripts/render_notebooks.sh

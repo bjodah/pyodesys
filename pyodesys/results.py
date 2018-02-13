@@ -7,6 +7,7 @@ from .plotting import plot_result, plot_phase_plane, info_vlines
 from .util import import_
 
 CubicSpline = import_('scipy.interpolate', 'CubicSpline')
+interp1d = import_('scipy.interpolate', 'interp1d')
 
 
 class Result(object):
@@ -54,14 +55,44 @@ class Result(object):
         select_l = xtmp > lower
         return xtmp[..., select_l], ytmp[..., select_l, :]
 
-    def at(self, x, use_deriv=False, xdata=None, ydata=None):
-        """ Returns interpolated result at a given time and an interpolation error-estimate """
+    def at(self, x, use_deriv=False, xdata=None, ydata=None, linear=False):
+        """ Returns interpolated result at a given time and an interpolation error-estimate
+
+        By default interpolation is performed using cubic splines.
+
+        Parameters
+        ----------
+        x : array_like or float
+        use_deriv : bool
+            Calculate derivatives at spline knots for enhanced accuracy.
+        xdata : array
+        ydata : array
+        linear : bool
+            Will use (cheaper) linear interpolation. Useful when x is an array.
+            Error estimate will be ``None`` in this case.
+
+        Returns
+        -------
+        interpolated_y : array
+        error_estim_y : array
+
+        """
         if xdata is None:
             xdata = self.xout
         if ydata is None:
             ydata = self.yout
         yunit = getattr(ydata, 'units', 1)
         ydata = getattr(ydata, 'magnitude', ydata)
+
+        if linear:
+            return interp1d(xdata, ydata, axis=0)(x)*yunit, None
+        else:
+            try:
+                len(x)
+            except TypeError:
+                pass
+            else:
+                return [self.at(_, use_deriv, xdata, ydata, linear) for _ in x]
 
         if x == xdata[0]:
             res = ydata[0, :]
