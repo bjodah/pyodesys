@@ -1,3 +1,7 @@
+v0.11.9
+=======
+- Bump AnyODE to version 12
+
 v0.11.8
 =======
 - Certain gcc versions giving trouble with ``std::abs``, switching to C's ``fabs``.
