@@ -27,7 +27,7 @@ namespace AnyODE {
             //     (4.6.8 in cvs_guide.pdf for sundials 2.7.0)
             auto status = AnyODE::Status::success;
             const int ny = this->get_ny();
-            auto jac = std::make_unique<JacMat_t>(nullptr, ny, ny, ny, true);
+            auto jac = std::make_unique<JacMat_t>(nullptr, ny, ny, ny);
             status = this->dense_jac_cmaj(t, y, fy, jac->m_data, jac->m_ld);
             jac->dot_vec(vec, out);
             m_njacvec_dot++;
@@ -46,7 +46,7 @@ namespace AnyODE {
             ignore(gamma);
             // See "Preconditioning (Jacobian data)" in cvs_guide.pdf (4.6.10 for 2.7.0)
             if (m_jac_cache == nullptr)
-                m_jac_cache = std::make_unique<JacMat_t>(nullptr, ny, ny, ny, true);
+                m_jac_cache = std::make_unique<JacMat_t>(nullptr, ny, ny, ny);
 
             if (jac_ok){
                 jac_recomputed = false;
@@ -55,7 +55,7 @@ namespace AnyODE {
                 jac_recomputed = true;
             }
             if (m_M_cache == nullptr)
-                m_M_cache = std::make_unique<JacMat_t>(nullptr, ny, ny, ny, true);
+                m_M_cache = std::make_unique<JacMat_t>(nullptr, ny, ny, ny);
             m_M_cache->set_to_eye_plus_scaled_mtx(-gamma, *m_jac_cache);
             m_decomp_cache = std::make_unique<Decomp_t>(m_M_cache.get());
             m_decomp_cache->factorize();

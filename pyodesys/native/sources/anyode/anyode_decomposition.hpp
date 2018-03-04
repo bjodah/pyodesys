@@ -72,6 +72,24 @@ namespace AnyODE {
     };
 
     template<typename Real_t = double>
+    struct DiagonalInv : public DecompositionBase<Real_t> {
+        DiagonalMatrix<Real_t> * m_view;
+        DiagonalInv(DiagonalMatrix<Real_t> * view) : m_view(view)
+        {
+        }
+        int factorize() final {
+            for (int i=0; i < m_view->m_nc; ++i)
+                m_view->m_data[i] = 1/m_view->m_data[i];
+            return 0;
+        }
+        int solve(const Real_t * const b, Real_t * const x) final {
+            for (int i=0; i < m_view->m_nc; ++i)
+                x[i] = m_view->m_data[i]*b[i];
+            return 0;
+        }
+    };
+
+    template<typename Real_t = double>
     struct SVD : public DecompositionBase<Real_t> {
         // SVD_callbacks<Real_t> m_cbs;
         DenseMatrix<Real_t> * m_view;
