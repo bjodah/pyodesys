@@ -7,12 +7,15 @@
 namespace AnyODE {
     struct PyOdeSys : public AnyODE::OdeSysBase<double> {
         int ny;
-        PyObject *py_rhs, *py_jac, *py_roots, *py_kwargs, *py_dx0cb, *py_dx_max_cb;
-        int mlower, mupper, nroots;
-        PyOdeSys(int ny, PyObject * py_rhs, PyObject * py_jac=nullptr, PyObject * py_roots=nullptr,
-                 PyObject * py_kwargs=nullptr, int mlower=-1, int mupper=-1, int nroots=0, PyObject * py_dx0cb=nullptr, PyObject * py_dx_max_cb=nullptr) :
-            ny(ny), py_rhs(py_rhs), py_jac(py_jac), py_roots(py_roots),
-            py_kwargs(py_kwargs), py_dx0cb(py_dx0cb), py_dx_max_cb(py_dx_max_cb), mlower(mlower), mupper(mupper), nroots(nroots)
+        PyObject *py_rhs, *py_jac, *py_quads, *py_roots, *py_kwargs, *py_dx0cb, *py_dx_max_cb;
+        int mlower, mupper, nquads, nroots;
+        PyOdeSys(int ny, PyObject * py_rhs, PyObject * py_jac=nullptr, PyObject * py_quads=nullptr,
+                 PyObject * py_roots=nullptr, PyObject * py_kwargs=nullptr, int mlower=-1,
+                 int mupper=-1, int nquads=0, int nroots=0, PyObject * py_dx0cb=nullptr,
+                 PyObject * py_dx_max_cb=nullptr) :
+            ny(ny), py_rhs(py_rhs), py_jac(py_jac), py_quads(py_quads), py_roots(py_roots),
+            py_kwargs(py_kwargs), py_dx0cb(py_dx0cb), py_dx_max_cb(py_dx_max_cb),
+            mlower(mlower), mupper(mupper), nquads(nquads), nroots(nroots)
         {
             if (py_rhs == nullptr)
                 throw std::runtime_error("py_rhs must not be nullptr");
@@ -20,6 +23,7 @@ namespace AnyODE {
                 this->use_get_dx_max = true;
             Py_INCREF(py_rhs);
             Py_XINCREF(py_jac);
+            Py_XINCREF(py_quads);
             Py_XINCREF(py_roots);
             if (py_kwargs == Py_None){
                 Py_DECREF(Py_None);
@@ -31,12 +35,14 @@ namespace AnyODE {
         virtual ~PyOdeSys() {
             Py_DECREF(py_rhs);
             Py_XDECREF(py_jac);
+            Py_XDECREF(py_quads);
             Py_XDECREF(py_roots);
             Py_XDECREF(py_kwargs);
         }
         virtual int get_ny() const override { return ny; }
         virtual int get_mlower() const override { return mlower; }
         virtual int get_mupper() const override { return mupper; }
+        virtual int get_nquads() const override { return nquads; }
         virtual int get_nroots() const override { return nroots; }
         virtual double get_dx0(double t, const double * const y) {
             if (py_dx0cb == nullptr or py_dx0cb == Py_None)
@@ -115,7 +121,23 @@ namespace AnyODE {
             this->nfev++;
             return handle_status_(py_result, "rhs");
         }
-        virtual AnyODE::Status roots(double t, const double * const y, double * const out){
+        virtual AnyODE::Status quads(double t, const double * const y, double * const out) override {
+            npy_intp ydims[1] { static_cast<npy_intp>(this->ny) };
+            npy_intp rdims[1] { static_cast<npy_intp>(this->get_nquads()) };
+            const auto type_tag = NPY_DOUBLE;
+            PyObject * py_yarr = PyArray_SimpleNewFromData(
+                1, ydims, type_tag, static_cast<void*>(const_cast<double*>(y)));
+            PyObject * py_out = PyArray_SimpleNewFromData(
+                1, rdims, type_tag, static_cast<void*>(out));
+            PyArray_CLEARFLAGS(reinterpret_cast<PyArrayObject*>(py_yarr), NPY_ARRAY_WRITEABLE);  // make yarr read-only
+            PyObject * py_arglist = Py_BuildValue("(dOO)", t, py_yarr, py_out);
+            PyObject * py_result = PyEval_CallObjectWithKeywords(this->py_quads, py_arglist, this->py_kwargs);
+            Py_DECREF(py_arglist);
+            Py_DECREF(py_out);
+            Py_DECREF(py_yarr);
+            return handle_status_(py_result, "quads");
+        }
+        virtual AnyODE::Status roots(double t, const double * const y, double * const out) override {
             npy_intp ydims[1] { static_cast<npy_intp>(this->ny) };
             npy_intp rdims[1] { static_cast<npy_intp>(this->get_nroots()) };
             const auto type_tag = NPY_DOUBLE;

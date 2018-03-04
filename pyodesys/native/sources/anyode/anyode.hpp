@@ -1,11 +1,11 @@
 #ifdef ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37
 
-#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 10
+#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 12
 #error "Multiple anyode.hpp files included with version mismatch"
 #endif
 
 #else
-#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 10
+#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 12
 
 
 #include <string>
@@ -21,6 +21,7 @@ namespace AnyODE {
     struct OdeSysBase {
         int nfev=0, njev=0;
         void * integrator = nullptr;
+        void * user_data = nullptr;
         std::unordered_map<std::string, int> last_integration_info;
         std::unordered_map<std::string, double> last_integration_info_dbl;
         std::unordered_map<std::string, std::vector<double> > last_integration_info_vecdbl;
@@ -37,6 +38,7 @@ namespace AnyODE {
         virtual int get_ny() const = 0;
         virtual int get_mlower() const { return -1; } // -1 denotes "not banded"
         virtual int get_mupper() const { return -1; } // -1 denotes "not banded"
+        virtual int get_nquads() const { return 0; } // Do not track quadratures by default;
         virtual int get_nroots() const { return 0; } // Do not look for roots by default;
         virtual Real_t get_dx0(Real_t /* t */,
                                const Real_t * const /* y */) {
@@ -46,6 +48,10 @@ namespace AnyODE {
             return 0.0;
         }
         virtual Status rhs(Real_t t, const Real_t * const y, Real_t * const f) = 0;
+        virtual Status quads(Real_t xval, const Real_t * const y, Real_t * const out) {
+            ignore(xval); ignore(y); ignore(out);
+            return Status::unrecoverable_error;
+        }
         virtual Status roots(Real_t xval, const Real_t * const y, Real_t * const out) {
             ignore(xval); ignore(y); ignore(out);
             return Status::unrecoverable_error;
