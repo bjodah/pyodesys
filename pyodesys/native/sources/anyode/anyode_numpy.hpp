@@ -39,12 +39,12 @@ namespace AnyODE {
             Py_XDECREF(py_roots);
             Py_XDECREF(py_kwargs);
         }
-        virtual int get_ny() const override { return ny; }
-        virtual int get_mlower() const override { return mlower; }
-        virtual int get_mupper() const override { return mupper; }
-        virtual int get_nquads() const override { return nquads; }
-        virtual int get_nroots() const override { return nroots; }
-        virtual double get_dx0(double t, const double * const y) {
+        int get_ny() const override { return ny; }
+        int get_mlower() const override { return mlower; }
+        int get_mupper() const override { return mupper; }
+        int get_nquads() const override { return nquads; }
+        int get_nroots() const override { return nroots; }
+        double get_dx0(double t, const double * const y) override {
             if (py_dx0cb == nullptr or py_dx0cb == Py_None)
                 return default_dx0;
             npy_intp dims[1] { static_cast<npy_intp>(this->ny) } ;
@@ -64,7 +64,7 @@ namespace AnyODE {
                 throw std::runtime_error("get_dx0 failed (value returned by dx0cb could not be converted to float)");
             return res;
         }
-        virtual double get_dx_max(double t, const double * const y) {
+        double get_dx_max(double t, const double * const y) override {
             if (py_dx_max_cb == nullptr or py_dx_max_cb == Py_None)
                 return INFINITY;
             npy_intp dims[1] { static_cast<npy_intp>(this->ny) } ;
@@ -105,7 +105,7 @@ namespace AnyODE {
             }
             throw std::runtime_error(what_arg + " did not return None, -1, 0 or 1");
         }
-        virtual Status rhs(double t, const double * const y, double * const dydt) override {
+        Status rhs(double t, const double * const y, double * const dydt) override {
             npy_intp dims[1] { static_cast<npy_intp>(this->ny) } ;
             const auto type_tag = NPY_DOUBLE;
             PyObject * py_yarr = PyArray_SimpleNewFromData(
@@ -121,7 +121,7 @@ namespace AnyODE {
             this->nfev++;
             return handle_status_(py_result, "rhs");
         }
-        virtual AnyODE::Status quads(double t, const double * const y, double * const out) override {
+        AnyODE::Status quads(double t, const double * const y, double * const out) override {
             npy_intp ydims[1] { static_cast<npy_intp>(this->ny) };
             npy_intp rdims[1] { static_cast<npy_intp>(this->get_nquads()) };
             const auto type_tag = NPY_DOUBLE;
@@ -137,7 +137,7 @@ namespace AnyODE {
             Py_DECREF(py_yarr);
             return handle_status_(py_result, "quads");
         }
-        virtual AnyODE::Status roots(double t, const double * const y, double * const out) override {
+        AnyODE::Status roots(double t, const double * const y, double * const out) override {
             npy_intp ydims[1] { static_cast<npy_intp>(this->ny) };
             npy_intp rdims[1] { static_cast<npy_intp>(this->get_nroots()) };
             const auto type_tag = NPY_DOUBLE;
@@ -179,8 +179,8 @@ namespace AnyODE {
             this->njev++;
             return handle_status_(py_result, "jac");
         }
-        virtual AnyODE::Status dense_jac_cmaj(double t, const double * const y, const double * const fy,
-                                              double * const jac, long int ldim, double * const dfdt=nullptr){
+        AnyODE::Status dense_jac_cmaj(double t, const double * const y, const double * const fy,
+				      double * const jac, long int ldim, double * const dfdt=nullptr) override {
             npy_intp Jdims[2] { static_cast<npy_intp>(this->ny), static_cast<npy_intp>(this->ny) };
             npy_intp strides[2] { sizeof(double), static_cast<npy_intp>(ldim*sizeof(double)) };
             const auto type_tag = NPY_DOUBLE;
@@ -192,8 +192,8 @@ namespace AnyODE {
             Py_DECREF(py_jmat);
             return status;
         }
-        virtual AnyODE::Status dense_jac_rmaj(double t, const double * const y, const double * const fy,
-                                              double * const jac, long int ldim, double * const dfdt=nullptr){
+        AnyODE::Status dense_jac_rmaj(double t, const double * const y, const double * const fy,
+				      double * const jac, long int ldim, double * const dfdt=nullptr) override {
             npy_intp Jdims[2] { static_cast<npy_intp>(this->ny), static_cast<npy_intp>(this->ny) };
             npy_intp strides[2] { static_cast<npy_intp>(ldim*sizeof(double)), sizeof(double) };
             const auto type_tag = NPY_DOUBLE;
@@ -205,8 +205,8 @@ namespace AnyODE {
             Py_DECREF(py_jmat);
             return status;
         }
-        virtual AnyODE::Status banded_jac_cmaj(double t, const double * const y, const double * const fy,
-                                               double * const jac, long int ldim, double * const dfdt=nullptr){
+        AnyODE::Status banded_jac_cmaj(double t, const double * const y, const double * const fy,
+				       double * const jac, long int ldim) override {
             npy_intp Jdims[2] { 1 + this->mlower + this->mupper, static_cast<npy_intp>(this->ny) };
             npy_intp strides[2] { sizeof(double), static_cast<npy_intp>(ldim*sizeof(double)) };
             const auto type_tag = NPY_DOUBLE;
@@ -214,20 +214,7 @@ namespace AnyODE {
                 &PyArray_Type, 2, Jdims, type_tag, strides,
                 static_cast<void *>(const_cast<double *>(jac)), sizeof(double),
                 NPY_ARRAY_F_CONTIGUOUS | NPY_ARRAY_WRITEABLE, nullptr);
-            AnyODE::Status status = call_py_jac(t, y, fy, py_jmat, dfdt);
-            Py_DECREF(py_jmat);
-            return status;
-        }
-        virtual AnyODE::Status banded_jac_rmaj(double t, const double * const y, const double * const fy,
-                                               double * const jac, long int ldim, double * const dfdt=nullptr){
-            npy_intp Jdims[2] { 1 + this->mlower + this->mupper, static_cast<npy_intp>(this->ny) };
-            npy_intp strides[2] { static_cast<npy_intp>(ldim*sizeof(double)), sizeof(double) };
-            const auto type_tag = NPY_DOUBLE;
-            PyObject * py_jmat = PyArray_New(
-                &PyArray_Type, 2, Jdims, type_tag, strides,
-                static_cast<void *>(const_cast<double *>(jac)), sizeof(double),
-                NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_WRITEABLE, nullptr);
-            AnyODE::Status status = call_py_jac(t, y, fy, py_jmat, dfdt);
+            AnyODE::Status status = call_py_jac(t, y, fy, py_jmat, nullptr);
             Py_DECREF(py_jmat);
             return status;
         }
