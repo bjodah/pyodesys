@@ -21,7 +21,7 @@ cd $(dirname $0)/..
 PKG=$(find . -maxdepth 2 -name __init__.py -print0 | xargs -0 -n1 dirname | xargs basename)
 ! grep --include "*.py" "will_be_missing_in='$VERSION'" -R $PKG/  # see deprecation()
 PKG_UPPER=$(echo $PKG | tr '[:lower:]' '[:upper:]')
-./scripts/run_tests.sh
+MPLBACKEND=Agg ./scripts/run_tests.sh
 env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION python setup.py sdist
 env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION ./scripts/generate_docs.sh $4 $5 v$VERSION
 for CONDA_PY in 2.7 3.4 3.5; do

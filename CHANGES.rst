@@ -1,3 +1,7 @@
+v0.11.10
+========
+- Bump AnyODE to version 13
+
 v0.11.9
 =======
 - Bump AnyODE to version 12
