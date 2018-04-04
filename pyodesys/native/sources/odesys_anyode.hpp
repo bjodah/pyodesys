@@ -18,6 +18,7 @@ namespace odesys_anyode {
                bool, double, std::vector<double>);
         int nrev=0;  // number of calls to roots
         int get_ny() const override;
+        int get_nquads() const override;
         int get_nroots() const override;
         double get_dx0(double, const double * const) override;
         double get_dx_max(double, const double * const) override;

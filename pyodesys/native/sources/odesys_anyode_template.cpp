@@ -57,6 +57,9 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
 int OdeSys::get_ny() const {
     return ${p_odesys.ny};
 }
+int OdeSys::get_nquads() const {
+    return 0;  // Not implemeneted yet (cvodes from Sundials supports this)
+}
 int OdeSys::get_nroots() const {
 %if isinstance(p_nroots, str):
     ${p_nroots}
