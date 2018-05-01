@@ -6,6 +6,8 @@ from libcpp.string cimport string
 from libcpp.unordered_map cimport unordered_map
 from libcpp.vector cimport vector
 
+from anyode cimport Info
+
 cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
     cdef cppclass OdeSys:
         OdeSys(const double * const, vector[double], double, double,
