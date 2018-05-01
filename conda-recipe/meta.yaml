@@ -9,13 +9,15 @@ source:
   git_url: ../
 
 build:
+  noarch: python
   number: 0
-  script: python setup.py install --single-version-externally-managed --record record.txt
+  script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
   build:
     - python
     - setuptools
+    - pip
   run:
     - python
     - numpy
@@ -24,10 +26,10 @@ requirements:
     - scipy
     - matplotlib
     - appdirs
-    - pyodeint
     - boost
-    - pygslodeiv2
-    - pycvodes
+    - pyodeint >=0.9.4
+    - pygslodeiv2 >=0.8.4
+    - pycvodes >=0.10.5
     - pycompilation
     - pycodeexport
     - python-symengine

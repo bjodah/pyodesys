@@ -194,7 +194,7 @@ int main(int argc, char *argv[]){
         }
         std::cout << '{';
         first = true;
-        for (const auto& itm : systems[si]->last_integration_info) {
+        for (const auto& itm : systems[si]->current_info->nfo_int) {
             if (first){
                 first = false;
             } else {
@@ -202,10 +202,10 @@ int main(int argc, char *argv[]){
             }
             std::cout << "'" << itm.first << "': " << itm.second;
         }
-        for (const auto& itm : systems[si]->last_integration_info_dbl) {
+        for (const auto& itm : systems[si]->current_info.nfo_dbl) {
             std::cout << ", '" << itm.first << "': " << itm.second;
         }
-        for (const auto& itm : systems[si]->last_integration_info_vecdbl) {
+        for (const auto& itm : systems[si]->current_info.nfo_vecdbl) {
             std::cout << ", '" << itm.first << "': {";
             first = true;
             for (const auto& elem : itm.second) {
@@ -218,7 +218,7 @@ int main(int argc, char *argv[]){
             }
             std::cout << "}";
         }
-        for (const auto& itm : systems[si]->last_integration_info_vecint) {
+        for (const auto& itm : systems[si]->current_info.nfo_vecint) {
             std::cout << ", '" << itm.first << "': {";
             first = true;
             for (const auto& elem : itm.second) {
