@@ -28,6 +28,7 @@ namespace AnyODE {
             auto status = AnyODE::Status::success;
             const int ny = this->get_ny();
             auto jac = std::make_unique<JacMat_t>(nullptr, ny, ny, ny);
+            jac->set_to(0.0);
             status = this->dense_jac_cmaj(t, y, fy, jac->m_data, jac->m_ld);
             jac->dot_vec(vec, out);
             m_njacvec_dot++;
@@ -76,7 +77,7 @@ namespace AnyODE {
             // See 4.6.9 on page 75 in cvs_guide.pdf (Sundials 2.6.2)
             // Solves P*z = r, where P ~= I - gamma*J
             if (ewt)
-                throw std::runtime_error("Not implemented.");
+                throw std::runtime_error("Not implemented: ewt in prec_solve_left");
             m_nprec_solve++;
 
             ignore(t); ignore(fy); ignore(y);

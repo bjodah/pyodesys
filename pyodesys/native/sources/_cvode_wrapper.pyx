@@ -155,10 +155,10 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
             else:
                 success = True
 
-            nfos.append(_as_dict(systems[idx].last_integration_info,
-                                 systems[idx].last_integration_info_dbl,
-                                 systems[idx].last_integration_info_vecdbl,
-                                 systems[idx].last_integration_info_vecint,
+            nfos.append(_as_dict(systems[idx].current_info.nfo_int,
+                                 systems[idx].current_info.nfo_dbl,
+                                 systems[idx].current_info.nfo_vecdbl,
+                                 systems[idx].current_info.nfo_vecint,
                                  root_indices[idx], root_out=None, mode='adaptive',
                                  success=success))
 
@@ -256,10 +256,10 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     for idx in range(y0.shape[0]):
         nreached = result[idx].first
         success = False if return_on_error and nreached < xout.shape[1] else True
-        nfos.append(_as_dict(systems[idx].last_integration_info,
-                             systems[idx].last_integration_info_dbl,
-                             systems[idx].last_integration_info_vecdbl,
-                             systems[idx].last_integration_info_vecint,
+        nfos.append(_as_dict(systems[idx].current_info.nfo_int,
+                             systems[idx].current_info.nfo_dbl,
+                             systems[idx].current_info.nfo_vecdbl,
+                             systems[idx].current_info.nfo_vecint,
                              root_indices=result[idx].second.first,
                              root_out=result[idx].second.second, mode='predefined',
                              success=success, nreached=nreached))

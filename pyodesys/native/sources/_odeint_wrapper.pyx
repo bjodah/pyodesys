@@ -89,8 +89,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         _yout = np.asarray(result[idx].second)
         yout.append(_yout.reshape((_xout.size, y0.shape[1])))
         success = _xout[-1] == xend[idx]
-        nfos.append(_as_dict(systems[idx].last_integration_info,
-                             systems[idx].last_integration_info_dbl,
+        nfos.append(_as_dict(systems[idx].current_info.nfo_int,
+                             systems[idx].current_info.nfo_dbl,
                              success, mode='adaptive'))
         del systems[idx]
 
@@ -153,8 +153,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     for idx in range(y0.shape[0]):
         nreached = result[idx]
         success = False if return_on_error and nreached < xout.shape[1] else True
-        nfos.append(_as_dict(systems[idx].last_integration_info,
-                             systems[idx].last_integration_info_dbl,
+        nfos.append(_as_dict(systems[idx].current_info.nfo_int,
+                             systems[idx].current_info.nfo_dbl,
                              success, mode='predefined', nreached=nreached))
         del systems[idx]
 
