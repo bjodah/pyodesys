@@ -37,8 +37,8 @@ extern "C" void sgbtrs_(const char* trans, const int* n, const int* kl, const in
 #define PROXY_SPECIALIZATION(CLS_NAME, TYPE, CALLBACK_NAME)        \
     template<> struct CLS_NAME ## _callback<TYPE> {                \
         template<class...Args>                                     \
-        constexpr auto operator()(Args&&... args) const noexcept { \
-            return CALLBACK_NAME(std::forward<Args>(args)...);     \
+        void operator()(Args&&... args) const noexcept {           \
+            CALLBACK_NAME(std::forward<Args>(args)...);            \
         }                                                          \
     };
 
