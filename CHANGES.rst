@@ -1,3 +1,7 @@
+v0.11.12
+========
+- Change C++ requirement to C++11
+
 v0.11.11
 ========
 - Bumpy AnyODE to version 14
