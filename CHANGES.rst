@@ -1,3 +1,7 @@
+v0.11.13
+========
+- Further fixes to only require C++11
+
 v0.11.12
 ========
 - Change C++ requirement to C++11
