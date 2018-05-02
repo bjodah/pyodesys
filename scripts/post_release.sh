@@ -1,7 +1,7 @@
 #!/bin/bash -xeu
 # Usage:
 #
-#    $ ./scripts/post_release.sh v1.2.3 myserver githubuser
+#    $ ANFILTE_CHANNELS="defaults conda-forge bjodah" ./scripts/post_release.sh v1.2.3 myserver githubuser
 #
 VERSION=${1#v}
 SERVER=$2
@@ -24,13 +24,12 @@ sed -i -E \
     -e "/cython/d" \
     dist/conda-recipe-$VERSION/meta.yaml
 
-./scripts/update-gh-pages.sh v$VERSION
-
-# Specific for this project:
+ssh $PKG@$SERVER 'mkdir -p ~/public_html/conda-packages'
+for CONDA_PY in 27 35 36; do
+    anfilte-build . dist/conda-recipe-$VERSION dist/ --python ${CONDA_PY}
+    scp dist/linux-64/${PKG}-${VERSION}-py${CONDA_PY}*.bz2 $PKG@$SERVER:~/public_html/conda-packages/
+done
+ssh $PKG@$SERVER 'mkdir -p ~/public_html/conda-recipes'
 scp -r dist/conda-recipe-$VERSION/ $PKG@$SERVER:~/public_html/conda-recipes/
 scp "$SDIST_FILE" "$PKG@$SERVER:~/public_html/releases/"
-for CONDA_PY in 2.7 3.5 3.6; do
-    for CONDA_NPY in 1.13; do
-        ssh $PKG@$SERVER "source /etc/profile; conda-build --python $CONDA_PY --numpy $CONDA_NPY ~/public_html/conda-recipes/conda-recipe-$VERSION/"
-    done
-done
+./scripts/update-gh-pages.sh v$VERSION
