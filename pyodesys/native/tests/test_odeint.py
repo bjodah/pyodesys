@@ -82,6 +82,7 @@ def test_NativeSys_first_step_expr__decay():
     _test_NativeSys__first_step_cb(NativeSys)
 
 
+@pytest.mark.xfail
 @pytest.mark.veryslow
 @requires('pyodeint')
 def test_chained_multi_native__dx_max_scalar():

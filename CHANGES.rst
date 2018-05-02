@@ -1,3 +1,7 @@
+v0.11.14
+========
+- Relax a few native tests
+
 v0.11.13
 ========
 - Further fixes to only require C++11

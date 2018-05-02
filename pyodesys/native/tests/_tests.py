@@ -221,8 +221,8 @@ def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
         assert np.allclose(yout, ref, rtol=rtol*800, atol=atol*800)
 
     for res in comb_res:
-        assert 0 < res.info['time_cpu'] < 100
-        assert 0 < res.info['time_wall'] < 100
+        assert 0 <= res.info['time_cpu'] < 100
+        assert 0 <= res.info['time_wall'] < 100
         assert res.info['success'] == True  # noqa
 
 
