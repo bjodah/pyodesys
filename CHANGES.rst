@@ -1,3 +1,7 @@
+v0.11.11
+========
+- Bumpy AnyODE to version 14
+
 v0.11.10
 ========
 - Bump AnyODE to version 13
