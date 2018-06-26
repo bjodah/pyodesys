@@ -17,11 +17,11 @@ namespace AnyODE {
         std::unique_ptr<JacMat_t> m_M_cache {nullptr};
         std::unique_ptr<Decomp_t> m_decomp_cache {nullptr};
 
-        virtual Status jac_times_vec(const Real_t * const __restrict__ vec,
-                                     Real_t * const __restrict__ out,
+        virtual Status jac_times_vec(const Real_t * const ANYODE_RESTRICT vec,
+                                     Real_t * const ANYODE_RESTRICT out,
                                      Real_t t,
-                                     const Real_t * const __restrict__ y,
-                                     const Real_t * const __restrict__ fy
+                                     const Real_t * const ANYODE_RESTRICT y,
+                                     const Real_t * const ANYODE_RESTRICT fy
                                      ) override
         {
             // See "Jacobian information (matrix-vector product)"
@@ -37,8 +37,8 @@ namespace AnyODE {
         }
 
         virtual Status prec_setup(Real_t t,
-                                  const Real_t * const __restrict__ y,
-                                  const Real_t * const __restrict__ fy,
+                                  const Real_t * const ANYODE_RESTRICT y,
+                                  const Real_t * const ANYODE_RESTRICT fy,
                                   bool jac_ok,
                                   bool& jac_recomputed,
                                   Real_t gamma) override
@@ -66,13 +66,13 @@ namespace AnyODE {
         }
 
         virtual Status prec_solve_left(const Real_t t,
-                                       const Real_t * const __restrict__ y,
-                                       const Real_t * const __restrict__ fy,
-                                       const Real_t * const __restrict__ r,
-                                       Real_t * const __restrict__ z,
+                                       const Real_t * const ANYODE_RESTRICT y,
+                                       const Real_t * const ANYODE_RESTRICT fy,
+                                       const Real_t * const ANYODE_RESTRICT r,
+                                       Real_t * const ANYODE_RESTRICT z,
                                        Real_t /* gamma */,
                                        Real_t /* delta */,
-                                       const Real_t * const __restrict__ ewt
+                                       const Real_t * const ANYODE_RESTRICT ewt
                                        ) override
         {
             // See 4.6.9 on page 75 in cvs_guide.pdf (Sundials 2.6.2)

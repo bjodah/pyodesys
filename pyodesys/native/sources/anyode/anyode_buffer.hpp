@@ -1,9 +1,10 @@
 #pragma once
 
-#ifdef NDEBUG
 #include<memory>
-#else
+
+#ifndef NDEBUG
 #include<vector>
+#include<limits>
 #endif
 
 namespace AnyODE {
@@ -34,6 +35,7 @@ namespace AnyODE {
         return std::unique_ptr<T>(new RT[n]);
     }
 #endif
+
 #ifdef NDEBUG
     template<typename T> using buffer_t = std::unique_ptr<T[]>;
     template<typename T> using buffer_ptr_t = T*;
@@ -43,15 +45,21 @@ namespace AnyODE {
     template<typename T> inline constexpr buffer_t<T> buffer_factory(std::size_t n) {
         return make_unique<T[]>(n);
     }
+    template<typename T> constexpr bool buffer_is_initialized(const buffer_t<T>& buf) {
+        return (bool)buf;
+    }
 
 #else
     template<typename T> using buffer_t = std::vector<T>;
     template<typename T> using buffer_ptr_t = T*;
     template<typename T> inline constexpr buffer_t<T> buffer_factory(std::size_t n) {
-        return buffer_t<T>(n);
+        return buffer_t<T>(n, std::numeric_limits<T>::signaling_NaN());
     }
     template<typename T> constexpr T* buffer_get_raw_ptr(buffer_t<T>& buf) {
         return &buf[0];
+    }
+    template<typename T> constexpr bool buffer_is_initialized(const buffer_t<T>& buf) {
+        return buf.size() > 0;
     }
 #endif
 }
