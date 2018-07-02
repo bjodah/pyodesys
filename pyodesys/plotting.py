@@ -143,7 +143,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
 
     if ylabel is None:
         try:
-            ax.set_ylabel(_latex_from_dimensionality(_y.dimensionality.latex))
+            ax.set_ylabel(_latex_from_dimensionality(_y.dimensionality))
         except AttributeError:
             pass
     else:
