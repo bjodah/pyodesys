@@ -137,6 +137,15 @@ class SymbolicSys(ODESys):
             do not compute jacobian (use explicit steppers)
         if instance of ImmutableMatrix:
             user provided expressions for the jacobian
+    jtimes : bool or iterable of (symbol, expression)-pairs
+        if True:
+            calculate jacobian-vector product from exprs
+        if False:
+            do not compute jacobian-vector product
+        if instance of iterable of (symbol, expression) pairs:
+            user provided expressions for the jacobian vector product, where each symbol
+            is an element of the vector being left-multiplied. Othere than these symbols,
+            expressions may only involve the other free symbols in :attr`dep` and :attr`params`.
     dfdx : iterable of expressions
         Derivatives of :attr:`exprs` with respect to :attr`indep`.
     first_step_expr : expression
@@ -214,9 +223,9 @@ class SymbolicSys(ODESys):
     def linear_invariants(self, lin_invar):
         self._linear_invariants = _get_lin_invar_mtx(lin_invar, self.be, self.ny, self.names)
 
-    def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True, first_step_expr=None,
-                 roots=None, backend=None, lower_bounds=None, upper_bounds=None,
-                 linear_invariants=None, nonlinear_invariants=None,
+    def __init__(self, dep_exprs, indep=None, params=None, jac=True, dfdx=True,
+                 jtimes=False, first_step_expr=None, roots=None, backend=None, lower_bounds=None,
+                 upper_bounds=None, linear_invariants=None, nonlinear_invariants=None,
                  linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False,
                  init_indep=None, init_dep=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
@@ -230,9 +239,11 @@ class SymbolicSys(ODESys):
 
         self.params = tuple(params)
         self._jac = jac
+        self._jtimes = tuple(jtimes) if hasattr(jtimes, '__iter__') else jtimes
         self._dfdx = dfdx
         self.first_step_expr = first_step_expr
         self.be = Backend(backend)
+
         if steady_state_root:
             if steady_state_root is True:
                 steady_state_root = 1e-10
@@ -274,6 +285,7 @@ class SymbolicSys(ODESys):
         super(SymbolicSys, self).__init__(
             self.get_f_ty_callback(),
             self.get_j_ty_callback(),
+            self.get_jtimes_callback(),
             self.get_dfdx_callback(),
             self.get_first_step_callback(),
             self.get_roots_callback(),
@@ -521,7 +533,7 @@ class SymbolicSys(ODESys):
         drop_idxs = [ori.params.index(par) for par in par_subs]
         params = _skip(drop_idxs, ori.params, False) + list(new_pars)
         back_substitute = _Callback(ori.indep, ori.dep, params, list(par_subs.values()),
-                                    ori.be.Lambdify)
+                                    Lambdify=ori.be.Lambdify)
 
         def recalc_params(t, y, p):
             rev = back_substitute(t, y, p)
@@ -627,6 +639,20 @@ class SymbolicSys(ODESys):
 
         return self._jac
 
+    def get_jtimes(self):
+        """ Derive the jacobian-vector product from ``self.exprs`` and ``self.dep``"""
+        if self._jtimes is False:
+            return False
+
+        if self._jtimes is True:
+            r = self.be.Dummy('r')
+            v = tuple(self.be.Dummy('v_{0}'.format(i)) for i in range(self.ny))
+            f = self.be.Matrix(1, self.ny, self.exprs)
+            f = f.subs([(x_i, x_i + r * v_i) for x_i, v_i in zip(self.dep, v)])
+            return v, self.be.flatten(f.diff(r).subs(r, 0))
+        else:
+            return tuple(zip(*self._jtimes))
+
     def jacobian_singular(self):
         """ Returns True if Jacobian is singular, else False. """
         cses, (jac_in_cses,) = self.be.cse(self.get_jac())
@@ -648,7 +674,7 @@ class SymbolicSys(ODESys):
         return self._dfdx
 
     def _callback_factory(self, exprs):
-        return _Callback(self.indep, self.dep, self.params, exprs, self.be.Lambdify)
+        return _Callback(self.indep, self.dep, self.params, exprs, Lambdify=self.be.Lambdify)
 
     def get_f_ty_callback(self):
         """ Generates a callback for evaluating ``self.exprs``. """
@@ -685,6 +711,15 @@ class SymbolicSys(ODESys):
         if dfdx_exprs is False:
             return None
         return self._callback_factory(dfdx_exprs)
+
+    def get_jtimes_callback(self):
+        """ Generate a callback fro evaluating the jacobian-vector product."""
+        jtimes = self.get_jtimes()
+        if jtimes is False:
+            return None
+        v, jtimes_exprs = jtimes
+        return _Callback(self.indep, tuple(self.dep) + tuple(v), self.params,
+                         jtimes_exprs, Lambdify=self.be.Lambdify)
 
     def get_first_step_callback(self):
         if self.first_step_expr is None:
@@ -1281,7 +1316,7 @@ class PartiallySolvedSystem(SymbolicSys):
 
     @staticmethod
     def _get_analytic_callback(ori_sys, analytic_exprs, new_dep, new_params):
-        return _Callback(ori_sys.indep, new_dep, new_params, analytic_exprs, ori_sys.be.Lambdify)
+        return _Callback(ori_sys.indep, new_dep, new_params, analytic_exprs, Lambdify=ori_sys.be.Lambdify)
 
     def __getitem__(self, key):
         ori_dep = self.original_dep[self.names.index(key)]

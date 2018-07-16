@@ -142,7 +142,7 @@ class ODESys(object):
 
     """
 
-    def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
+    def __init__(self, f, jac=None, jtimes=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
                  band=None, names=(), param_names=(), indep_name=None, description=None, dep_by_name=False,
                  par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
                  taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
@@ -150,6 +150,7 @@ class ODESys(object):
                  _indep_autonomous_key=None, numpy=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
+        self.jtimes_cb = _ensure_4args(jtimes) if jtimes is not None else None
         self.dfdx_cb = dfdx
         self.first_step_cb = first_step_cb
         self.roots_cb = roots_cb
@@ -546,7 +547,7 @@ class ODESys(object):
         return results
 
     def _integrate(self, adaptive, predefined, intern_xout, intern_y0, intern_p,
-                   atol=1e-8, rtol=1e-8, first_step=0.0, with_jacobian=None,
+                   atol=1e-8, rtol=1e-8, first_step=0.0, with_jacobian=True,
                    force_predefined=False, **kwargs):
         nx = intern_xout.shape[-1]
         results = []
@@ -564,9 +565,7 @@ class ODESys(object):
                 except RecoverableError:
                     return 1  # recoverable error
 
-            if with_jacobian is None:
-                raise ValueError("Need to pass with_jacobian")
-            elif with_jacobian is True:
+            if with_jacobian is True:
                 def _j(x, y, jout, dfdx_out=None, fy=None):
                     if len(_p) > 0:
                         jout[:, :] = np.asarray(self.j_cb(x, y, _p))
@@ -604,6 +603,7 @@ class ODESys(object):
                     if 'nroots' in new_kwargs:
                         raise ValueError("cannot override nroots")
                     new_kwargs['nroots'] = self.nroots
+
             if nx == 2 and not force_predefined:
                 _xout, yout, info = adaptive(_f, _j, _y0, *_xout, **new_kwargs)
                 info['mode'] = 'adaptive'
@@ -667,14 +667,26 @@ class ODESys(object):
         (via `pycvodes <https://pypi.python.org/pypi/pycvodes>`_)
         to integrate the ODE system. """
         import pycvodes  # Python interface to SUNDIALS's cvodes integrators
-        kwargs['with_jacobian'] = kwargs.get(
-            'method', 'bdf') in pycvodes.requires_jac
+        kwargs['with_jacobian'] = kwargs.get('method', 'bdf') in pycvodes.requires_jac
         if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
             raise ValueError("lband and uband set locally (set at"
                              " initialization instead)")
         if self.band is not None:
             kwargs['lband'], kwargs['uband'] = self.band
         kwargs['autonomous_exprs'] = self.autonomous_exprs
+
+        with_jtimes = kwargs.pop('with_jtimes', False)
+
+        if with_jtimes is True:
+            def _jtimes(v, Jv, x, y, fy=None, user_data=None, tmp=None):
+                yv = np.concatenate((y, v))
+                if len(_p) > 0:
+                    Jv[:] = np.asarray(self.jtimes_cb(x, yv, _p))
+                else:
+                    Jv[:] = np.asarray(self.jtimes_cb(x, yv))
+
+            kwargs['jtimes'] = _jtimes
+
         return self._integrate(pycvodes.integrate_adaptive,
                                pycvodes.integrate_predefined,
                                *args, **kwargs)
