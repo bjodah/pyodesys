@@ -143,9 +143,9 @@ class SymbolicSys(ODESys):
         if False:
             do not compute jacobian-vector product
         if instance of iterable of (symbol, expression) pairs:
-            user provided expressions for the jacobian vector product, where each symbol
-            is an element of the vector being left-multiplied. Other than these symbols,
-            expressions may only involve the other free symbols in :attr`dep` and
+            user-provided expressions for the jacobian-vector product, where the symbols
+            are the elements of the vector being multiplied. Other than these symbols,
+            the expressions should only involve the symbols in :attr`dep` and
             :attr`params`.
     dfdx : iterable of expressions
         Derivatives of :attr:`exprs` with respect to :attr`indep`.
