@@ -25,7 +25,7 @@ class NativeCvodeCode(_NativeCodeBase):
         self.compile_kwargs['include_dirs'].append(get_include())
         self.compile_kwargs['libraries'].extend(_config.env['SUNDIALS_LIBS'].split(','))
         self.compile_kwargs['libraries'].extend(os.environ.get(
-            'PYODESYS_LAPACK', _config.env['LAPACK']).split(','))
+            'PYODESYS_LAPACK', [l for l in _config.env['LAPACK'].split(',') if l not in ('', '0')]))
         super(NativeCvodeCode, self).__init__(*args, **kwargs)
 
 

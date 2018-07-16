@@ -87,7 +87,7 @@ the solvers and then their python bindings. The 3rd party requirements are as fo
 
 - `pygslodeiv2 <https://github.com/bjodah/pygslodeiv2>`_ (requires GSL_ >=1.16)
 - `pyodeint <https://github.com/bjodah/pyodeint>`_ (requires boost_ >=1.65.0)
-- `pycvodes <https://github.com/bjodah/pycvodes>`_ (requires SUNDIALS_ ==2.7.0)
+- `pycvodes <https://github.com/bjodah/pycvodes>`_ (requires SUNDIALS_ >=2.7.0)
 
 
 .. _GSL: https://www.gnu.org/software/gsl/
@@ -246,7 +246,7 @@ If you make use of pyodesys in e.g. academic work you may cite the following pee
 Depending on what underlying solver you are using you should also cite the appropriate paper
 (you can look at the list of references in the JOSS article). If you need to reference,
 in addition to the paper, a specific point version of pyodesys (for e.g. reproducibility)
-you can get per-version DOIs from the zendodo archive:
+you can get per-version DOIs from the zenodo archive:
 
 .. image:: https://zenodo.org/badge/43131469.svg
    :target: https://zenodo.org/badge/latestdoi/43131469

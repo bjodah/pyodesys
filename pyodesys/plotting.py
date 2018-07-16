@@ -15,6 +15,12 @@ def _set_scale(cb, argstr):
         cb(arg, **eval('dict(%s)' % kw))
 
 
+def _latex_from_dimensionality(dim):
+    # see https://github.com/python-quantities/python-quantities/issues/148
+    from quantities.markup import format_units_latex
+    return format_units_latex(dim, mult=r'\\cdot')
+
+
 def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
                 ls=('-', '--', ':', '-.'),
                 c=('tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
@@ -129,7 +135,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
 
     if xlabel is None:
         try:
-            ax.set_xlabel(x.dimensionality.latex)
+            ax.set_xlabel(_latex_from_dimensionality(x.dimensionality))
         except AttributeError:
             pass
     else:
@@ -137,7 +143,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
 
     if ylabel is None:
         try:
-            ax.set_ylabel(_y.dimensionality.latex)
+            ax.set_ylabel(_latex_from_dimensionality(_y.dimensionality))
         except AttributeError:
             pass
     else:
