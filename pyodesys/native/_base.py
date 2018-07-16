@@ -10,7 +10,6 @@ import shutil
 import sys
 import tempfile
 
-
 import numpy as np
 import pkg_resources
 
@@ -119,28 +118,44 @@ class _NativeCodeBase(Cpp_Code):
         if self.odesys.band is not None:
             raise NotImplementedError("Banded jacobian not yet implemented.")
 
+        all_invar = tuple(self.odesys.all_invariants())
+        ninvar = len(all_invar)
+        jac = self.odesys.get_jac()
+        all_exprs = self.odesys.exprs + all_invar
+        if jac is not False:
+            jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
+            all_exprs += tuple(jac_dfdx)
+            nj = len(jac_dfdx)
+        else:
+            nj = 0
+
+        jtimes = self.odesys.get_jtimes()
+        if jtimes is not False:
+            v, jtimes_exprs = jtimes
+            all_exprs += tuple(jtimes_exprs)
+            njtimes = len(jtimes_exprs)
+        else:
+            v = ()
+            jtimes_exprs = ()
+            njtimes = 0
+
         subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for
                  idx, k in enumerate(self.odesys.dep)}
         subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
+        if jtimes is not False:
+            subsd.update({k: self.odesys.be.Symbol('v[%d]' % idx) for
+                         idx, k in enumerate(v)})
         subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
                       idx, k in enumerate(self.odesys.params)})
-
-        def _ccode(expr):
-            return self.odesys.be.ccode(expr.xreplace(subsd))
-
-        all_invar = tuple(self.odesys.all_invariants())
-        jac = self.odesys.get_jac()
-        if jac is False:
-            all_exprs = self.odesys.exprs + all_invar
-        else:
-            jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
-            all_exprs = self.odesys.exprs + tuple(jac_dfdx) + all_invar
 
         def common_cse_symbols():
             idx = 0
             while True:
                 yield self.odesys.be.Symbol('m_p_cse[%d]' % idx)
                 idx += 1
+
+        def _ccode(expr):
+            return self.odesys.be.ccode(expr.xreplace(subsd))
 
         if os.getenv('PYODESYS_NATIVE_CSE', '1') == '1':
             cse_cb = self.odesys.be.cse
@@ -150,8 +165,8 @@ class _NativeCodeBase(Cpp_Code):
 
         try:
             common_cses, common_exprs = cse_cb(
-                all_exprs, symbols=self.odesys.be('cse'),
-                ignore=(self.odesys.indep,) + self.odesys.dep)
+                all_exprs, symbols=common_cse_symbols(),
+                ignore=(self.odesys.indep,) + self.odesys.dep + v)
         except TypeError:  # old version of SymPy does not support ``ignore``
             common_cses, common_exprs = [], all_exprs
         common_cse_subs = {}
@@ -166,13 +181,17 @@ class _NativeCodeBase(Cpp_Code):
         common_exprs = [expr.xreplace(common_cse_subs) for expr in common_exprs]
 
         rhs_cses, rhs_exprs = cse_cb(
-            common_exprs[:len(self.odesys.exprs)],
+            common_exprs[:ny],
             symbols=self.odesys.be.numbered_symbols('cse'))
 
         if jac is not False:
             jac_cses, jac_exprs = cse_cb(
-                common_exprs[len(self.odesys.exprs):
-                             len(self.odesys.exprs)+len(jac_dfdx)],
+                common_exprs[ny:(ny + nj)],
+                symbols=self.odesys.be.numbered_symbols('cse'))
+
+        if jtimes is not False:
+            jtimes_cses, jtimes_exprs = cse_cb(
+                common_exprs[(ny + nj):(ny + nj + njtimes)],
                 symbols=self.odesys.be.numbered_symbols('cse'))
 
         first_step = self.odesys.first_step_expr
@@ -187,8 +206,7 @@ class _NativeCodeBase(Cpp_Code):
                 symbols=self.odesys.be.numbered_symbols('cse'))
         if all_invar:
             invar_cses, invar_exprs = cse_cb(
-                common_exprs[len(self.odesys.exprs)+len(jac_dfdx):
-                             len(self.odesys.exprs)+len(jac_dfdx)+len(all_invar)],
+                common_exprs[(ny + nj + njtimes):(ny + nj + njtimes + ninvar)],
                 symbols=self.odesys.be.numbered_symbols('cse')
             )
 
@@ -206,6 +224,10 @@ class _NativeCodeBase(Cpp_Code):
             p_rhs={
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in rhs_cses],
                 'exprs': list(map(_ccode, rhs_exprs))
+            },
+            p_jtimes=None if jtimes is False else{
+                'cses': [(symb.name, _ccode(expr)) for symb, expr in jtimes_cses],
+                'exprs': list(map(_ccode, jtimes_exprs))
             },
             p_jac=None if jac is False else {
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
@@ -234,6 +256,7 @@ class _NativeCodeBase(Cpp_Code):
         ns.update(self.namespace_override)
         for k, v in self.namespace_extend.items():
             ns[k].extend(v)
+
         return ns
 
 
@@ -291,5 +314,7 @@ class _NativeSysBase(SymbolicSys):
                 info[idx]['nfev'] = info[idx]['n_rhs_evals']
             if 'njev' not in info[idx] and 'dense_n_dls_jac_evals' in info[idx]:
                 info[idx]['njev'] = info[idx]['dense_n_dls_jac_evals']
+            if 'njvev' not in info[idx] and 'krylov_n_jac_times_evals' in info[idx]:
+                info[idx]['njvev'] = info[idx]['krylov_n_jac_times_evals']
 
         return info

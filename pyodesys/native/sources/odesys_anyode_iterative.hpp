@@ -38,6 +38,11 @@ namespace odesys_anyode {
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt=nullptr) override;
+        AnyODE::Status jtimes(const double * const __restrict__ vec,
+                              double * const __restrict__ out,
+                              double t,
+                              const double * const __restrict__ y,
+                              const double * const __restrict__ fy) override;
         AnyODE::Status roots(double t, const double * const y, double * const out) override;
     };
 }
