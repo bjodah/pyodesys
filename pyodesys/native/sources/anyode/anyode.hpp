@@ -1,11 +1,24 @@
 #ifdef ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37
 
-#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 14
+#if ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 != 16
 #error "Multiple anyode.hpp files included with version mismatch"
 #endif
 
 #else
-#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 14
+#define ANYODE_HPP_D47BAD58870311E6B95F2F58DEFE6E37 16
+
+#ifndef ANYODE_RESTRICT
+  #if defined(__GNUC__)
+    #define ANYODE_RESTRICT __restrict__
+  #elif defined(_MSC_VER) && _MSC_VER >= 1400
+    #define ANYODE_RESTRICT __restrict
+  #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+    #define ANYODE_RESTRICT restrict
+  #else
+    #define ANYODE_RESTRICT
+  #endif
+#endif
+
 
 #include <memory>
 #include <cstdlib>
@@ -66,7 +79,7 @@ struct Info {
         for (const auto &kv : DICT_OF_VECTORS){     \
             const auto &k = kv.first;               \
             const auto &v = kv.second;              \
-            out << k << ": [";                      \
+            out << k << joiner << "[";              \
             for (auto it=v.begin();it != v.end();){ \
                 out << *it;                         \
                 ++it;                               \
@@ -76,7 +89,7 @@ struct Info {
                     out << delimiter;               \
                 }                                   \
             }                                       \
-            out << "]" << joiner;                   \
+            out << "]" << delimiter;                \
         }
         ANYODE_PRINT(nfo_vecdbl);
         ANYODE_PRINT(nfo_vecint);
@@ -120,7 +133,7 @@ enum class Status : int {success = 0, recoverable_error = 1, unrecoverable_error
 
 template <typename Real_t=double>
 struct OdeSysBase {
-    int nfev=0, njev=0;
+    int nfev=0, njev=0, njvev=0;
     void * integrator = nullptr;
     void * user_data = nullptr;  // for those who don't want to subclass
     Info current_info;
@@ -155,39 +168,38 @@ struct OdeSysBase {
         return Status::unrecoverable_error;
     }
     virtual Status dense_jac_cmaj(Real_t t,
-                                  const Real_t * const __restrict__ y,
-                                  const Real_t * const __restrict__ fy,
-                                  Real_t * const __restrict__ jac,
+                                  const Real_t * const ANYODE_RESTRICT y,
+                                  const Real_t * const ANYODE_RESTRICT fy,
+                                  Real_t * const ANYODE_RESTRICT jac,
                                   long int ldim,
-                                  Real_t * const __restrict__ dfdt=nullptr){
+                                  Real_t * const ANYODE_RESTRICT dfdt=nullptr){
         ignore(t); ignore(y); ignore(fy); ignore(jac); ignore(ldim); ignore(dfdt);
         return Status::unrecoverable_error;
     }
     virtual Status dense_jac_rmaj(Real_t t,
-                                  const Real_t * const __restrict__ y,
-                                  const Real_t * const __restrict__ fy,
-                                  Real_t * const __restrict__ jac,
+                                  const Real_t * const ANYODE_RESTRICT y,
+                                  const Real_t * const ANYODE_RESTRICT fy,
+                                  Real_t * const ANYODE_RESTRICT jac,
                                   long int ldim,
-                                  Real_t * const __restrict__ dfdt=nullptr){
+                                  Real_t * const ANYODE_RESTRICT dfdt=nullptr){
         ignore(t); ignore(y); ignore(fy); ignore(jac); ignore(ldim); ignore(dfdt);
         return Status::unrecoverable_error;
     }
     virtual Status banded_jac_cmaj(Real_t t,
-                                   const Real_t * const __restrict__ y,
-                                   const Real_t * const __restrict__ fy,
-                                   Real_t * const __restrict__ jac,
+                                   const Real_t * const ANYODE_RESTRICT y,
+                                   const Real_t * const ANYODE_RESTRICT fy,
+                                   Real_t * const ANYODE_RESTRICT jac,
                                    long int ldim){
         ignore(t); ignore(y); ignore(fy); ignore(jac); ignore(ldim);
         throw std::runtime_error("banded_jac_cmaj not implemented.");
         return Status::unrecoverable_error;
     }
-    virtual Status jac_times_vec(const Real_t * const __restrict__ vec,
-                                 Real_t * const __restrict__ out,
-                                 Real_t t,
-                                 const Real_t * const __restrict__ y,
-                                 const Real_t * const __restrict__ fy
-                                 )
-    {
+    virtual Status jtimes(const Real_t * const ANYODE_RESTRICT vec,
+                          Real_t * const ANYODE_RESTRICT out,
+                          Real_t t,
+                          const Real_t * const ANYODE_RESTRICT y,
+                          const Real_t * const ANYODE_RESTRICT fy
+                          ) {
         ignore(vec);
         ignore(out);
         ignore(t);
@@ -196,8 +208,8 @@ struct OdeSysBase {
         return Status::unrecoverable_error;
     }
     virtual Status prec_setup(Real_t t,
-                            const Real_t * const __restrict__ y,
-                            const Real_t * const __restrict__ fy,
+                            const Real_t * const ANYODE_RESTRICT y,
+                            const Real_t * const ANYODE_RESTRICT fy,
                             bool jok,
                             bool& jac_recomputed,
                             Real_t gamma)
@@ -211,13 +223,13 @@ struct OdeSysBase {
         return Status::unrecoverable_error;
     }
     virtual Status prec_solve_left(const Real_t t,
-                                   const Real_t * const __restrict__ y,
-                                   const Real_t * const __restrict__ fy,
-                                   const Real_t * const __restrict__ r,
-                                   Real_t * const __restrict__ z,
+                                   const Real_t * const ANYODE_RESTRICT y,
+                                   const Real_t * const ANYODE_RESTRICT fy,
+                                   const Real_t * const ANYODE_RESTRICT r,
+                                   Real_t * const ANYODE_RESTRICT z,
                                    Real_t gamma,
                                    Real_t delta,
-                                   const Real_t * const __restrict__ ewt)
+                                   const Real_t * const ANYODE_RESTRICT ewt)
     {
         ignore(t);
         ignore(y);

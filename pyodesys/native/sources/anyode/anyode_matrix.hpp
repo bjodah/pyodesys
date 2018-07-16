@@ -4,7 +4,11 @@
 #include <cstring>  // std::memset
 #include <stdexcept> // std::runtime_error
 
+#if USE_LAPACK == 1
 #include "anyode/anyode_blas_lapack.hpp"
+#else
+#include "anyode/anyode_blasless.hpp"
+#endif
 
 namespace AnyODE {
     template<typename T> constexpr std::size_t n_padded(std::size_t n, int alignment_bytes){
@@ -100,6 +104,7 @@ namespace AnyODE {
         }
     };
 
+    #if USE_LAPACK == 1
     constexpr int banded_padded_ld(int kl, int ku) { return 2*kl+ku+1; }
 
     template<typename Real_t = double>
@@ -190,4 +195,5 @@ namespace AnyODE {
                 this->m_data[i] = 1 + scale*source.m_data[i];
         }
     };
+    #endif
 }

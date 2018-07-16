@@ -4,7 +4,12 @@
 
 #include "anyode/anyode_matrix.hpp"
 #include "anyode/anyode_buffer.hpp"
+
+#if USE_LAPACK == 1
 #include "anyode/anyode_blas_lapack.hpp"
+#else
+#include "anyode/anyode_blasless.hpp"
+#endif
 
 namespace AnyODE {
 
@@ -44,6 +49,7 @@ namespace AnyODE {
         }
     };
 
+    #if USE_LAPACK == 1
     template<typename Real_t = double>
     struct BandedLU : public DecompositionBase<Real_t> { // operates inplace
         BandedMatrix<Real_t> * m_view;
@@ -144,4 +150,5 @@ namespace AnyODE {
         }
 
     };
+    #endif
 }

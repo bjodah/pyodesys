@@ -4,25 +4,24 @@
 
 #include <anyode/anyode.hpp>
 #include <anyode/anyode_buffer.hpp> // make_unique
-#include <anyode/anyode_blas_lapack.hpp>  // dgemv, dgesvd
 #include <anyode/anyode_matrix.hpp> // DenseMatrix
-#include <anyode/anyode_decomposition.hpp>  // SVD
+#include <anyode/anyode_decomposition.hpp>  // LU
 
 namespace AnyODE {
 
-    template <typename Real_t=double, typename JacMat_t=DenseMatrix<Real_t>, typename Decomp_t=SVD<Real_t>>
+    template <typename Real_t=double, typename JacMat_t=DenseMatrix<Real_t>, typename Decomp_t=DenseLU<Real_t>>
     struct OdeSysIterativeBase : public OdeSysBase<Real_t> {
         int m_njacvec_dot=0, m_nprec_setup=0, m_nprec_solve=0;
         std::unique_ptr<JacMat_t> m_jac_cache {nullptr};
         std::unique_ptr<JacMat_t> m_M_cache {nullptr};
         std::unique_ptr<Decomp_t> m_decomp_cache {nullptr};
 
-        virtual Status jac_times_vec(const Real_t * const __restrict__ vec,
-                                     Real_t * const __restrict__ out,
-                                     Real_t t,
-                                     const Real_t * const __restrict__ y,
-                                     const Real_t * const __restrict__ fy
-                                     ) override
+        virtual Status jtimes(const Real_t * const ANYODE_RESTRICT vec,
+                              Real_t * const ANYODE_RESTRICT out,
+                              Real_t t,
+                              const Real_t * const ANYODE_RESTRICT y,
+                              const Real_t * const ANYODE_RESTRICT fy
+                              ) override
         {
             // See "Jacobian information (matrix-vector product)"
             //     (4.6.8 in cvs_guide.pdf for sundials 2.7.0)
@@ -37,8 +36,8 @@ namespace AnyODE {
         }
 
         virtual Status prec_setup(Real_t t,
-                                  const Real_t * const __restrict__ y,
-                                  const Real_t * const __restrict__ fy,
+                                  const Real_t * const ANYODE_RESTRICT y,
+                                  const Real_t * const ANYODE_RESTRICT fy,
                                   bool jac_ok,
                                   bool& jac_recomputed,
                                   Real_t gamma) override
@@ -66,13 +65,13 @@ namespace AnyODE {
         }
 
         virtual Status prec_solve_left(const Real_t t,
-                                       const Real_t * const __restrict__ y,
-                                       const Real_t * const __restrict__ fy,
-                                       const Real_t * const __restrict__ r,
-                                       Real_t * const __restrict__ z,
+                                       const Real_t * const ANYODE_RESTRICT y,
+                                       const Real_t * const ANYODE_RESTRICT fy,
+                                       const Real_t * const ANYODE_RESTRICT r,
+                                       Real_t * const ANYODE_RESTRICT z,
                                        Real_t /* gamma */,
                                        Real_t /* delta */,
-                                       const Real_t * const __restrict__ ewt
+                                       const Real_t * const ANYODE_RESTRICT ewt
                                        ) override
         {
             // See 4.6.9 on page 75 in cvs_guide.pdf (Sundials 2.6.2)
