@@ -126,15 +126,47 @@ AnyODE::Status OdeSys::rhs(double x,
 %endif
 }
 
-%if p_jac is not None:
-%for order in ('cmaj', 'rmaj'):
+AnyODE::Status OdeSys::jtimes(
+                              const double * const __restrict__ v,
+                              double * const __restrict__ Jv,
+                              double x,
+                              const double * const __restrict__ y,
+                              const double * const __restrict__ fy) {
+%if p_jtimes is not None:
+%if isinstance(p_jtimes, str):
+    ${p_jtimes}
+%else:
+    AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
+    ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
 
+    %for cse_token, cse_expr in p_jtimes['cses']:
+        const auto ${cse_token} = ${cse_expr};
+    %endfor
+
+    %for i in range(p_odesys.ny):
+        <% curr_expr = p_jtimes['exprs'][i] %>
+        Jv[${i}] = ${curr_expr};
+    %endfor
+%endif
+    this->njvev++;
+    return AnyODE::Status::success;
+%else:
+    AnyODE::ignore(v); AnyODE::ignore(Jv); AnyODE::ignore(x);
+    AnyODE::ignore(y); AnyODE::ignore(fy);
+    return AnyODE::Status::unrecoverable_error;
+%endif
+}
+
+
+%for order in ('cmaj', 'rmaj'):
 AnyODE::Status OdeSys::dense_jac_${order}(double x,
                                       const double * const __restrict__ y,
                                       const double * const __restrict__ fy,
                                       double * const __restrict__ jac,
                                       long int ldim,
                                       double * const __restrict__ dfdt) {
+
+%if p_jac is not None:
 %if order in p_jac:
     ${p_jac[order]}
 %else:
@@ -166,9 +198,15 @@ AnyODE::Status OdeSys::dense_jac_${order}(double x,
     this->njev++;
     return AnyODE::Status::success;
 %endif
+%else:
+    // Native code module requires dense_jac_${order} to be defined even if it
+    // is never used due to with_jacobian=False
+    AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(fy);
+    AnyODE::ignore(jac); AnyODE::ignore(ldim); AnyODE::ignore(dfdt);
+    return AnyODE::Status::unrecoverable_error;
+%endif
 }
 %endfor
-%endif
 
 double OdeSys::get_dx0(double x, const double * const y) {
 %if p_first_step is None:

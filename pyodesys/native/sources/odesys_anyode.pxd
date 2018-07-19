@@ -14,5 +14,5 @@ cdef extern from "odesys_anyode.hpp" namespace "odesys_anyode":
                bool, double, vector[double]) nogil except +
         int get_ny() nogil
         double get_dx0(double, const double * const) nogil
-        unsigned nfev, njev
+        unsigned nfev, njev, njvev
         Info current_info        

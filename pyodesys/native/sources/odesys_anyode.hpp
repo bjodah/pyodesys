@@ -25,6 +25,11 @@ namespace odesys_anyode {
         AnyODE::Status rhs(double x,
                            const double * const __restrict__ y,
                            double * const __restrict__ f) override;
+        AnyODE::Status jtimes(const double * const __restrict__ v,
+                              double * const __restrict__ Jv,
+                              double x,
+                              const double * const __restrict__ y,
+                              const double * const __restrict__ fy) override;
         AnyODE::Status dense_jac_cmaj(double x,
                                       const double * const __restrict__ y,
                                       const double * const __restrict__ fy,

@@ -2,27 +2,23 @@
 
 export PKG_NAME=$1
 
-for PY in python2 python3; do
-    $PY -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
+for p in "${@:2}"
+do
+export CPATH=$p/include:$CPATH LIBRARY_PATH=$p/lib:$LIBRARY_PATH LD_LIBRARY_PATH=$p/lib:$LD_LIBRARY_PATH
 done
+
+python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
 
 python3 setup.py sdist
 (cd dist/; python3 -m pip install $PKG_NAME-$(python3 ../setup.py --version).tar.gz)
+python3 -m pip install --upgrade --upgrade-strategy only-if-needed .[all]
 
-
-for PY in python2 python3; do
-    $PY -m pip install --upgrade --upgrade-strategy only-if-needed .[all]
-done
-
-export PYTHONHASHSEED=$(python -c "import random; print random.randint(1,2**32-1)")
-PYTHON="python2 -R" ./scripts/run_tests.sh
-PYTHON=python3 ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
+export PYTHONHASHSEED=$(python3 -c "import random; print(random.randint(1,2**32-1))")
+PYTHON="python3 -R" ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 
 ./scripts/render_notebooks.sh
 (cd $PKG_NAME/tests; jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 *.ipynb)
-python3 -m pip install --user --force-reinstall docutils==0.12  # see https://github.com/sphinx-doc/sphinx/pull/3217
 ./scripts/generate_docs.sh
-
 
 # Test package without any 3rd party libraries that are in extras_require:
 python3 -m pip install virtualenv

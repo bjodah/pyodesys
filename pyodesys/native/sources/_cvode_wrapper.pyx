@@ -14,7 +14,7 @@ from libcpp.string cimport string
 
 cimport numpy as cnp
 from odesys_anyode_iterative cimport OdeSys
-from cvodes_cxx cimport lmm_from_name, iter_type_from_name
+from cvodes_cxx cimport lmm_from_name, iter_type_from_name, linear_solver_from_name
 from cvodes_anyode_parallel cimport multi_predefined, multi_adaptive
 
 import numpy as np
@@ -57,7 +57,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        dx_min=None,
                        dx_max=None,
                        long int mxsteps=0,
-                       str iter_type='undecided', int linear_solver=0, str method='BDF',
+                       str iter_type='undecided', str linear_solver="default", str method='BDF',
                        bool with_jacobian=True, bool return_on_root=False,
                        int autorestart=0, bool return_on_error=False, bool with_jtimes=False,
                        bool record_rhs_xvals=False, bool record_jac_xvals=False,
@@ -135,7 +135,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         result = multi_adaptive[OdeSys](
             xyout_arr, td_arr,
             systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
-            &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
+            &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
+            linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes
         )
         xout, yout = [], []
@@ -178,7 +179,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          dx_min=None,
                          dx_max=None,
                          long int mxsteps=0,
-                         str iter_type='undecided', int linear_solver=0, str method='BDF',
+                         str iter_type='undecided', str linear_solver="default", str method='BDF',
                          bool with_jacobian=True, int autorestart=0, bool return_on_error=False,
                          bool with_jtimes=False,
                          bool record_rhs_xvals=False, bool record_jac_xvals=False,
@@ -250,7 +251,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     result = multi_predefined[OdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data,
         <double *>yout.data, mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian,
-        iter_type_from_name(_iter_t), linear_solver, maxl, eps_lin, nderiv, autorestart,
+        iter_type_from_name(_iter_t),
+        linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
+        maxl, eps_lin, nderiv, autorestart,
         return_on_error, with_jtimes)
 
     for idx in range(y0.shape[0]):
