@@ -27,9 +27,9 @@ requirements:
     - matplotlib
     - appdirs
     - boost
-    - pyodeint >=0.9.4
+    - pyodeint >=0.9.5
     - pygslodeiv2 >=0.8.4
-    - pycvodes >=0.10.5
+    - pycvodes >=0.11.0
     - pycompilation
     - pycodeexport
     - python-symengine
