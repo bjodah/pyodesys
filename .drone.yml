@@ -3,10 +3,11 @@ build:
   environment:
     - OMP_NUM_THREADS=1
     - ANYODE_NUM_THREADS=2
-    - CPLUS_INCLUDE_PATH=/opt/boost_1_65_0/include
+    - CPLUS_INCLUDE_PATH=/opt/boost_1_65_0/include:/usr/include/suitesparse
     - LIBRARY_PATH=/opt/boost_1_65_0/lib
     - LD_LIBRARY_PATH=/opt/boost_1_65_0/lib
   commands:
+    - apt-get update --quiet && apt-get install --quiet -y libsuitesparse-dev
     - python2 -m pip install --ignore-installed --no-deps quantities==0.12.1  # https://github.com/python-quantities/python-quantities/issues/122
     - python3 -m pip install --ignore-installed --no-deps quantities==0.12.1
     - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
