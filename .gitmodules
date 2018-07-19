@@ -1,0 +1,3 @@
+[submodule "pyodesys/native/sources/anyode"]
+	path = pyodesys/native/sources/anyode
+	url = git://github.com/bjodah/anyode
