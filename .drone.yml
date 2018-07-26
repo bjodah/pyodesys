@@ -7,8 +7,8 @@ build:
     - LIBRARY_PATH=/opt/boost_1_65_0/lib
     - LD_LIBRARY_PATH=/opt/boost_1_65_0/lib
   commands:
-    - python2 -m pip install --ignore-installed --no-deps quantities==0.12.1  # https://github.com/python-quantities/python-quantities/issues/122
-    - python3 -m pip install --ignore-installed --no-deps quantities==0.12.1
+    - python2 -m pip install --ignore-installed --no-deps quantities==0.12.2  # https://github.com/python-quantities/python-quantities/issues/122
+    - python3 -m pip install --ignore-installed --no-deps quantities==0.12.2
     - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
     - rm -r ~/.cache/python*pyodesys*/
