@@ -12,6 +12,8 @@ build:
     - OMP_NUM_THREADS=1
     - ANYODE_NUM_THREADS=2
     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse
+    - C_INCLUDE_PATH=/usr/include/suitesparse
+    - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   commands:
     - apt-get update --quiet && apt-get install --quiet -y libsuitesparse-dev
     - if [ ! -d /drone/sundials-3.1.1-klu ]; then .ci/get_sundials.sh 3.1.1 /drone/sundials-3.1.1-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
