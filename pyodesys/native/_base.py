@@ -76,8 +76,6 @@ class _NativeCodeBase(Cpp_Code):
     # `namespace_extend` is set in init
 
     def __init__(self, odesys, *args, **kwargs):
-        import ipdb
-        ipdb.set_trace()
         if odesys.nroots > 0 and not self._support_roots:
             raise ValueError("%s does not support nroots > 0" % self.__class__.__name__)
         self.namespace_override = kwargs.pop('namespace_override', {})
@@ -186,14 +184,20 @@ class _NativeCodeBase(Cpp_Code):
             common_exprs[:ny],
             symbols=self.odesys.be.numbered_symbols('cse'))
 
+        if all_invar:
+            invar_cses, invar_exprs = cse_cb(
+                common_exprs[ny:(ny + ninvar)],
+                symbols=self.odesys.be.numbered_symbols('cse')
+            )
+
         if jac is not False:
             jac_cses, jac_exprs = cse_cb(
-                common_exprs[ny:(ny + nj)],
+                common_exprs[(ny + ninvar):(ny + ninvar + nj)],
                 symbols=self.odesys.be.numbered_symbols('cse'))
 
         if jtimes is not False:
             jtimes_cses, jtimes_exprs = cse_cb(
-                common_exprs[(ny + nj):(ny + nj + njtimes)],
+                common_exprs[(ny + ninvar + nj):(ny + ninvar + nj + njtimes)],
                 symbols=self.odesys.be.numbered_symbols('cse'))
 
         first_step = self.odesys.first_step_expr
@@ -206,11 +210,6 @@ class _NativeCodeBase(Cpp_Code):
             roots_cses, roots_exprs = cse_cb(
                 self.odesys.roots,
                 symbols=self.odesys.be.numbered_symbols('cse'))
-        if all_invar:
-            invar_cses, invar_exprs = cse_cb(
-                common_exprs[(ny + nj + njtimes):(ny + nj + njtimes + ninvar)],
-                symbols=self.odesys.be.numbered_symbols('cse')
-            )
 
         ns = dict(
             _message_for_rendered=[
