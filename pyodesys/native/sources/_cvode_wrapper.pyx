@@ -16,6 +16,7 @@ cimport numpy as cnp
 from odesys_anyode_iterative cimport OdeSys
 from cvodes_cxx cimport lmm_from_name, iter_type_from_name
 from cvodes_anyode_parallel cimport multi_predefined, multi_adaptive
+from cvodes_anyode cimport simple_adaptive
 
 import numpy as np
 
@@ -64,13 +65,14 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        bool record_order=False, bool record_fpe=False,
                        double get_dx_max_factor=-1.0, bool error_outside_bounds=False,
                        double max_invariant_violation=0.0, vector[double] special_settings=[],
-                       bool autonomous_exprs=False, int nprealloc=500):
+                       bool autonomous_exprs=False, int nprealloc=500, bool chained=False):
     cdef:
-        double ** xyout_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
-        int * td_arr = <int *>malloc(y0.shape[0]*sizeof(int))
+        double ** xyout_arr
+        int * td_arr
         cnp.npy_intp dims[2]
         vector[OdeSys *] systems
         vector[vector[int]] root_indices
+        vector[int] local_root_indices
         list nfos = []
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
@@ -83,40 +85,58 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
         bool success
 
+    if chained:
+        if y0.shape[0] != 1:
+            raise ValueError("Expected single row for y0 when chained == True")
+    else:
+        if y0.shape[0] != params.shape[0]:
+            raise ValueError("Expected y0 and params to share number of rows")
+    if not y0.flags['C_CONTIGUOUS']:
+        raise ValueError("y0 needs to be C-contiguous")
+
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
+
+    if x0.size != y0.shape[0]:
+        raise ValueError("x0 of improper size")
+
+    if xend.size != params.shape[0]:
+        raise ValueError("xend of improper size")
 
     if atol.size() == 1:
         atol.resize(y0.shape[y0.ndim-1], atol[0])
 
     if dx0 is None:
-        _dx0 = np.zeros(y0.shape[0])
+        _dx0 = np.zeros(params.shape[0])
     else:
         _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
         if _dx0.size == 1:
-            _dx0 = _dx0*np.ones(y0.shape[0])
-    if _dx0.size < y0.shape[0]:
+            _dx0 = _dx0*np.ones(params.shape[0])
+    if _dx0.size < params.shape[0]:
         raise ValueError('dx0 too short')
 
     if dx_min is None:
-        _dx_min = np.zeros(y0.shape[0])
+        _dx_min = np.zeros(params.shape[0])
     else:
         _dx_min = np.ascontiguousarray(dx_min, dtype=np.float64)
         if _dx_min.size == 1:
-            _dx_min = _dx_min*np.ones(y0.shape[0])
-    if _dx_min.size < y0.shape[0]:
+            _dx_min = _dx_min*np.ones(params.shape[0])
+    if _dx_min.size < params.shape[0]:
         raise ValueError('dx_min too short')
 
     if dx_max is None:
-        _dx_max = np.zeros(y0.shape[0])
+        _dx_max = np.zeros(params.shape[0])
     else:
         _dx_max = np.ascontiguousarray(dx_max, dtype=np.float64)
         if _dx_max.size == 1:
-            _dx_max = _dx_max*np.ones(y0.shape[0])
-    if _dx_max.size < y0.shape[0]:
+            _dx_max = _dx_max*np.ones(params.shape[0])
+    if _dx_max.size < params.shape[0]:
         raise ValueError('dx_max too short')
 
-    for idx in range(y0.shape[0]):
+    xyout_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
+    td_arr = <int *>malloc(y0.shape[0]*sizeof(int))
+
+    for idx in range(params.shape[0]):
         systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
                                      atol, rtol, get_dx_max_factor, error_outside_bounds,
                                      max_invariant_violation, special_settings))
@@ -125,6 +145,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems[idx].record_jac_xvals = record_jac_xvals
         systems[idx].record_order = record_order
         systems[idx].record_fpe = record_fpe
+
+    for idx in range(y0.shape[0]):
         td_arr[idx] = nprealloc
         xyout_arr[idx] = <double *>malloc(nprealloc*(y0.shape[1]+1)*sizeof(double))
         xyout_arr[idx][0] = x0[idx]
@@ -132,12 +154,31 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
             xyout_arr[idx][yi+1] = y0[idx, yi]
 
     try:
-        result = multi_adaptive[OdeSys](
-            xyout_arr, td_arr,
-            systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
-            &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
-            maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes
-        )
+        try:
+            if chained:
+                # durations = np.concatenate(([xend[0] - x0[0]], np.diff(xend)))
+                next_x = x0
+                for idx in range(params.shape[0]):
+                    next_x += xend[idx]
+                    tidx = simple_adaptive[OdeSys](
+                        xyout_arr, td_arr, systems[idx], atol, rtol, lmm_from_name(_lmm), next_x, local_root_indices, mxsteps,
+                        _dx0[idx], _dx_min[idx], _dx_max[idx], with_jacobian, iter_type_from_name(_iter_t),
+                        linear_solver, maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error,
+                        with_jtimes, tidx
+                    )
+                result = [(tidx, local_root_indices)]
+            else:
+                result = multi_adaptive[OdeSys](
+                    xyout_arr, td_arr,
+                    systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
+                    &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
+                    maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes
+                )
+        except:
+            for idx in range(params.shape[0]):
+                free(xyout_arr[idx])
+            free(xyout_arr)
+            raise
         xout, yout = [], []
         for idx in range(y0.shape[0]):
             dims[0] = result[idx].first + 1

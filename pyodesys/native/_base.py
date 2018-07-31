@@ -270,7 +270,14 @@ class _NativeSysBase(SymbolicSys):
         if atol.size != 1 and atol.size != self.ny:
             raise ValueError("atol needs to be of length 1 or %d" % self.ny)
 
-        if intern_x.shape[-1] == 2 and not force_predefined:
+        if kwargs.get('chained', False):
+            intern_xout, yout, info = self._native.mod.integrate_adaptive(
+                y0=y0,
+                x0=np.ascontiguousarray(float(intern_x[0]), dtype=np.float64),
+                xend=np.ascontiguousarray(intern_x[1:], dtype=np.float64),
+                params=params, atol=atol, rtol=rtol,
+                mxsteps=nsteps, dx0=first_step, **kwargs)
+        elif intern_x.shape[-1] == 2 and not force_predefined:
             intern_xout, yout, info = self._native.mod.integrate_adaptive(
                 y0=y0,
                 x0=np.ascontiguousarray(intern_x[:, 0], dtype=np.float64),

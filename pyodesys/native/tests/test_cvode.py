@@ -213,3 +213,44 @@ def test__PartiallySolvedSystem_Native():
 @requires('sym', 'pycvodes')
 def test_chained_parameter_variation_native_cvode():
     _test_chained_parameter_variation(NativeSys.from_other)
+
+
+@pytest.mark.slow
+@requires('sym', 'pycvodes')
+def test_NativeSys__sequence_of_parameters():
+    def f(x, y, p):
+        k = x**p[0]
+        return [-k*y[0], k*y[0]]
+
+    def analytic(tout, init_y, p):
+        y0ref = init_y[0]*np.exp(-tout**(p[0]+1)/(p[0]+1))
+        return np.array([y0ref, init_y[0] - y0ref + init_y[0]]).T
+
+    odesys = SymbolicSys.from_callback(f, 2, 1)
+    k = 7
+    dur1, dur2 = durs = np.array([1.0, 3.0])
+    ndurs = len(durs)
+    e2 = 0
+    dep0 = (2, 1)
+
+    def check(result):
+        e1 = result.params[0]
+        mask1 = result.xout <= dur1
+        mask2 = result.xout >= dur1
+        x1 = result.xout[mask1]
+        x2 = result.xout[mask2] - dur1
+        y1 = result.yout[mask1, :]
+        y2 = result.yout[mask2, :]
+        ref1 = analytic(x1, y1[0, :], [e1])
+        assert np.allclose(y1, ref1, atol=1e-6)
+
+        ref2 = analytic(x2, y2[0, :], [e2])
+        assert np.allclose(y2, ref2, atol=1e-6)
+
+        invar_viol = result.calc_invariant_violations()
+        assert np.allclose(invar_viol, 0)
+
+    native = NativeSys.from_other(odesys)
+    for e1 in [2, 3]:
+        res = native._integrate_native(np.cumsum(np.concatenate(([0], durs))), [dep0], np.array([[e1], [e2]]), chained=True)
+        check(res)
