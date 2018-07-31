@@ -581,6 +581,18 @@ class ODESys(object):
             else:
                 _j = None
 
+            with_jtimes = kwargs.pop('with_jtimes', False)
+            if with_jtimes is True:
+                def _jtimes(v, Jv, x, y, fy=None, user_data=None, tmp=None):
+                    yv = np.concatenate((y, v))
+                    if len(_p) > 0:
+                        Jv[:] = np.asarray(self.jtimes_cb(x, yv, _p))
+                    else:
+                        Jv[:] = np.asarray(self.jtimes_cb(x, yv))
+            else:
+                _jtimes = None
+            new_kwargs['jtimes'] = _jtimes
+
             if self.first_step_cb is not None:
                 def _first_step(x, y):
                     if len(_p) > 0:
@@ -676,18 +688,6 @@ class ODESys(object):
         if self.band is not None:
             kwargs['lband'], kwargs['uband'] = self.band
         kwargs['autonomous_exprs'] = self.autonomous_exprs
-
-        with_jtimes = kwargs.pop('with_jtimes', False)
-
-        if with_jtimes is True:
-            def _jtimes(v, Jv, x, y, fy=None, user_data=None, tmp=None):
-                yv = np.concatenate((y, v))
-                if len(_p) > 0:
-                    Jv[:] = np.asarray(self.jtimes_cb(x, yv, _p))
-                else:
-                    Jv[:] = np.asarray(self.jtimes_cb(x, yv))
-
-            kwargs['jtimes'] = _jtimes
 
         return self._integrate(pycvodes.integrate_adaptive,
                                pycvodes.integrate_predefined,
