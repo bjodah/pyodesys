@@ -285,11 +285,11 @@ class SymbolicSys(ODESys):
 
         super(SymbolicSys, self).__init__(
             self.get_f_ty_callback(),
-            self.get_j_ty_callback(),
-            self.get_jtimes_callback(),
-            self.get_dfdx_callback(),
-            self.get_first_step_callback(),
-            self.get_roots_callback(),
+            jac=self.get_j_ty_callback(),
+            dfdx=self.get_dfdx_callback(),
+            jtimes=self.get_jtimes_callback(),
+            first_step_cb=self.get_first_step_callback(),
+            roots_cb=self.get_roots_callback(),
             nroots=None if roots is None else len(roots),
             autonomous_exprs=_is_autonomous(self.indep, self.exprs),
             **kwargs)

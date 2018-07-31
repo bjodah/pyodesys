@@ -142,7 +142,7 @@ class ODESys(object):
 
     """
 
-    def __init__(self, f, jac=None, jtimes=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
+    def __init__(self, f, jac=None, dfdx=None, jtimes=None, first_step_cb=None, roots_cb=None, nroots=None,
                  band=None, names=(), param_names=(), indep_name=None, description=None, dep_by_name=False,
                  par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
                  taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
@@ -547,7 +547,7 @@ class ODESys(object):
         return results
 
     def _integrate(self, adaptive, predefined, intern_xout, intern_y0, intern_p,
-                   atol=1e-8, rtol=1e-8, first_step=0.0, with_jacobian=True,
+                   atol=1e-8, rtol=1e-8, first_step=0.0, with_jacobian=None,
                    force_predefined=False, **kwargs):
         nx = intern_xout.shape[-1]
         results = []
@@ -565,7 +565,9 @@ class ODESys(object):
                 except RecoverableError:
                     return 1  # recoverable error
 
-            if with_jacobian is True:
+            if with_jacobian is None:
+                raise Exception("Must pass with_jacobian")
+            elif with_jacobian is True:
                 def _j(x, y, jout, dfdx_out=None, fy=None):
                     if len(_p) > 0:
                         jout[:, :] = np.asarray(self.j_cb(x, y, _p))

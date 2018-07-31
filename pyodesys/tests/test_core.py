@@ -53,7 +53,7 @@ def test_params():
 @requires('scipy', 'pygslodeiv2', 'pycvodes', 'pyodeint')
 @pytest.mark.parametrize('integrator', ['scipy', 'gsl', 'cvode', 'odeint'])
 def test_adaptive(integrator):
-    odes = ODESys(vdp_f, vdp_j, vdp_dfdt)
+    odes = ODESys(vdp_f, vdp_j, dfdx=vdp_dfdt)
     kwargs = dict(params=[2.0])
     y0, t0, tend = [1, 0], 0, 2
     xout, yout, info = odes.adaptive(y0, t0, tend, integrator=integrator, **kwargs)
@@ -71,14 +71,14 @@ def test_adaptive(integrator):
 @requires('scipy', 'pygslodeiv2', 'pycvodes', 'pyodeint')
 @pytest.mark.parametrize('solver', ['scipy', 'gsl', 'odeint', 'cvode'])
 def test_predefined(solver):
-    odes = ODESys(vdp_f, vdp_j, vdp_dfdt)
+    odes = ODESys(vdp_f, vdp_j, dfdx=vdp_dfdt)
     xout = [0, 0.7, 1.3, 2]
     yout, info = odes.predefined([1, 0], xout, params=[2.0], integrator=solver)
     assert np.allclose(yout[-1, :], [-1.89021896, -0.71633577])
 
 
 def test_to_arrays():
-    odesys1 = ODESys(vdp_f, vdp_j, vdp_dfdt)
+    odesys1 = ODESys(vdp_f, vdp_j, dfdx=vdp_dfdt)
     assert [e.tolist() for e in odesys1.to_arrays(3, [4, 5], [6])] == [[0, 3], [4, 5], [6]]
     assert [e.tolist() for e in odesys1.to_arrays([2, 3], [4, 5], [6])] == [[2, 3], [4, 5], [6]]
     assert [e.tolist() for e in odesys1.to_arrays([1, 2, 3], [4, 5], [6])] == [[1, 2, 3], [4, 5], [6]]
@@ -86,7 +86,7 @@ def test_to_arrays():
         [[1, 2, 3], [0, 1, 2]], [[4, 5]]*2, [[6]]*2]
     assert [e.tolist() for e in odesys1.to_arrays([1, 2, 3], [[4, 4], [5, 5], [6, 6]], [6])] == [
         [[1, 2, 3]]*3, [[4, 4], [5, 5], [6, 6]], [[6]]*3]
-    odesys2 = ODESys(vdp_f, vdp_j, vdp_dfdt, names='A B'.split(), dep_by_name=True)
+    odesys2 = ODESys(vdp_f, vdp_j, dfdx=vdp_dfdt, names='A B'.split(), dep_by_name=True)
     assert [e.tolist() for e in odesys2.to_arrays(3, {'A': 4, 'B': 5}, [6])] == [[0, 3], [4, 5], [6]]
     assert [e.tolist() for e in odesys2.to_arrays([2, 3], {'A': 4, 'B': 5}, [6])] == [[2, 3], [4, 5], [6]]
     assert [e.tolist() for e in odesys2.to_arrays([1, 2, 3], {'A': 4, 'B': 5}, [6])] == [[1, 2, 3], [4, 5], [6]]
@@ -298,13 +298,13 @@ def test_integrate_multiple_adaptive__pycvodes():
 
 @requires('pyodeint')
 def test_integrate_multiple_adaptive__pyodeint():
-    _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, sine_dfdt),
+    _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, dfdx=sine_dfdt),
                                       integrator='odeint', method='rosenbrock4', nsteps=1000)
 
 
 @requires('pygslodeiv2')
 def test_integrate_multiple_adaptive__pygslodeiv2():
-    _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, sine_dfdt),
+    _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, dfdx=sine_dfdt),
                                       integrator='gsl', method='bsimp')
 
 
@@ -388,7 +388,7 @@ def test_zero_time_adaptive():
 
 
 def _test_first_step_cb(integrator, atol=1e-8, rtol=1e-8, forgive=10):
-    odesys = ODESys(decay, decay_jac, decay_dfdt, first_step_cb=lambda x, y, p, backend=None: y[0]*1e-30)
+    odesys = ODESys(decay, decay_jac, dfdx=decay_dfdt, first_step_cb=lambda x, y, p, backend=None: y[0]*1e-30)
     _y0 = [.7, 0]
     k = [1e23]
     xout, yout, info = odesys.integrate(5, _y0, k, integrator=integrator, atol=atol, rtol=rtol)
