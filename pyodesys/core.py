@@ -9,17 +9,16 @@ providing a module with two functions named ``integrate_adaptive`` and
 
 from __future__ import absolute_import, division, print_function
 
-
-from collections import defaultdict
 import copy
 import os
 import warnings
+from collections import defaultdict
 
 import numpy as np
 
-from .util import _ensure_4args, _default
 from .plotting import plot_result, plot_phase_plane
 from .results import Result
+from .util import _ensure_4args, _default
 
 
 class RecoverableError(Exception):
@@ -54,6 +53,9 @@ class ODESys(object):
         Jacobian matrix (dfdy). Required for implicit methods.
     dfdx : callback
         Signature ``dfdx(x, y[:], p[:]) -> out[:]`` (used by e.g. GSL)
+    jtimes : callback
+        Jacobian-vector product (Jv). Signature is ```jtimes(x, y[:], v[:]) -> Jv[:]```
+        This is supported only by ``cvode``.
     first_step_cb : callback
         Signature ``step1st(x, y[:], p[:]) -> dx0`` (pass first_step==0 to use).
         This is available for ``cvode``, ``odeint`` & ``gsl``, but not for ``scipy``.
@@ -107,6 +109,8 @@ class ODESys(object):
         For evaluating the Jacobian matrix of f.
     dfdx_cb : callback or None
         For evaluating the second order derivatives.
+    jtimes_cb : callback or None
+        For evaluating the jacobian-vector product.
     first_step_cb : callback or None
         For calculating the first step based on x0, y0 & p.
     roots_cb : callback
@@ -364,6 +368,11 @@ class ODESys(object):
             Whether to use the jacobian. When ``None`` the choice is
             done automatically (only used when required). This matters
             when jacobian is derived at runtime (high computational cost).
+        with_jtimes : bool (default: False)
+            Whether to use the jacobian-vector product. This is only supported
+            by ``cvode`` and only when ``linear_solver`` is one of: gmres',
+            'gmres_classic', 'bicgstab', 'tfqmr'. See the documentation
+            for ``pycvodes`` for more information.
         force_predefined : bool (default: False)
             override behaviour of ``len(x) == 2`` => :meth:`adaptive`
         \\*\\*kwargs :
@@ -583,15 +592,13 @@ class ODESys(object):
 
             with_jtimes = kwargs.pop('with_jtimes', False)
             if with_jtimes is True:
-                def _jtimes(v, Jv, x, y, fy=None, user_data=None, tmp=None):
+                def _jtimes(v, Jv, x, y, fy=None):
                     yv = np.concatenate((y, v))
                     if len(_p) > 0:
                         Jv[:] = np.asarray(self.jtimes_cb(x, yv, _p))
                     else:
                         Jv[:] = np.asarray(self.jtimes_cb(x, yv))
-            else:
-                _jtimes = None
-            new_kwargs['jtimes'] = _jtimes
+                new_kwargs['jtimes'] = _jtimes
 
             if self.first_step_cb is not None:
                 def _first_step(x, y):
