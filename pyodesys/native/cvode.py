@@ -22,6 +22,9 @@ class NativeCvodeCode(_NativeCodeBase):
 
     def __init__(self, *args, **kwargs):
         self.compile_kwargs = copy.deepcopy(_compile_kwargs)
+        self.compile_kwargs['define_macros'] = [ ('PYCVODES_NO_KLU', _config.env.get('NO_KLU', '0')),
+                                                 ('PYCVODES_NO_LAPACK', _config.env.get('NO_LAPACK', '0')),
+                                                 ('ANYODE_NO_LAPACK', _config.env.get('NO_LAPACK', '0')) ]
         self.compile_kwargs['include_dirs'].append(get_include())
         self.compile_kwargs['libraries'].extend(_config.env['SUNDIALS_LIBS'].split(','))
         self.compile_kwargs['libraries'].extend(os.environ.get(
