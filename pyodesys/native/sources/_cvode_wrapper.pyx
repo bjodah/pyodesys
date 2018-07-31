@@ -4,6 +4,9 @@
 # distutils: extra_compile_args = -std=c++11 -fopenmp
 # distutils: extra_link_args = -fopenmp
 
+cdef extern from "cvodes_cxx.hpp":
+    ctypedef double realtype
+    ctypedef int indextype
 
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool
