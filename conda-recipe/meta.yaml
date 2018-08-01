@@ -22,7 +22,7 @@ requirements:
     - python
     - numpy
     - sym
-    - sympy <= 1.1.1
+    - sympy <=1.1.1
     - scipy
     - matplotlib
     - appdirs
