@@ -22,14 +22,14 @@ requirements:
     - python
     - numpy
     - sym
-    - sympy
+    - sympy <=1.1.1
     - scipy
     - matplotlib
     - appdirs
     - boost
-    - pyodeint <0.9.5
-    - pygslodeiv2 <0.9.0
-    - pycvodes <0.11.0
+    - pyodeint >=0.9.5
+    - pygslodeiv2 >=0.8.4
+    - pycvodes >=0.11.4
     - pycompilation
     - pycodeexport
     - python-symengine

@@ -4,7 +4,6 @@
 # distutils: extra_compile_args = -std=c++11 -fopenmp
 # distutils: extra_link_args = -fopenmp
 
-
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool
 from libcpp.utility cimport pair
@@ -12,18 +11,47 @@ from libcpp.unordered_map cimport unordered_map
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 
-cimport numpy as cnp
 from odesys_anyode_iterative cimport OdeSys
-from cvodes_cxx cimport lmm_from_name, iter_type_from_name
+from cvodes_cxx cimport lmm_from_name, iter_type_from_name, linear_solver_from_name
 from cvodes_anyode_parallel cimport multi_predefined, multi_adaptive
 
 import numpy as np
+cimport numpy as cnp
 
 cdef extern from "numpy/arrayobject.h":
     void PyArray_ENABLEFLAGS(cnp.ndarray arr, int flags)
 
 cnp.import_array()  # Numpy C-API initialization
 
+# Need these here rather than as imports so that
+# typedefs are available at compile- (not run-) time.
+# NOTE: base types of "int" and "float" are just
+# appropriately-close standins as per Cython rules; will
+# be replaced with the exact extern typedef at compile-time.
+cdef extern from "cvodes_cxx.hpp":
+     ctypedef double realtype
+     ctypedef int indextype
+
+# These need to be available as type objects at run type, in addition to the corresponding
+# type tags (e.g. np.float64_t), which only exist at compile time and cannot be used with
+# np.asarray(..., dtype=)
+if sizeof(realtype) == sizeof(cnp.npy_double):
+    dtype = np.float64
+elif sizeof(realtype) == sizeof(cnp.npy_float):
+    dtype = np.float32
+elif sizeof(realtype) == sizeof(cnp.npy_longdouble):
+    dtype = np.longdouble
+else:
+    dtype = np.float64
+
+# signature in python methods should be able to accept any floating type regardless
+# of what realtype is under the hood. scalars of type "floating" passed to the cython wrapper
+# should be auto-cast to realtype when passed to C functions; any vectors/arrays
+# will be manually cast below
+ctypedef fused floating:
+    cnp.float32_t
+    cnp.float64_t
+    cnp.longdouble_t
 
 from odesys_util cimport adaptive_return
 
@@ -47,17 +75,17 @@ def _as_dict(unordered_map[string, int] nfo,
     return dct
 
 
-def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] x0,
-                       cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] xend,
-                       cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
-                       vector[double] atol,
-                       double rtol,
+def integrate_adaptive(floating [:, ::1] y0,
+                       floating [::1] x0,
+                       floating [::1] xend,
+                       floating [:, ::1] params,
+                       const vector[realtype] atol,
+                       floating rtol,
                        dx0,
                        dx_min=None,
                        dx_max=None,
                        long int mxsteps=0,
-                       str iter_type='undecided', int linear_solver=0, str method='BDF',
+                       str iter_type='undecided', str linear_solver="default", str method='BDF',
                        bool with_jacobian=True, bool return_on_root=False,
                        int autorestart=0, bool return_on_error=False, bool with_jtimes=False,
                        bool record_rhs_xvals=False, bool record_jac_xvals=False,
@@ -66,7 +94,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        double max_invariant_violation=0.0, vector[double] special_settings=[],
                        bool autonomous_exprs=False, int nprealloc=500):
     cdef:
-        double ** xyout_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
+        realtype ** xyout_arr = <realtype **>malloc(y0.shape[0]*sizeof(realtype *))
         int * td_arr = <int *>malloc(y0.shape[0]*sizeof(int))
         cnp.npy_intp dims[2]
         vector[OdeSys *] systems
@@ -76,12 +104,15 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         string _iter_t = iter_type.lower().encode('UTF-8')
         vector[pair[int, vector[int]]] result
         int maxl=0
-        double eps_lin=0.0
+        realtype eps_lin=0.0
         unsigned nderiv=0,
-        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
-        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
-        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
+        realtype [::1] _dx0
+        realtype [::1] _dx_min
+        realtype [::1] _dx_max
         bool success
+        # this process is necessary since maybe the input type floating != realtype
+        cnp.ndarray[realtype, ndim=1, mode='c'] xend_arr = np.asarray(xend, dtype=dtype)
+        cnp.ndarray[realtype, ndim=2, mode='c'] params_arr = np.asarray(params, dtype=dtype)
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -92,7 +123,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if dx0 is None:
         _dx0 = np.zeros(y0.shape[0])
     else:
-        _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
+        _dx0 = np.ascontiguousarray(dx0, dtype=dtype)
         if _dx0.size == 1:
             _dx0 = _dx0*np.ones(y0.shape[0])
     if _dx0.size < y0.shape[0]:
@@ -101,7 +132,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if dx_min is None:
         _dx_min = np.zeros(y0.shape[0])
     else:
-        _dx_min = np.ascontiguousarray(dx_min, dtype=np.float64)
+        _dx_min = np.ascontiguousarray(dx_min, dtype=dtype)
         if _dx_min.size == 1:
             _dx_min = _dx_min*np.ones(y0.shape[0])
     if _dx_min.size < y0.shape[0]:
@@ -110,14 +141,14 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if dx_max is None:
         _dx_max = np.zeros(y0.shape[0])
     else:
-        _dx_max = np.ascontiguousarray(dx_max, dtype=np.float64)
+        _dx_max = np.ascontiguousarray(dx_max, dtype=dtype)
         if _dx_max.size == 1:
             _dx_max = _dx_max*np.ones(y0.shape[0])
     if _dx_max.size < y0.shape[0]:
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
+        systems.push_back(new OdeSys(<realtype *>(NULL) if params.shape[1] == 0 else &params_arr[idx, 0],
                                      atol, rtol, get_dx_max_factor, error_outside_bounds,
                                      max_invariant_violation, special_settings))
         systems[idx].autonomous_exprs = autonomous_exprs
@@ -126,7 +157,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems[idx].record_order = record_order
         systems[idx].record_fpe = record_fpe
         td_arr[idx] = nprealloc
-        xyout_arr[idx] = <double *>malloc(nprealloc*(y0.shape[1]+1)*sizeof(double))
+        xyout_arr[idx] = <realtype *>malloc(nprealloc*(y0.shape[1]+1)*sizeof(realtype))
         xyout_arr[idx][0] = x0[idx]
         for yi in range(y0.shape[1]):
             xyout_arr[idx][yi+1] = y0[idx, yi]
@@ -134,8 +165,9 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     try:
         result = multi_adaptive[OdeSys](
             xyout_arr, td_arr,
-            systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
-            &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
+            systems, atol, rtol, lmm_from_name(_lmm), &xend_arr[0], mxsteps,
+            &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
+            linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes
         )
         xout, yout = [], []
@@ -169,16 +201,16 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     return xout, yout, nfos
 
 
-def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
-                         cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] xout,
-                         cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
-                         vector[double] atol,
-                         double rtol,
+def integrate_predefined(floating [:, ::1] y0,
+                         floating [:, ::1] xout,
+                         floating [:, ::1] params,
+                         const vector[realtype] atol,
+                         realtype rtol,
                          dx0,
                          dx_min=None,
                          dx_max=None,
                          long int mxsteps=0,
-                         str iter_type='undecided', int linear_solver=0, str method='BDF',
+                         str iter_type='undecided', str linear_solver="default", str method='BDF',
                          bool with_jacobian=True, int autorestart=0, bool return_on_error=False,
                          bool with_jtimes=False,
                          bool record_rhs_xvals=False, bool record_jac_xvals=False,
@@ -193,14 +225,17 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         string _lmm = method.lower().encode('UTF-8')
         string _iter_t = iter_type.lower().encode('UTF-8')
         vector[pair[int, pair[vector[int], vector[double]]]] result
-        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
-        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
-        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
+        realtype [::1] _dx0
+        realtype [::1] _dx_min
+        realtype [::1] _dx_max
         int maxl = 0
         double eps_lin = 0.0
         unsigned nderiv = 0
         int nreached
         bool success
+        cnp.ndarray[realtype, ndim=2, mode='c'] y0_arr = np.asarray(y0, dtype=dtype)
+        cnp.ndarray[realtype, ndim=2, mode='c'] xout_arr = np.asarray(xout, dtype=dtype)
+        cnp.ndarray[realtype, ndim=2, mode='c'] params_arr = np.asarray(params, dtype=dtype)
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -211,7 +246,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if dx0 is None:
         _dx0 = np.zeros(y0.shape[0])
     else:
-        _dx0 = np.ascontiguousarray(dx0, dtype=np.float64)
+        _dx0 = np.ascontiguousarray(dx0, dtype=dtype)
         if _dx0.size == 1:
             _dx0 = _dx0*np.ones(y0.shape[0])
     if _dx0.size < y0.shape[0]:
@@ -220,7 +255,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if dx_min is None:
         _dx_min = np.zeros(y0.shape[0])
     else:
-        _dx_min = np.ascontiguousarray(dx_min, dtype=np.float64)
+        _dx_min = np.ascontiguousarray(dx_min, dtype=dtype)
         if _dx_min.size == 1:
             _dx_min = _dx_min*np.ones(y0.shape[0])
     if _dx_min.size < y0.shape[0]:
@@ -229,14 +264,14 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
     if dx_max is None:
         _dx_max = np.zeros(y0.shape[0])
     else:
-        _dx_max = np.ascontiguousarray(dx_max, dtype=np.float64)
+        _dx_max = np.ascontiguousarray(dx_max, dtype=dtype)
         if _dx_max.size == 1:
             _dx_max = _dx_max*np.ones(y0.shape[0])
     if _dx_max.size < y0.shape[0]:
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
+        systems.push_back(new OdeSys(<double *>(NULL) if params.shape[1] == 0 else &params_arr[idx, 0],
                                      atol, rtol, get_dx_max_factor, error_outside_bounds,
                                      max_invariant_violation, special_settings))
         systems[idx].autonomous_exprs = autonomous_exprs
@@ -246,11 +281,13 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems[idx].record_fpe = record_fpe
 
 
-    yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
+    yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]), dtype=dtype)
     result = multi_predefined[OdeSys](
-        systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data,
-        <double *>yout.data, mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian,
-        iter_type_from_name(_iter_t), linear_solver, maxl, eps_lin, nderiv, autorestart,
+        systems, atol, rtol, lmm_from_name(_lmm), <realtype *> y0_arr.data, xout.shape[1], <realtype *> xout_arr.data,
+        <realtype *> yout.data, mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian,
+        iter_type_from_name(_iter_t),
+        linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
+        maxl, eps_lin, nderiv, autorestart,
         return_on_error, with_jtimes)
 
     for idx in range(y0.shape[0]):

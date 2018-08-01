@@ -9,17 +9,16 @@ providing a module with two functions named ``integrate_adaptive`` and
 
 from __future__ import absolute_import, division, print_function
 
-
-from collections import defaultdict
 import copy
 import os
 import warnings
+from collections import defaultdict
 
 import numpy as np
 
-from .util import _ensure_4args, _default
 from .plotting import plot_result, plot_phase_plane
 from .results import Result
+from .util import _ensure_4args, _default
 
 
 class RecoverableError(Exception):
@@ -54,6 +53,9 @@ class ODESys(object):
         Jacobian matrix (dfdy). Required for implicit methods.
     dfdx : callback
         Signature ``dfdx(x, y[:], p[:]) -> out[:]`` (used by e.g. GSL)
+    jtimes : callback
+        Jacobian-vector product (Jv). Signature is ```jtimes(x, y[:], v[:]) -> Jv[:]```
+        This is supported only by ``cvode``.
     first_step_cb : callback
         Signature ``step1st(x, y[:], p[:]) -> dx0`` (pass first_step==0 to use).
         This is available for ``cvode``, ``odeint`` & ``gsl``, but not for ``scipy``.
@@ -107,6 +109,8 @@ class ODESys(object):
         For evaluating the Jacobian matrix of f.
     dfdx_cb : callback or None
         For evaluating the second order derivatives.
+    jtimes_cb : callback or None
+        For evaluating the jacobian-vector product.
     first_step_cb : callback or None
         For calculating the first step based on x0, y0 & p.
     roots_cb : callback
@@ -142,7 +146,7 @@ class ODESys(object):
 
     """
 
-    def __init__(self, f, jac=None, dfdx=None, first_step_cb=None, roots_cb=None, nroots=None,
+    def __init__(self, f, jac=None, dfdx=None, jtimes=None, first_step_cb=None, roots_cb=None, nroots=None,
                  band=None, names=(), param_names=(), indep_name=None, description=None, dep_by_name=False,
                  par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
                  taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
@@ -150,6 +154,7 @@ class ODESys(object):
                  _indep_autonomous_key=None, numpy=None, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
+        self.jtimes_cb = _ensure_4args(jtimes) if jtimes is not None else None
         self.dfdx_cb = dfdx
         self.first_step_cb = first_step_cb
         self.roots_cb = roots_cb
@@ -363,6 +368,11 @@ class ODESys(object):
             Whether to use the jacobian. When ``None`` the choice is
             done automatically (only used when required). This matters
             when jacobian is derived at runtime (high computational cost).
+        with_jtimes : bool (default: False)
+            Whether to use the jacobian-vector product. This is only supported
+            by ``cvode`` and only when ``linear_solver`` is one of: gmres',
+            'gmres_classic', 'bicgstab', 'tfqmr'. See the documentation
+            for ``pycvodes`` for more information.
         force_predefined : bool (default: False)
             override behaviour of ``len(x) == 2`` => :meth:`adaptive`
         \\*\\*kwargs :
@@ -565,7 +575,7 @@ class ODESys(object):
                     return 1  # recoverable error
 
             if with_jacobian is None:
-                raise ValueError("Need to pass with_jacobian")
+                raise Exception("Must pass with_jacobian")
             elif with_jacobian is True:
                 def _j(x, y, jout, dfdx_out=None, fy=None):
                     if len(_p) > 0:
@@ -579,6 +589,16 @@ class ODESys(object):
                             dfdx_out[:] = np.asarray(self.dfdx_cb(x, y))
             else:
                 _j = None
+
+            with_jtimes = kwargs.pop('with_jtimes', False)
+            if with_jtimes is True:
+                def _jtimes(v, Jv, x, y, fy=None):
+                    yv = np.concatenate((y, v))
+                    if len(_p) > 0:
+                        Jv[:] = np.asarray(self.jtimes_cb(x, yv, _p))
+                    else:
+                        Jv[:] = np.asarray(self.jtimes_cb(x, yv))
+                new_kwargs['jtimes'] = _jtimes
 
             if self.first_step_cb is not None:
                 def _first_step(x, y):
@@ -604,6 +624,7 @@ class ODESys(object):
                     if 'nroots' in new_kwargs:
                         raise ValueError("cannot override nroots")
                     new_kwargs['nroots'] = self.nroots
+
             if nx == 2 and not force_predefined:
                 _xout, yout, info = adaptive(_f, _j, _y0, *_xout, **new_kwargs)
                 info['mode'] = 'adaptive'
@@ -667,14 +688,14 @@ class ODESys(object):
         (via `pycvodes <https://pypi.python.org/pypi/pycvodes>`_)
         to integrate the ODE system. """
         import pycvodes  # Python interface to SUNDIALS's cvodes integrators
-        kwargs['with_jacobian'] = kwargs.get(
-            'method', 'bdf') in pycvodes.requires_jac
+        kwargs['with_jacobian'] = kwargs.get('method', 'bdf') in pycvodes.requires_jac
         if 'lband' in kwargs or 'uband' in kwargs or 'band' in kwargs:
             raise ValueError("lband and uband set locally (set at"
                              " initialization instead)")
         if self.band is not None:
             kwargs['lband'], kwargs['uband'] = self.band
         kwargs['autonomous_exprs'] = self.autonomous_exprs
+
         return self._integrate(pycvodes.integrate_adaptive,
                                pycvodes.integrate_predefined,
                                *args, **kwargs)
