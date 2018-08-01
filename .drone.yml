@@ -3,6 +3,9 @@ clone:
   recursive: true
   submodule_override:
     external/anyode: git://github.com/bjodah/anyode.git
+cache:
+  mount:
+    - /drone/sundials-3.1.2-klu
 build:
   image: bjodah/bjodahimg16dev:v1.3
   environment:
@@ -15,8 +18,8 @@ build:
     - apt-get update --quiet && apt-get install --quiet -y libsuitesparse-dev
     - python2 -m pip install --ignore-installed --no-deps quantities==0.12.2  # https://github.com/python-quantities/python-quantities/issues/122
     - python3 -m pip install --ignore-installed --no-deps quantities==0.12.2
-    - if [ ! -d /drone/sundials-3.1.1-klu ]; then .ci/get_sundials.sh 3.1.1 /drone/sundials-3.1.1-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
-    - .ci/run_ci.sh pyodesys /drone/sundials-3.1.1-klu
+    - if [ ! -d /drone/sundials-3.1.2-klu ]; then .ci/get_sundials.sh 3.1.2 /drone/sundials-3.1.2-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
+    - .ci/run_ci.sh pyodesys /drone/sundials-3.1.2-klu
     - ./scripts/prepare_deploy.sh
     - rm -r ~/.cache/python*pyodesys*/
     - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys

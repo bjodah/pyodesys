@@ -12,6 +12,9 @@ if [ -d "$PREFIX" ]; then 2>&1 echo "Directory already exists: $PREFIX"; exit 1;
 if [[ $VERSION == "3.1.1" ]]; then
     SUNDIALS_FNAME="sundials-3.1.1.tar.gz"
     SUNDIALS_MD5="e63f4de0be5be97f750b30b0fa11ef34"
+elif [[ $VERSION == "3.1.2" ]]; then
+    SUNDIALS_FNAME="sundials-3.1.2.tar.gz"
+    SUNDIALS_MD5="63304dafc935c94a0ad37832085384bc"
 elif [[ $VERSION == "2.7.0" ]]; then
     SUNDIALS_FNAME="sundials-2.7.0.tar.gz"
     SUNDIALS_MD5="c304631b9bc82877d7b0e9f4d4fd94d3"
