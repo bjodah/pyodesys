@@ -7,17 +7,14 @@ cache:
   mount:
     - /drone/sundials-3.1.2-klu
 build:
-  image: bjodah/bjodahimg16dev:v1.3
+  image: bjodah/bjodahimg18dev:v1.3
   environment:
     - OMP_NUM_THREADS=1
     - ANYODE_NUM_THREADS=2
-    - CPLUS_INCLUDE_PATH=/opt/boost_1_65_0/include:/usr/include/suitesparse
-    - LIBRARY_PATH=/opt/boost_1_65_0/lib:/usr/lib/x86_64-linux-gnu
-    - LD_LIBRARY_PATH=/opt/boost_1_65_0/lib:/usr/lib/x86_64-linux-gnu
+    - CPLUS_INCLUDE_PATH=/usr/include/suitesparse
+    - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+    - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   commands:
-    - apt-get update --quiet && apt-get install --quiet -y libsuitesparse-dev
-    - python2 -m pip install --ignore-installed --no-deps quantities==0.12.2  # https://github.com/python-quantities/python-quantities/issues/122
-    - python3 -m pip install --ignore-installed --no-deps quantities==0.12.2
     - if [ ! -d /drone/sundials-3.1.2-klu ]; then .ci/get_sundials.sh 3.1.2 /drone/sundials-3.1.2-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
     - .ci/run_ci.sh pyodesys /drone/sundials-3.1.2-klu
     - ./scripts/prepare_deploy.sh
