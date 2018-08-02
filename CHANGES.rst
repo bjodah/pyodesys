@@ -1,3 +1,8 @@
+v0.12.0
+=======
+- Support for "jtimes" (jacobian times vector) for use with iterative solvers
+- NativeSys now uses latest AnyODE
+
 v0.11.15
 ========
 - Updated (upper) requirements of pycvodes, pygslodeiv2, pyodeint (v0.12.0 will again require latest versions)
