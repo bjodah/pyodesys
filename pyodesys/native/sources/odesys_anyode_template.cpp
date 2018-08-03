@@ -27,9 +27,12 @@ using odesys_anyode::OdeSys;
 typedef ${p_realtype} realtype;
 typedef ${p_indextype} indextype;
 
-OdeSys::OdeSys(const realtype * const params, std::vector<realtype> atol, realtype rtol,
-               realtype get_dx_max_factor, bool error_outside_bounds,
-               realtype max_invariant_violation, std::vector<realtype> special_settings) :
+template<> OdeSys<realtype, indextype>::OdeSys(const realtype * const params,
+                                               std::vector<realtype> atol, realtype rtol,
+                                               realtype get_dx_max_factor,
+                                               bool error_outside_bounds,
+                                               realtype max_invariant_violation,
+                                               std::vector<realtype> special_settings) :
     m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor),
     m_error_outside_bounds(error_outside_bounds), m_max_invariant_violation(max_invariant_violation),
     m_special_settings(special_settings) {
@@ -57,22 +60,26 @@ OdeSys::OdeSys(const realtype * const params, std::vector<realtype> atol, realty
   %endif
     ${'\n    '.join(p_constructor)}
 }
-indextype OdeSys::get_ny() const {
+
+template<> indextype OdeSys<realtype, indextype>::get_ny() const {
     return ${p_odesys.ny};
 }
-int OdeSys::get_nquads() const {
+
+template int OdeSys<realtype, indextype>::get_nquads() const {
     return 0;  // Not implemeneted yet (cvodes from Sundials supports this)
 }
-int OdeSys::get_nroots() const {
+
+template int OdeSys<realtype, indextype>::get_nroots() const {
 %if isinstance(p_nroots, str):
     ${p_nroots}
 %else:
     return ${p_nroots};
 %endif
 }
-AnyODE::Status OdeSys::rhs(realtype x,
-                           const realtype * const __restrict__ y,
-                           realtype * const __restrict__ f) {
+
+template<> AnyODE::Status OdeSys<realtype, indextype>::rhs(realtype x,
+                                                           const realtype * const __restrict__ y,
+                                                           realtype * const __restrict__ f) {
 %if isinstance(p_rhs, str):
     ${p_rhs}
 %else:
@@ -129,12 +136,11 @@ AnyODE::Status OdeSys::rhs(realtype x,
 %endif
 }
 
-AnyODE::Status OdeSys::jtimes(
-                              const realtype * const __restrict__ v,
-                              realtype * const __restrict__ Jv,
-                              realtype x,
-                              const realtype * const __restrict__ y,
-                              const realtype * const __restrict__ fy) {
+template<> AnyODE::Status OdeSys<realtype, indextype>::jtimes(const realtype * const __restrict__ v,
+                                                              realtype * const __restrict__ Jv,
+                                                              realtype x,
+                                                              const realtype * const __restrict__ y,
+                                                              const realtype * const __restrict__ fy) {
 %if p_jtimes is not None:
 %if isinstance(p_jtimes, str):
     ${p_jtimes}
@@ -162,12 +168,12 @@ AnyODE::Status OdeSys::jtimes(
 
 
 %for order in ('cmaj', 'rmaj'):
-AnyODE::Status OdeSys::dense_jac_${order}(realtype x,
-                                      const realtype * const __restrict__ y,
-                                      const realtype * const __restrict__ fy,
-                                      realtype * const __restrict__ jac,
-                                      long int ldim,
-                                      realtype * const __restrict__ dfdt) {
+template<> AnyODE::Status OdeSys<realtype, indextype>::dense_jac_${order}(realtype x,
+                                                                          const realtype * const __restrict__ y,
+                                                                          const realtype * const __restrict__ fy,
+                                                                          realtype * const __restrict__ jac,
+                                                                          long int ldim,
+                                                                          realtype * const __restrict__ dfdt) {
 
 %if p_jac is not None:
 %if order in p_jac:
@@ -211,7 +217,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(realtype x,
 }
 %endfor
 
-realtype OdeSys::get_dx0(realtype x, const realtype * const y) {
+template<> realtype OdeSys<realtype, indextype>::get_dx0(realtype x, const realtype * const y) {
 %if p_first_step is None:
     AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return 0.0;  // invokes the default behaviour of the chosen solver
@@ -227,7 +233,7 @@ realtype OdeSys::get_dx0(realtype x, const realtype * const y) {
 %endif
 }
 
-realtype OdeSys::get_dx_max(realtype x, const realtype * const y) {
+template<> realtype OdeSys<realtype, indextype>::get_dx_max(realtype x, const realtype * const y) {
 %if p_get_dx_max is False:
     AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return INFINITY;
@@ -258,7 +264,9 @@ realtype OdeSys::get_dx_max(realtype x, const realtype * const y) {
 %endif
 }
 
-AnyODE::Status OdeSys::roots(realtype x, const realtype * const y, realtype * const out) {
+template<> AnyODE::Status OdeSys<realtype, indextype>::roots(realtype x,
+                                                             const realtype * const y,
+                                                             realtype * const out) {
 %if p_roots is None:
     AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
     return AnyODE::Status::success;

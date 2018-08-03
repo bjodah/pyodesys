@@ -6,7 +6,7 @@ from libcpp.vector cimport vector
 from libcpp cimport bool
 
 cdef extern from "anyode/anyode.hpp" namespace "AnyODE":
-     cdef cppclass OdeSysBase[T]:
+     cdef cppclass OdeSysBase[Real_t, Index_t]:
          int nfev, njev, njvev
          bool use_get_dx_max
 

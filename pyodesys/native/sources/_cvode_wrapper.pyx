@@ -97,7 +97,7 @@ def integrate_adaptive(floating [:, ::1] y0,
         realtype [:,::1] xyout_view
         int * td = <int *>malloc(y0.shape[0]*sizeof(int))
         cnp.npy_intp dims[2]
-        vector[OdeSys *] systems
+        vector[OdeSys[realtype, indextype] *] systems
         vector[vector[int]] root_indices
         list nfos = []
         string _lmm = method.lower().encode('UTF-8')
@@ -159,9 +159,10 @@ def integrate_adaptive(floating [:, ::1] y0,
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<realtype *>(NULL) if params.shape[1] == 0 else &params_arr[idx, 0],
-                                     atol_vec, rtol, get_dx_max_factor, error_outside_bounds,
-                                     max_invariant_violation, special_settings_vec))
+        systems.push_back(new OdeSys[realtype, indextype](<realtype *>(NULL) if params.shape[1] == 0
+                                                          else &params_arr[idx, 0], atol_vec, rtol,
+                                                          get_dx_max_factor, error_outside_bounds,
+                                                          max_invariant_violation, special_settings_vec))
         systems[idx].autonomous_exprs = autonomous_exprs
         systems[idx].record_rhs_xvals = record_rhs_xvals
         systems[idx].record_jac_xvals = record_jac_xvals
@@ -174,7 +175,7 @@ def integrate_adaptive(floating [:, ::1] y0,
             xyout[idx][yi+1] = <realtype> y0[idx, yi]
 
     try:
-        result = multi_adaptive[OdeSys](
+        result = multi_adaptive[OdeSys[realtype, indextype]](
             xyout, td,
             systems, atol_vec, rtol, lmm_from_name(_lmm), &xend_arr[0], mxsteps,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
@@ -233,7 +234,7 @@ def integrate_predefined(floating [:, ::1] y0,
                          realtype max_invariant_violation=0.0, special_settings=None,
                          bool autonomous_exprs=False):
     cdef:
-        vector[OdeSys *] systems
+        vector[OdeSys[realtype, indextype] *] systems
         list nfos = []
         cnp.ndarray[realtype, ndim=3, mode='c'] yout_arr
         string _lmm = method.lower().encode('UTF-8')
@@ -305,7 +306,7 @@ def integrate_predefined(floating [:, ::1] y0,
 
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]), dtype=dtype)
-    result = multi_predefined[OdeSys](
+    result = multi_predefined[OdeSys[realtype, indextype]](
         systems, atol, rtol, lmm_from_name(_lmm), <realtype *> y0_arr.data, xout.shape[1],
         <realtype *> xout_arr.data, <realtype *> yout.data, mxsteps, &_dx0[0], &_dx_min[0],
         &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
