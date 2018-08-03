@@ -11,6 +11,9 @@ namespace po = boost::program_options;
 
 ${p_odesys_impl}
 
+typedef ${p_realtype} realtype;
+typedef ${p_indextype} indextype;
+
 int main(int argc, char *argv[]){
     // Parse cmdline args:
     po::options_description desc("Allowed options");
@@ -42,7 +45,7 @@ int main(int argc, char *argv[]){
         return EX_USAGE;
     }
 
-    const int ny = ${p_odesys.ny};
+    const indextype ny = ${p_odesys.ny};
     const int nparams = ${len(p_odesys.params)};
     std::vector<odesys_anyode::OdeSys *> systems;
     const std::vector<realtype> atol(ny, vm["atol"].as<realtype>());
@@ -92,7 +95,7 @@ int main(int argc, char *argv[]){
         std::getline(linestream, item, ' ');
         const int nt = std::atoi(item.c_str());
 
-        for (int idx=0; idx<ny; ++idx){
+        for (indextype idx=0; idx<ny; ++idx){
             std::getline(linestream, item, ' ');
             y0.push_back(std::atof(item.c_str()));
         }
@@ -129,17 +132,17 @@ int main(int argc, char *argv[]){
     // Computations:
     int nprealloc = 500;
     int * td_arr;
-    double ** xyout_arr;
+    realtype ** xyout_arr;
     std::vector<std::pair<int, std::vector<int> > > n_ri;
-    std::vector<std::pair<int, std::pair<std::vector<int>, std::vector<double> > > > ri_ro;
+    std::vector<std::pair<int, std::pair<std::vector<int>, std::vector<realtype> > > > ri_ro;
     std::vector<realtype> yout;
 
     if (nout < 2){
         std::cerr << "Got too few (" << nout << ") time points." << std::endl;
     } else if (nout == 2) {
-        xyout_arr = (double **)malloc(systems.size()*sizeof(double*));
+        xyout_arr = (realtype **)malloc(systems.size()*sizeof(realtype*));
         for (int i=0; i<systems.size(); ++i) {
-            xyout_arr[i] = (double*)malloc((ny+1)*nprealloc*sizeof(double));
+            xyout_arr[i] = (realtype*)malloc((ny+1)*nprealloc*sizeof(realtype));
             td_arr[i] = nprealloc;
         }
         std::vector<realtype> t0;
@@ -147,7 +150,7 @@ int main(int argc, char *argv[]){
         for (int idx=0; idx<systems.size(); ++idx){
             tend.push_back(tout[2*idx + 1]);
             xyout_arr[idx][0] = tout[2*idx];
-            for (int iy=0; iy<ny; ++iy){
+            for (indextype iy=0; iy<ny; ++iy){
                 xyout_arr[idx][iy + 1] = y0[ny*idx + iy];
             }
         }
@@ -166,7 +169,7 @@ int main(int argc, char *argv[]){
         eps_lin, nderiv, autorestart, return_on_error, with_jtimes);
     }
     // Output:
-    for (int si=0; si<systems.size(); ++si){
+    for (indextype si=0; si<systems.size(); ++si){
         bool first = true;
         for (int pi=0; pi<nparams; ++pi){
             if (first)
@@ -179,14 +182,14 @@ int main(int argc, char *argv[]){
         if (nout == 2) {
             for (int ti=0; ti <= n_ri[si].first; ++ti){
                 std::cout << xyout_arr[si][(1+ny)*ti];
-                for (int yi=0; yi<ny; ++yi)
+                for (indextype yi=0; yi<ny; ++yi)
                     std::cout << ' ' << xyout_arr[si][(1+ny)*ti+yi+1];
                 std::cout << '\n';
             }
         } else {
-            for (int ti=0; ti<nout; ++ti){
+            for (indextype ti=0; ti<nout; ++ti){
                 std::cout << tout[si*nout + ti];
-                for (int yi=0; yi<ny; ++yi){
+                for (indextype yi=0; yi<ny; ++yi){
                     std::cout << ' ' << yout[si*nout*ny + ti*ny + yi];
                 }
                 std::cout << '\n';
