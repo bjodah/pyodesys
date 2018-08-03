@@ -70,7 +70,10 @@ class _NativeCodeBase(Cpp_Code):
         'p_includes': ['"odesys_anyode.hpp"'],
         'p_support_recoverable_error': False,
         'p_jacobian_set_to_zero_by_solver': False,
+        'p_realtype': 'double',
+        'p_indextype': 'int'
     }
+
     _support_roots = False
     # `namespace_override` is set in init
     # `namespace_extend` is set in init
@@ -250,7 +253,7 @@ class _NativeCodeBase(Cpp_Code):
             },
             p_nroots=self.odesys.nroots,
             p_constructor=[],
-            p_get_dx_max=False,
+            p_get_dx_max=False
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)

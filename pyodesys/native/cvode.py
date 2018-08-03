@@ -16,7 +16,9 @@ class NativeCvodeCode(_NativeCodeBase):
     namespace = {
         'p_includes': ['"odesys_anyode_iterative.hpp"'],
         'p_support_recoverable_error': True,
-        'p_jacobian_set_to_zero_by_solver': True
+        'p_jacobian_set_to_zero_by_solver': True,
+        'p_realtype': _config.env['REAL_TYPE'],
+        'p_indextype': _config.env['INDEX_TYPE']
     }
     _support_roots = True
 
