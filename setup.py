@@ -82,7 +82,7 @@ if not len(long_descr) > 100:
 _author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().split('<')
 
 extras_req = {
-    'integrators': ['pyodeint<=0.9.4', 'pycvodes<0.11.0', 'pygslodeiv2<=0.8.4'],
+    'integrators': ['pyodeint<0.10', 'pycvodes<0.11.0', 'pygslodeiv2<0.9'],
     'native': ['pycompilation>=0.4.3', 'pycodeexport>=0.1.1', 'appdirs'],
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
     'testing': ['pytest-cov', 'pytest-flakes', 'pytest-pep8']
@@ -102,7 +102,7 @@ setup_kwargs = dict(
     packages=[pkg_name] + submodules + tests,
     include_package_data=True,
     install_requires=['numpy>=1.8.0', 'pytest>=2.9.2', 'scipy>=0.19.1', 'sym>=0.3.0',
-                      'sympy>=1.1.1', 'matplotlib>=2.0.2', 'jupyter'],
+                      'sympy>=1.1.1,!=1.2', 'matplotlib>=2.0.2', 'jupyter'],
     extras_require=extras_req
 )
 
