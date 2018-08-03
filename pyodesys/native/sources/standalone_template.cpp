@@ -47,7 +47,7 @@ int main(int argc, char *argv[]){
 
     const indextype ny = ${p_odesys.ny};
     const int nparams = ${len(p_odesys.params)};
-    std::vector<odesys_anyode::OdeSys *> systems;
+    std::vector<odesys_anyode::OdeSys<realtype, indextype> *> systems;
     const std::vector<realtype> atol(ny, vm["atol"].as<realtype>());
     const realtype rtol(vm["rtol"].as<realtype>());
     const auto lmm((vm["lmm"].as<std::string>() == "adams") ?
@@ -125,9 +125,11 @@ int main(int argc, char *argv[]){
             return 1;
         }
 
-        systems.push_back(new odesys_anyode::OdeSys(&params[systems.size()*nparams], atol, rtol,
-                                                    get_dx_max_factor, error_outside_bounds,
-                                                    max_invariant_violation, special_settings));
+        systems.push_back(new odesys_anyode::OdeSys<realtype, indextype>(&params[systems.size()*nparams],
+                                                                         atol, rtol, get_dx_max_factor,
+                                                                         error_outside_bounds,
+                                                                         max_invariant_violation,
+                                                                         special_settings));
     }
     // Computations:
     int nprealloc = 500;
