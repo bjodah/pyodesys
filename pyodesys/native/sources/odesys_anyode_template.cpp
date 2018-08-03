@@ -24,9 +24,12 @@ namespace {  // anonymous namespace for user-defined helper functions
 }
 using odesys_anyode::OdeSys;
 
-OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rtol,
-               double get_dx_max_factor, bool error_outside_bounds,
-               double max_invariant_violation, std::vector<double> special_settings) :
+typedef ${p_realtype} realtype;
+typedef ${p_indextype} indextype;
+
+OdeSys::OdeSys(const realtype * const params, std::vector<realtype> atol, realtype rtol,
+               realtype get_dx_max_factor, bool error_outside_bounds,
+               realtype max_invariant_violation, std::vector<realtype> special_settings) :
     m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor),
     m_error_outside_bounds(error_outside_bounds), m_max_invariant_violation(max_invariant_violation),
     m_special_settings(special_settings) {
@@ -43,7 +46,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
   %if p_invariants is not None and p_support_recoverable_error:
     if (m_max_invariant_violation != 0.0){
         ${'' if p_odesys.append_iv else 'throw std::runtime_error("append_iv not set to True")'}
-        const double * const y = params + ${len(p_odesys.params)};
+        const realtype * const y = params + ${len(p_odesys.params)};
       %for cse_token, cse_expr in p_invariants['cses']:
         const auto ${cse_token} = ${cse_expr};
       %endfor
@@ -54,7 +57,7 @@ OdeSys::OdeSys(const double * const params, std::vector<double> atol, double rto
   %endif
     ${'\n    '.join(p_constructor)}
 }
-int OdeSys::get_ny() const {
+indextype OdeSys::get_ny() const {
     return ${p_odesys.ny};
 }
 int OdeSys::get_nquads() const {
@@ -67,9 +70,9 @@ int OdeSys::get_nroots() const {
     return ${p_nroots};
 %endif
 }
-AnyODE::Status OdeSys::rhs(double x,
-                           const double * const __restrict__ y,
-                           double * const __restrict__ f) {
+AnyODE::Status OdeSys::rhs(realtype x,
+                           const realtype * const __restrict__ y,
+                           realtype * const __restrict__ f) {
 %if isinstance(p_rhs, str):
     ${p_rhs}
 %else:
@@ -85,7 +88,7 @@ AnyODE::Status OdeSys::rhs(double x,
   %if p_support_recoverable_error:
     if (m_error_outside_bounds){
         if (m_lower_bounds.size() > 0) {
-            for (int i=0; i < ${p_odesys.ny}; ++i) {
+            for (indextype i=0; i < ${p_odesys.ny}; ++i) {
                 if (y[i] < m_lower_bounds[i]) {
                     std::cerr << "Lower bound (" << m_lower_bounds[0] << ") for "
                               << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
@@ -95,7 +98,7 @@ AnyODE::Status OdeSys::rhs(double x,
             }
         }
         if (m_upper_bounds.size() > 0) {
-            for (int i=0; i < ${p_odesys.ny}; ++i) {
+            for (indextype i=0; i < ${p_odesys.ny}; ++i) {
                 if (y[i] > m_upper_bounds[i]) {
                     std::cerr << "Upper bound (" << m_upper_bounds[0] << ") for "
                               << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
@@ -120,18 +123,18 @@ AnyODE::Status OdeSys::rhs(double x,
    %endif
   %endif
   %if getattr(p_odesys, '_nonnegative', False) and p_support_recoverable_error:
-    for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
+    for (indextype i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
   %endif
     return AnyODE::Status::success;
 %endif
 }
 
 AnyODE::Status OdeSys::jtimes(
-                              const double * const __restrict__ v,
-                              double * const __restrict__ Jv,
-                              double x,
-                              const double * const __restrict__ y,
-                              const double * const __restrict__ fy) {
+                              const realtype * const __restrict__ v,
+                              realtype * const __restrict__ Jv,
+                              realtype x,
+                              const realtype * const __restrict__ y,
+                              const realtype * const __restrict__ fy) {
 %if p_jtimes is not None:
 %if isinstance(p_jtimes, str):
     ${p_jtimes}
@@ -159,12 +162,12 @@ AnyODE::Status OdeSys::jtimes(
 
 
 %for order in ('cmaj', 'rmaj'):
-AnyODE::Status OdeSys::dense_jac_${order}(double x,
-                                      const double * const __restrict__ y,
-                                      const double * const __restrict__ fy,
-                                      double * const __restrict__ jac,
+AnyODE::Status OdeSys::dense_jac_${order}(realtype x,
+                                      const realtype * const __restrict__ y,
+                                      const realtype * const __restrict__ fy,
+                                      realtype * const __restrict__ jac,
                                       long int ldim,
-                                      double * const __restrict__ dfdt) {
+                                      realtype * const __restrict__ dfdt) {
 
 %if p_jac is not None:
 %if order in p_jac:
@@ -208,7 +211,7 @@ AnyODE::Status OdeSys::dense_jac_${order}(double x,
 }
 %endfor
 
-double OdeSys::get_dx0(double x, const double * const y) {
+realtype OdeSys::get_dx0(realtype x, const realtype * const y) {
 %if p_first_step is None:
     AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return 0.0;  // invokes the default behaviour of the chosen solver
@@ -216,7 +219,7 @@ double OdeSys::get_dx0(double x, const double * const y) {
     ${p_first_step}
 %else:
   %for cse_token, cse_expr in p_first_step['cses']:
-    const double ${cse_token} = ${cse_expr};
+    const realtype ${cse_token} = ${cse_expr};
   %endfor
     ${'' if p_odesys.indep in p_odesys.first_step_expr.free_symbols else 'AnyODE::ignore(x);'}
     ${'' if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else 'AnyODE::ignore(y);'}
@@ -224,17 +227,17 @@ double OdeSys::get_dx0(double x, const double * const y) {
 %endif
 }
 
-double OdeSys::get_dx_max(double x, const double * const y) {
+realtype OdeSys::get_dx_max(realtype x, const realtype * const y) {
 %if p_get_dx_max is False:
     AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
     return INFINITY;
 %elif p_get_dx_max is True:
-    auto fvec = std::vector<double>(${p_odesys.ny});
-    auto hvec = std::vector<double>(${p_odesys.ny});
+    auto fvec = std::vector<realtype>(${p_odesys.ny});
+    auto hvec = std::vector<realtype>(${p_odesys.ny});
     rhs(x, y, &fvec[0]);
-    for (int idx=0; idx<${p_odesys.ny}; ++idx){
+    for (indextype idx=0; idx<${p_odesys.ny}; ++idx){
         if (fvec[idx] == 0) {
-            hvec[idx] = std::numeric_limits<double>::infinity();
+            hvec[idx] = std::numeric_limits<realtype>::infinity();
         } else if (fvec[idx] > 0) {
             hvec[idx] = fabs(m_upper_bounds[idx] - y[idx])/fvec[idx];
         } else { // fvec[idx] < 0
@@ -255,7 +258,7 @@ double OdeSys::get_dx_max(double x, const double * const y) {
 %endif
 }
 
-AnyODE::Status OdeSys::roots(double x, const double * const y, double * const out) {
+AnyODE::Status OdeSys::roots(realtype x, const realtype * const y, realtype * const out) {
 %if p_roots is None:
     AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
     return AnyODE::Status::success;
