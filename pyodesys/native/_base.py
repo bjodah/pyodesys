@@ -148,12 +148,10 @@ class _NativeCodeBase(Cpp_Code):
             logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
             cse_cb = lambda exprs, **kwargs: ([], exprs)
 
-        try:
-            common_cses, common_exprs = cse_cb(
-                all_exprs, symbols=self.odesys.be('cse'),
-                ignore=(self.odesys.indep,) + self.odesys.dep)
-        except TypeError:  # old version of SymPy does not support ``ignore``
-            common_cses, common_exprs = [], all_exprs
+        common_cses, common_exprs = cse_cb(
+            all_exprs, symbols=self.odesys.be.numbered_symbols('cse'),
+            ignore=(self.odesys.indep,) + self.odesys.dep)
+
         common_cse_subs = {}
         comm_cse_symbs = common_cse_symbols()
         for symb, subexpr in common_cses:
