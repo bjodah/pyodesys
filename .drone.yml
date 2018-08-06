@@ -18,8 +18,18 @@ build:
   commands:
     - if [ ! -d /drone/sund-3.1.2-klu ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
     - if [ ! -d /drone/sund-3.1.2-nolapack-noklu-int64-extended ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-nolapack-noklu-int64-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_PRECISION="extended" -DSUNDIALS_INDEX_TYPE:STRING="int64_t" -DKLU_ENABLE:BOOL=OFF; fi
-    - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-klu
+    # Need to install pycvodes from source for extended precision/int64 test, since
+    # that requires no LAPACK, whereas the pypi version installs with LAPACK
+    - python3 -m pip uninstall pycvodes
+    - git clone --recurse-submodules git@github.com:bjodah/pycvodes.git --branch v0.11.5
+    - cd pycvodes
+    - PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py build
+    - python3 -m pip install -e .
     - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-nolapack-noklu-int64-extended
+    - python3 -m pip uninstall pycvodes
+    - cd -
+    # "Normal" (double, int) tests
+    - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-klu
     - ./scripts/prepare_deploy.sh
     - rm -r ~/.cache/python*pyodesys*/
     - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
