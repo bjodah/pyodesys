@@ -10,7 +10,7 @@ pyodesys
 .. image:: https://img.shields.io/pypi/v/pyodesys.svg
    :target: https://pypi.python.org/pypi/pyodesys
    :alt: PyPI version
-.. image:: https://img.shields.io/badge/python-2.7,3.4,3.5-blue.svg
+.. image:: https://img.shields.io/badge/python-2.7,3.5,3.6-blue.svg
    :target: https://www.python.org/
    :alt: Python version
 .. image:: https://img.shields.io/pypi/l/pyodesys.svg
