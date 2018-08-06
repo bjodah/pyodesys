@@ -1,8 +1,10 @@
+from collections import defaultdict
 
 def _test_render_native_code_cse(NativeSys):
     # regression test taken from chempy
     from pyodesys.symbolic import SymbolicSys
     from sympy import symbols, log, exp
+    import numpy as np
 
     symbs = symbols(
         'N U A L NL t T He_dis Se_dis Cp_dis Tref_dis '
@@ -42,5 +44,42 @@ def _test_render_native_code_cse(NativeSys):
         r_dis - r_as,
         r_as - r_dis
     ]
-    odesys = SymbolicSys(zip(symbs[:5], exprs), symbs[5], params=symbs[6:])
-    NativeSys.from_other(odesys)
+    def _solve(odesys, **kwargs):
+        default_c0 = defaultdict(float, {'N': 1e-9, 'L': 1e-8})
+        params = dict(
+            R=8.314472,  # or N_A & k_B
+            k_B=1.3806504e-23,
+            h=6.62606896e-34,  # k_B/h == 2.083664399411865e10 K**-1 * s**-1
+            He_dis=-45e3,
+            Se_dis=-400,
+            Cp_dis=1.78e3,
+            Tref_dis=298.15,
+            He_u=60e3,
+            Se_u=130.5683,
+            Cp_u=20.5e3,
+            Tref_u=298.15,
+            Ha_agg=106e3,
+            Sa_agg=70,
+            Ha_as=4e3,
+            Sa_as=-10,
+            Ha_f=90e3,
+            Sa_f=50,
+            T=50 + 273.15
+        )
+        return odesys.integrate(
+            3600*24,
+            [default_c0[s.name] for s in symbs[:5]],
+            [params[s.name] for s in symbs[6:]],
+            **kwargs
+        )
+
+    symbolic = SymbolicSys(zip(symbs[:5], exprs), symbs[5], params=symbs[6:])
+    kw = dict(integrator='cvode', nsteps=35000, atol=1e-11, rtol=1e-11)
+    ref = _solve(symbolic, **kw)
+    assert ref.info['success']
+
+    native = NativeSys.from_other(symbolic)  # <-- regression test, optional: save_temp=True
+    sol = _solve(native, **kw)
+    assert sol.info['success']
+
+    assert np.allclose(sol.yout[-1, :], ref.yout[-1, :])
