@@ -21,7 +21,7 @@ build:
     # Need to install pycvodes from source for extended precision/int64 test, since
     # that requires no LAPACK, whereas the pypi version installs with LAPACK
     - python3 -m pip uninstall pycvodes
-    - git clone --recurse-submodules git@github.com:bjodah/pycvodes.git --branch v0.11.5
+    - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git --branch v0.11.5
     - cd pycvodes
     - PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py build
     - python3 -m pip install -e .
