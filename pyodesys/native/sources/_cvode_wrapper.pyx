@@ -52,6 +52,8 @@ ctypedef fused floating:
     cnp.float64_t
     cnp.longdouble_t
 
+ctypedef OdeSys[realtype, indextype] CvodesOdeSys
+
 from odesys_util cimport adaptive_return
 
 
@@ -97,7 +99,7 @@ def integrate_adaptive(floating [:, ::1] y0,
         realtype [:,::1] xyout_view
         int * td = <int *>malloc(y0.shape[0]*sizeof(int))
         cnp.npy_intp dims[2]
-        vector[OdeSys[realtype, indextype] *] systems
+        vector[CvodesOdeSys *] systems
         vector[vector[int]] root_indices
         list nfos = []
         string _lmm = method.lower().encode('UTF-8')
@@ -125,6 +127,7 @@ def integrate_adaptive(floating [:, ::1] y0,
             atol_vec.push_back(<realtype> at)
     else:
         atol_vec.push_back(<realtype> atol)
+        atol_vec.resize(y0.shape[y0.ndim-1], atol[0])
 
     if special_settings is None:
         special_settings = []
@@ -136,12 +139,12 @@ def integrate_adaptive(floating [:, ::1] y0,
     else:
         _dx0 = np.ascontiguousarray(dx0, dtype=dtype)
         if _dx0.size == 1:
-            _dx0 = _dx0*np.ones(y0.shape[0])
+            _dx0 = _dx0*np.ones(y0.shape[0], dtype=dtype)
     if _dx0.size < y0.shape[0]:
         raise ValueError('dx0 too short')
 
     if dx_min is None:
-        _dx_min = np.zeros(y0.shape[0])
+        _dx_min = np.zeros(y0.shape[0], dtype=dtype)
     else:
         _dx_min = np.ascontiguousarray(dx_min, dtype=dtype)
         if _dx_min.size == 1:
@@ -159,10 +162,10 @@ def integrate_adaptive(floating [:, ::1] y0,
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys[realtype, indextype](<realtype *>(NULL) if params.shape[1] == 0
-                                                          else &params_arr[idx, 0], atol_vec, rtol,
-                                                          get_dx_max_factor, error_outside_bounds,
-                                                          max_invariant_violation, special_settings_vec))
+        systems.push_back(new CvodesOdeSys(<realtype *>(NULL) if params.shape[1] == 0
+                                           else &params_arr[idx, 0], atol_vec, rtol,
+                                           get_dx_max_factor, error_outside_bounds,
+                                           max_invariant_violation, special_settings_vec))
         systems[idx].autonomous_exprs = autonomous_exprs
         systems[idx].record_rhs_xvals = record_rhs_xvals
         systems[idx].record_jac_xvals = record_jac_xvals
@@ -175,7 +178,7 @@ def integrate_adaptive(floating [:, ::1] y0,
             xyout[idx][yi+1] = <realtype> y0[idx, yi]
 
     try:
-        result = multi_adaptive[OdeSys[realtype, indextype]](
+        result = multi_adaptive[CvodesOdeSys](
             xyout, td,
             systems, atol_vec, rtol, lmm_from_name(_lmm), &xend_arr[0], mxsteps,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
@@ -234,7 +237,7 @@ def integrate_predefined(floating [:, ::1] y0,
                          realtype max_invariant_violation=0.0, special_settings=None,
                          bool autonomous_exprs=False):
     cdef:
-        vector[OdeSys[realtype, indextype] *] systems
+        vector[CvodesOdeSys *] systems
         list nfos = []
         cnp.ndarray[realtype, ndim=3, mode='c'] yout_arr
         string _lmm = method.lower().encode('UTF-8')
@@ -295,9 +298,10 @@ def integrate_predefined(floating [:, ::1] y0,
         raise ValueError('dx_max too short')
 
     for idx in range(y0.shape[0]):
-        systems.push_back(new OdeSys(<realtype *>(NULL) if params.shape[1] == 0 else &params_arr[idx, 0],
-                                     atol_vec, rtol, get_dx_max_factor, error_outside_bounds,
-                                     max_invariant_violation, special_settings_vec))
+        systems.push_back(new CvodesOdeSys(<realtype *>(NULL) if params.shape[1] == 0
+                                           else &params_arr[idx, 0], atol_vec, rtol,
+                                           get_dx_max_factor, error_outside_bounds,
+                                           max_invariant_violation, special_settings_vec))
         systems[idx].autonomous_exprs = autonomous_exprs
         systems[idx].record_rhs_xvals = record_rhs_xvals
         systems[idx].record_jac_xvals = record_jac_xvals
@@ -305,10 +309,10 @@ def integrate_predefined(floating [:, ::1] y0,
         systems[idx].record_fpe = record_fpe
 
 
-    yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]), dtype=dtype)
-    result = multi_predefined[OdeSys[realtype, indextype]](
+    yout_arr = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]), dtype=dtype)
+    result = multi_predefined[CvodesOdeSys](
         systems, atol, rtol, lmm_from_name(_lmm), <realtype *> y0_arr.data, xout.shape[1],
-        <realtype *> xout_arr.data, <realtype *> yout.data, mxsteps, &_dx0[0], &_dx_min[0],
+        <realtype *> xout_arr.data, <realtype *> yout_arr.data, mxsteps, &_dx0[0], &_dx_min[0],
         &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
         linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
         maxl, eps_lin, nderiv, autorestart, return_on_error, with_jtimes)
@@ -325,4 +329,4 @@ def integrate_predefined(floating [:, ::1] y0,
                              success=success, nreached=nreached))
         del systems[idx]
 
-    return yout, nfos
+    return yout_arr, nfos
