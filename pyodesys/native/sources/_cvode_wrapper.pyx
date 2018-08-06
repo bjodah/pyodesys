@@ -189,7 +189,7 @@ def integrate_adaptive(floating [:, ::1] y0,
         for idx in range(y0.shape[0]):
             dims[0] = result[idx].first + 1
             dims[1] = y0.shape[1] + 1
-            xyout_view = <realtype [:dims[0],:dims[1]:1]> xyout
+            xyout_view = <realtype [:dims[0],:dims[1]:1]> xyout[idx]
             xyout_arr = np.asarray(xyout_view, dtype=dtype)
             xout.append(xyout_arr[:, 0])
             yout.append(xyout_arr[:, 1:])
