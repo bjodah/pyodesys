@@ -4,7 +4,7 @@
 #    $ ANFILTE_CHANNELS="defaults conda-forge bjodah" ./scripts/post_release.sh v1.2.3 myserver
 #
 VERSION=${1#v}
-SERVER=$3
+SERVER=$2
 PKG=$(find . -maxdepth 2 -name __init__.py -print0 | xargs -0 -n1 dirname | xargs basename)
 PKG_UPPER=$(echo $PKG | tr '[:lower:]' '[:upper:]')
 SDIST_FILE=dist/${PKG}-$VERSION.tar.gz
