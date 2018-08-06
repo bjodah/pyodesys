@@ -1,0 +1,9 @@
+Running Sphinx v1.7.6
+loading translations [en]... done
+loading pickled environment... done
+building [mo]: targets for 0 po files that are out of date
+building [html]: targets for 3 source files that are out of date
+updating environment: [config changed] 3 added, 0 changed, 0 removed
+reading sources... [ 33%] index
+reading sources... [ 66%] pyodesys
+reading sources... [100%] pyodesys.native
