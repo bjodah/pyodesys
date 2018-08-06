@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+
 def _test_render_native_code_cse(NativeSys):
     # regression test taken from chempy
     from pyodesys.symbolic import SymbolicSys
@@ -44,6 +45,7 @@ def _test_render_native_code_cse(NativeSys):
         r_dis - r_as,
         r_as - r_dis
     ]
+
     def _solve(odesys, **kwargs):
         default_c0 = defaultdict(float, {'N': 1e-9, 'L': 1e-8})
         params = dict(
