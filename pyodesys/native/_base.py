@@ -148,12 +148,10 @@ class _NativeCodeBase(Cpp_Code):
             logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
             cse_cb = lambda exprs, **kwargs: ([], exprs)
 
-        try:
-            common_cses, common_exprs = cse_cb(
-                all_exprs, symbols=self.odesys.be('cse'),
-                ignore=(self.odesys.indep,) + self.odesys.dep)
-        except TypeError:  # old version of SymPy does not support ``ignore``
-            common_cses, common_exprs = [], all_exprs
+        common_cses, common_exprs = cse_cb(
+            all_exprs, symbols=self.odesys.be.numbered_symbols('cse'),
+            ignore=(self.odesys.indep,) + self.odesys.dep)
+
         common_cse_subs = {}
         comm_cse_symbs = common_cse_symbols()
         for symb, subexpr in common_cses:
@@ -245,11 +243,12 @@ class _NativeSysBase(SymbolicSys):
     def __init__(self, *args, **kwargs):
         namespace_override = kwargs.pop('namespace_override', {})
         namespace_extend = kwargs.pop('namespace_extend', {})
+        save_temp = kwargs.pop('save_temp', False)
         if 'init_indep' not in kwargs:  # we need to trigger append_iv for when invariants are used
             kwargs['init_indep'] = True
             kwargs['init_dep'] = True
         super(_NativeSysBase, self).__init__(*args, **kwargs)
-        self._native = self._NativeCode(self,
+        self._native = self._NativeCode(self, save_temp=save_temp,
                                         namespace_override=namespace_override,
                                         namespace_extend=namespace_extend)
 
