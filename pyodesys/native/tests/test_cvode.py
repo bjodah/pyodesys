@@ -16,6 +16,7 @@ from ._tests import (
     _test_NativeSys__dep_by_name__single_varied, _test_PartiallySolvedSystem_Native,
     _test_return_on_error_success
 )
+from ._test_proper_rendering import _test_render_native_code_cse
 from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
 from pyodesys.tests.test_symbolic import _test_chained_parameter_variation
@@ -236,3 +237,9 @@ def test_jtimes_native_cvode(nu=0.01, k=1.0, m=1.0, x0=1.0, atol=1.0e-12, rtol=1
     assert info['njvev'] > 0
     assert info['njev'] == 0
     assert np.allclose(yout[:, 0], ref)
+
+
+@pytest.mark.slow
+@requires('pycvodes', 'sympy')
+def test_render_native_cse_regression():
+    _test_render_native_code_cse(NativeSys)
