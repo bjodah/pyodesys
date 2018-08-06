@@ -10,6 +10,7 @@ def _test_render_native_code_cse(NativeSys):
         'R h k_B'
     )
     di = {s.name: s for s in symbs}
+
     class NS:
         pass
 
@@ -36,7 +37,7 @@ def _test_render_native_code_cse(NativeSys):
     r_u = k_u*ns.N
     exprs = [
         -r_as + r_f + r_dis - r_u,
-        -r_agg -r_f + r_u,
+        -r_agg - r_f + r_u,
         r_agg,
         r_dis - r_as,
         r_as - r_dis
