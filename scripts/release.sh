@@ -21,7 +21,7 @@ PKG=$(find . -maxdepth 2 -name __init__.py -print0 | xargs -0 -n1 dirname | xarg
 PKG_UPPER=$(echo $PKG | tr '[:lower:]' '[:upper:]')
 MPLBACKEND=Agg ./scripts/run_tests.sh
 env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION python setup.py sdist
-env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION ./scripts/generate_docs.sh $2 ${3:-$PKG} v$VERSION
+env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION ./scripts/generate_docs.sh
 
 # All went well, add a tag and push it.
 git tag -a v$VERSION -m v$VERSION
@@ -34,8 +34,8 @@ echo ""
 echo "    You may now create a new github release at with the tag \"v$VERSION\" and name "
 echo "    it \"${PKG}-${VERSION}\", (don't foreget to manually attach the new .tar.gz"
 echo "    file from the ./dist/ directory). Here is a link:"
-echo "        https://github.com/$4/$5/releases/new "
+echo "        https://github.com/$2/${3:-$PKG}/releases/new "
 echo "    Then run:"
 echo ""
-echo "        $ ./scripts/post_release.sh $1 <myserver.example.com> $4"
+echo "        $ ./scripts/post_release.sh $1 <myserver.example.com>"
 echo ""
