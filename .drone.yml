@@ -15,13 +15,14 @@ build:
     - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   commands:
+    - git fetch -tq
     - if [ ! -d /drone/sund-3.1.2-klu ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
     - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-klu
     - ./scripts/prepare_deploy.sh
     - rm -r ~/.cache/python*pyodesys*/
     - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
-    - PATH=/opt/miniconda3/bin:$PATH conda upgrade conda-build
-    - PATH=/opt/miniconda3/bin:$PATH conda-build conda-recipe
+    - PATH=/opt/miniconda3/bin:$PATH conda upgrade --quiet conda-build
+    - PATH=/opt/miniconda3/bin:$PATH conda build --output-folder "deploy/public_html/branches/${CI_BRANCH}" conda-recipe
     - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
     - ./scripts/grep-for-merge-blocking-token.sh
     - ./scripts/grep-for-binary-data.sh
