@@ -245,7 +245,7 @@ class _NativeSysBase(SymbolicSys):
     def __init__(self, *args, **kwargs):
         namespace_override = kwargs.pop('namespace_override', {})
         namespace_extend = kwargs.pop('namespace_extend', {})
-        save_temp = kwargs.pop('save_temp')
+        save_temp = kwargs.pop('save_temp', False)
         if 'init_indep' not in kwargs:  # we need to trigger append_iv for when invariants are used
             kwargs['init_indep'] = True
             kwargs['init_dep'] = True
