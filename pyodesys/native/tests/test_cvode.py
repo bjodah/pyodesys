@@ -14,9 +14,8 @@ from ._tests import (
     _test_Decay_nonnegative, _test_NativeSys__first_step_cb, _test_NativeSys__first_step_cb_source_code,
     _test_NativeSys__roots, _test_NativeSys__get_dx_max_source_code, _test_NativeSys__band,
     _test_NativeSys__dep_by_name__single_varied, _test_PartiallySolvedSystem_Native,
-    _test_return_on_error_success
+    _test_return_on_error_success, _test_render_native_code_cse
 )
-from ._test_proper_rendering import _test_render_native_code_cse
 from ._test_robertson_native import _test_chained_multi_native
 from ..cvode import NativeCvodeSys as NativeSys
 from pyodesys.tests.test_symbolic import _test_chained_parameter_variation
