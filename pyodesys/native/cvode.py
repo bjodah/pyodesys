@@ -9,6 +9,7 @@ from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
 _config, get_include = import_('pycvodes', '_config', 'get_include')
 
+
 class NativeCvodeCode(_NativeCodeBase):
     wrapper_name = '_cvode_wrapper'
 
