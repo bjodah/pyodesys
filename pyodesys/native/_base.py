@@ -71,7 +71,8 @@ class _NativeCodeBase(Cpp_Code):
         'p_support_recoverable_error': False,
         'p_jacobian_set_to_zero_by_solver': False,
         'p_realtype': 'double',
-        'p_indextype': 'int'
+        'p_indextype': 'int',
+        'p_baseclass': 'OdeSysBase'
     }
 
     _support_roots = False

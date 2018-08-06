@@ -28,7 +28,7 @@ namespace {  // anonymous namespace for user-defined helper functions
 
 namespace odesys_anyode {
     template <>
-    struct OdeSys<realtype, indextype>: public AnyODE::OdeSysIterativeBase<realtype, indextype> {
+    struct OdeSys<realtype, indextype>: public AnyODE::${p_baseclass}<realtype, indextype> {
         std::vector<realtype> m_p;
         std::vector<realtype> m_p_cse;
         std::vector<realtype> m_atol;

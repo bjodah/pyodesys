@@ -18,7 +18,8 @@ class NativeCvodeCode(_NativeCodeBase):
         'p_support_recoverable_error': True,
         'p_jacobian_set_to_zero_by_solver': True,
         'p_realtype': _config.env['REAL_TYPE'],
-        'p_indextype': _config.env['INDEX_TYPE']
+        'p_indextype': _config.env['INDEX_TYPE'],
+        'p_baseclass': 'OdeSysIterativeBase'
     }
     _support_roots = True
 
