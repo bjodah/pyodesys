@@ -1,3 +1,7 @@
+v0.11.16
+========
+- Fix CSE in native code-generation
+
 v0.11.15
 ========
 - Updated (upper) requirements of pycvodes, pygslodeiv2, pyodeint (v0.12.0 will again require latest versions)

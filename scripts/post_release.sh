@@ -1,11 +1,11 @@
 #!/bin/bash -xeu
 # Usage:
 #
-#    $ ANFILTE_CHANNELS="defaults conda-forge bjodah" ./scripts/post_release.sh v1.2.3 myserver githubuser
+#    $ ANFILTE_CHANNELS="defaults conda-forge bjodah" ./scripts/post_release.sh v1.2.3 GITHUB_USER myserver.example.com
 #
 VERSION=${1#v}
-SERVER=$2
-GITHUBUSER=$3
+GITHUBUSER=$2
+SERVER=$3
 PKG=$(find . -maxdepth 2 -name __init__.py -print0 | xargs -0 -n1 dirname | xargs basename)
 PKG_UPPER=$(echo $PKG | tr '[:lower:]' '[:upper:]')
 SDIST_FILE=dist/${PKG}-$VERSION.tar.gz
@@ -21,7 +21,6 @@ cp -r conda-recipe/ dist/conda-recipe-$VERSION
 sed -i -E \
     -e "s/\{\% set version(.+)/\{\% set version = \"$VERSION\" \%\}\n\{\% set sha256 = \"$SHA256\" \%\}/" \
     -e "s/git_url:(.+)/fn: \{\{ name \}\}-\{\{ version \}\}.tar.gz\n  url: https:\/\/pypi.io\/packages\/source\/\{\{ name\[0\] \}\}\/\{\{ name \}\}\/\{\{ name \}\}-\{\{ version \}\}.tar.gz\n  sha256: \{\{ sha256 \}\}/" \
-    -e "/cython/d" \
     dist/conda-recipe-$VERSION/meta.yaml
 
 ssh $PKG@$SERVER 'mkdir -p ~/public_html/conda-packages'

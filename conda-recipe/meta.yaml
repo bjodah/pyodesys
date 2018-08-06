@@ -1,5 +1,5 @@
 {% set name = "pyodesys" %}
-{% set version = "0.12.0.git" %}
+{% set version = "0.11.17.dev0+git" %}
 
 package:
   name: {{ name|lower }}
@@ -32,6 +32,7 @@ requirements:
     - pycvodes <0.11.0
     - pycompilation
     - pycodeexport
+    - cython
     - python-symengine
     - symcxx
     - pysym
