@@ -14,9 +14,9 @@ class NativeCvodeCode(_NativeCodeBase):
     wrapper_name = '_cvode_wrapper'
 
     try:
-        _realtype = _config.get('REAL_TYPE', 'double')
-        _indextype = _config.get('INDEX_TYPE', 'int')
-    except (ModuleNotFoundError, AttributeError):
+        _realtype = _config.env.get('REAL_TYPE', 'double')
+        _indextype = _config.env.get('INDEX_TYPE', 'int')
+    except ModuleNotFoundError:
         _realtype = 'double'
         _indextype = 'int'
 

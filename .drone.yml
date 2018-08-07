@@ -6,7 +6,7 @@ clone:
 cache:
   mount:
     - /drone/sund-3.1.2-klu
-    - /drone/sund-3.1.2-nolapack-noklu-int64-extended
+    - /drone/sund-3.1.2-nolapack-noklu-extended
 build:
   image: bjodah/bjodahimg18dev:v1.3
   environment:
@@ -17,7 +17,7 @@ build:
     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   commands:
     - if [ ! -d /drone/sund-3.1.2-klu ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
-    - if [ ! -d /drone/sund-3.1.2-nolapack-noklu-int64-extended ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-nolapack-noklu-int64-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_PRECISION="extended" -DSUNDIALS_INDEX_TYPE:STRING="int64_t" -DKLU_ENABLE:BOOL=OFF; fi
+    - if [ ! -d /drone/sund-3.1.2-nolapack-noklu-extended ]; then .ci/get_sundials.sh 3.12 /.drone/sund-3.1.2-nolapack-noklu-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
     # Need to install pycvodes from source for extended precision/int64 test, since
     # that requires no LAPACK, whereas the pypi version installs with LAPACK
     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git /drone/pycvodes --branch v0.11.5
