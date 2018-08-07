@@ -22,11 +22,10 @@ build:
     # that requires no LAPACK, whereas the pypi version installs with LAPACK
     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git /drone/pycvodes --branch v0.11.5
     - cd /drone/pycvodes
-    - LIBRARY_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/lib:$LIBRARY_PATH CPLUS_INCLUDE_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/include:$CPLUS_INCLUDE_PATH LD_LIBRARY_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/lib:$LD_LIBRARY_PATH PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py build
-    - python3 -m pip install -e .
+    - LIBRARY_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/lib:$LIBRARY_PATH CPLUS_INCLUDE_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/include:$CPLUS_INCLUDE_PATH LD_LIBRARY_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/lib:$LD_LIBRARY_PATH PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py install
     - cd -
     - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-nolapack-noklu-extended
-    - python3 -m pip uninstall pycvodes
+    - rm -r /usr/local/lib/python*/dist-packages/pycvodes*
     # "Normal" (double, int) tests
     - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-klu
     - ./scripts/prepare_deploy.sh
