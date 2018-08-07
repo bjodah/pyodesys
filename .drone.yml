@@ -17,15 +17,15 @@ build:
     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   commands:
     - if [ ! -d /drone/sund-3.1.2-klu ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
-    - if [ ! -d /drone/sund-3.1.2-nolapack-noklu-extended ]; then .ci/get_sundials.sh 3.12 /.drone/sund-3.1.2-nolapack-noklu-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
+    - if [ ! -d /drone/sund-3.1.2-nolapack-noklu-extended ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-nolapack-noklu-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
     # Need to install pycvodes from source for extended precision/int64 test, since
     # that requires no LAPACK, whereas the pypi version installs with LAPACK
     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git /drone/pycvodes --branch v0.11.5
     - cd /drone/pycvodes
-    - LIBRARY_PATH=/drone/sund-3.1.2-nolapack-noklu-int64-extended/lib:$LIBRARY_PATH CPLUS_INCLUDE_PATH=/drone/sund-3.1.2-nolapack-noklu-int64-extended/include:$CPLUS_INCLUDE_PATH LD_LIBRARY_PATH=/drone/sund-3.1.2-nolapack-noklu-int64-extended/lib:$LD_LIBRARY_PATH PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py build
+    - LIBRARY_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/lib:$LIBRARY_PATH CPLUS_INCLUDE_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/include:$CPLUS_INCLUDE_PATH LD_LIBRARY_PATH=/drone/sund-3.1.2-nolapack-noklu-extended/lib:$LD_LIBRARY_PATH PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py build
     - python3 -m pip install -e .
     - cd -
-    - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-nolapack-noklu-int64-extended
+    - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-nolapack-noklu-extended
     - python3 -m pip uninstall pycvodes
     # "Normal" (double, int) tests
     - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-klu
