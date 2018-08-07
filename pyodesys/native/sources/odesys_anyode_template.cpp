@@ -23,8 +23,8 @@ namespace {  // anonymous namespace for user-defined helper functions
 %endif
 }
 
-#define realtype ${p_realtype}
-#define indextype ${p_indextype}
+typedef ${p_realtype} realtype;
+typedef ${p_indextype} indextype;
 
 namespace odesys_anyode {
     template <>
@@ -286,18 +286,18 @@ namespace odesys_anyode {
     realtype OdeSys<realtype, indextype>::get_dx_max(realtype x, const realtype * const y) {
     %if p_get_dx_max is False:
         AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
-        return INFINITY;
+        return std::numeric_limits<realtype>::infinity();
     %elif p_get_dx_max is True:
         auto fvec = std::vector<realtype>(${p_odesys.ny});
         auto hvec = std::vector<realtype>(${p_odesys.ny});
         rhs(x, y, &fvec[0]);
-        for (int idx=0; idx < ${p_odesys.ny}; ++idx){
+        for (indextype idx=0; idx < ${p_odesys.ny}; ++idx){
             if (fvec[idx] == 0) {
                 hvec[idx] = std::numeric_limits<realtype>::infinity();
             } else if (fvec[idx] > 0) {
-                hvec[idx] = fabs(m_upper_bounds[idx] - y[idx])/fvec[idx];
+                hvec[idx] = std::abs(m_upper_bounds[idx] - y[idx])/fvec[idx];
             } else { // fvec[idx] < 0
-                hvec[idx] = fabs((m_lower_bounds[idx] - y[idx])/fvec[idx]);
+                hvec[idx] = std::abs((m_lower_bounds[idx] - y[idx])/fvec[idx]);
             }
         }
         const auto result = *std::min_element(std::begin(hvec), std::end(hvec));
