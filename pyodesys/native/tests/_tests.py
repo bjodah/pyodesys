@@ -276,8 +276,8 @@ def _test_NativeSys__get_dx_max_source_code(NativeSys, forgive=20, **kwargs):
     dec3 = _get_decay3()
     odesys = NativeSys.from_other(dec3, namespace_override={
         # workaround for pycvodes bug. To remove in pycvodes 0.11.6+
-        'p_get_dx_max': """AnyODE::ignore(y); 
-                           realtype dx_max = 1.0e-4 * x + 1.0e-3; 
+        'p_get_dx_max': """AnyODE::ignore(y);
+                           realtype dx_max = 1.0e-4 * x + 1.0e-3;
                            if (std::isnan(dx_max))
                                 return 1.0e-3;
                            else

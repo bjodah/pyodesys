@@ -241,7 +241,8 @@ def pycvodes_double(cb):
         prec = env.get('SUNDIALS_PRECISION', 'double')
     except:
         prec = "double"
-    return pytest.mark.skipif(prec != "double", reason="Test is designed for pycvodes built with double precision.")(cb)
+    r = "Test is designed only for pycvodes built with double precision."
+    return pytest.mark.skipif(prec != "double", reason=r)(cb)
 
 
 class MissingImport(object):
