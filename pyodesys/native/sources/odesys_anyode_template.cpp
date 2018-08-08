@@ -286,14 +286,14 @@ namespace odesys_anyode {
     realtype OdeSys<realtype, indextype>::get_dx_max(realtype x, const realtype * const y) {
     %if p_get_dx_max is False:
         AnyODE::ignore(x); AnyODE::ignore(y);  // avoid compiler warning about unused parameter.
-        return std::numeric_limits<realtype>::infinity();
+        return std::numeric_limits<realtype>::max();
     %elif p_get_dx_max is True:
         auto fvec = std::vector<realtype>(${p_odesys.ny});
         auto hvec = std::vector<realtype>(${p_odesys.ny});
         rhs(x, y, &fvec[0]);
         for (indextype idx=0; idx < ${p_odesys.ny}; ++idx){
             if (fvec[idx] == 0) {
-                hvec[idx] = std::numeric_limits<realtype>::infinity();
+                hvec[idx] = std::numeric_limits<realtype>::max();
             } else if (fvec[idx] > 0) {
                 hvec[idx] = std::abs(m_upper_bounds[idx] - y[idx])/fvec[idx];
             } else { // fvec[idx] < 0
