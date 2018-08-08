@@ -10,7 +10,7 @@ This is file is a mako template for a C++ source file defining the ODE system.
 #include <algorithm>
 #include <iostream>
 #include <limits>
-#include <math.h>
+#include <tgmath.h>
 #include <vector>
 %for inc in p_includes:
 #include ${inc}
