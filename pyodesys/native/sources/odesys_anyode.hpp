@@ -10,7 +10,7 @@ template<typename Real_t=double, typename Index_t=int>
         std::vector<Real_t> m_upper_bounds;
         std::vector<Real_t> m_lower_bounds;
         std::vector<Real_t> m_invar0;
-        double m_rtol;
+        Real_t m_rtol;
         Real_t m_get_dx_max_factor;
         bool m_error_outside_bounds;
         Real_t m_max_invariant_violation;
