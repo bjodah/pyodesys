@@ -10,7 +10,7 @@ This is file is a mako template for a C++ source file defining the ODE system.
 #include <algorithm>
 #include <iostream>
 #include <limits>
-#include <tgmath.h>
+#include <cmath>
 #include <vector>
 %for inc in p_includes:
 #include ${inc}
@@ -22,6 +22,8 @@ namespace {  // anonymous namespace for user-defined helper functions
     ${p_anon}
 %endif
 }
+
+using namespace std;
 
 typedef ${p_realtype} realtype;
 typedef ${p_indextype} indextype;
