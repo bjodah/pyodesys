@@ -171,7 +171,7 @@ namespace odesys_anyode {
             const auto ${cse_token} = ${cse_expr};
           %endfor
           %for idx, invar_expr in enumerate(p_invariants['exprs']):
-            if (fabs(${invar_expr} - m_invar0[${idx}]) > ((m_max_invariant_violation > 0) ? m_max_invariant_violation : fabs(m_max_invariant_violation*m_invar0[${idx}]) - m_max_invariant_violation)) {
+            if (std::abs(${invar_expr} - m_invar0[${idx}]) > ((m_max_invariant_violation > 0) ? m_max_invariant_violation : std::abs(m_max_invariant_violation*m_invar0[${idx}]) - m_max_invariant_violation)) {
                 std::cerr << "Invariant (${idx}) violation at x=" << x << "\n";
                 return AnyODE::Status::recoverable_error;
             }
