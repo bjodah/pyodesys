@@ -91,7 +91,7 @@ def integrate_adaptive(floating [:, ::1] y0,
                        int autorestart=0, bool return_on_error=False, bool with_jtimes=False,
                        bool record_rhs_xvals=False, bool record_jac_xvals=False,
                        bool record_order=False, bool record_fpe=False,
-                       realtype get_dx_max_factor=-1.0, bool error_outside_bounds=False,
+                       realtype get_dx_max_factor=0.0, bool error_outside_bounds=False,
                        realtype max_invariant_violation=0.0, special_settings=None,
                        bool autonomous_exprs=False, int nprealloc=500):
     cdef:
