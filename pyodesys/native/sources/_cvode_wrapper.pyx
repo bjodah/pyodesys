@@ -195,8 +195,8 @@ def integrate_adaptive(floating [:, ::1] y0,
             yout.append(xyout_arr[:, 1:])
             root_indices.push_back(result[idx].second)
             if return_on_error:
-                if return_on_root and result[idx].second[result[idx].second.size() - 1] == result[idx].first:
-                    success = True
+                if return_on_root and result[idx].second.size() > 0:
+                    success = result[idx].second[result[idx].second.size() - 1] == result[idx].first
                 else:
                     success = xout[-1][-1] == xend[idx]
             else:
