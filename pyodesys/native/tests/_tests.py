@@ -218,7 +218,7 @@ def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
     for y0, k, res in zip(y0s, ks, comb_res):
         xout, yout = res.xout, res.yout
         ref = np.array(bateman_full(y0, k+[0], xout - xout[0], exp=np.exp)).T
-        assert np.allclose(yout, ref, rtol=rtol*800, atol=atol*800)
+        assert np.allclose(yout, ref, rtol=rtol*1000, atol=atol*1000)
 
     for res in comb_res:
         assert 0 <= res.info['time_cpu'] < 100
@@ -275,7 +275,13 @@ def _test_NativeSys__roots(NativeSys):
 def _test_NativeSys__get_dx_max_source_code(NativeSys, forgive=20, **kwargs):
     dec3 = _get_decay3()
     odesys = NativeSys.from_other(dec3, namespace_override={
-        'p_get_dx_max': 'AnyODE::ignore(y); return 1e-4*x + 1e-3;',
+        # workaround for pycvodes bug. To remove in pycvodes 0.11.6+
+        'p_get_dx_max': """AnyODE::ignore(y); 
+                           realtype dx_max = 1.0e-4 * x + 1.0e-3; 
+                           if (std::isnan(dx_max))
+                                return 1.0e-3;
+                           else
+                                return dx_max;""",
     })
     y0, k = [.7, 0, 0], [7., 2, 3.]
     xout, yout, info = odesys.integrate(1, y0, k, integrator='native',

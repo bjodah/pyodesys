@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division, print_function)
 import numpy as np
 import pytest
 
-from pyodesys.util import requires
+from pyodesys.util import requires, pycvodes_double
 from pyodesys.symbolic import SymbolicSys, PartiallySolvedSystem
 
 from ._tests import (
@@ -80,6 +80,7 @@ def test_PartiallySolved_symmetric_native_multi(multiple):
 
 @pytest.mark.veryslow
 @requires('pycvodes')
+@pycvodes_double
 @pytest.mark.parametrize('reduced', [0, 3])
 def test_chained_multi_native(reduced):
     _test_chained_multi_native(

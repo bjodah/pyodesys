@@ -21,7 +21,7 @@ else:
 from .. import ODESys
 from ..core import integrate_auto_switch, chained_parameter_variation
 from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem, get_logexp, _group_invariants
-from ..util import requires
+from ..util import requires, pycvodes_double
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
 from . import _cetsa
@@ -1176,6 +1176,7 @@ def test_symmetricsys__invariants():
 
 
 @requires('sym', 'pycvodes')
+@pycvodes_double
 def test_SymbolicSys__roots():
     def f(t, y):
         return [y[0]]
