@@ -234,6 +234,16 @@ class requires(object):
         return pytest.mark.skipif(self.missing or self.incomp, reason=r)(cb)
 
 
+def pycvodes_double(cb):
+    import pytest
+    try:
+        from pycvodes._config import env
+        prec = env.get('SUNDIALS_PRECISION', 'double')
+    except:
+        prec = "double"
+    return pytest.mark.skipif(prec != "double", reason="Test is designed for pycvodes built with double precision.")(cb)
+
+
 class MissingImport(object):
 
     def __init__(self, modname, exc):
