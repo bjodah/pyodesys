@@ -1,7 +1,7 @@
 #!/bin/bash -e
 cd examples/
 
-PREC = $(shell python3 -c "from pycvodes._config import env; print(env.get('SUNDIALS_PRECISION', 'double'))")
+PREC=`python3 -c "from pycvodes._config import env; print(env.get('SUNDIALS_PRECISION', 'double'))"`
 
 for ipynb in *.ipynb; do
     if [[ $ipynb == "_native_standalone.ipynb" ]]; then
