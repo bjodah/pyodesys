@@ -1184,7 +1184,7 @@ def test_SymbolicSys__roots():
     def roots(t, y, p, backend):
         return [y[0] - backend.exp(1)]
     odesys = SymbolicSys.from_callback(f, 1, roots_cb=roots)
-    kwargs = dict(first_step=1e-12, atol=1e-12, rtol=1e-12, method='adams', integrator='cvode')
+    kwargs = dict(first_step=1e-14, atol=1e-14, rtol=1e-14, method='adams', integrator='cvode')
     xout, yout, info = odesys.integrate(2, [1], **kwargs)
     assert len(info['root_indices']) == 1
     assert np.min(np.abs(xout - 1)) < 1e-11
