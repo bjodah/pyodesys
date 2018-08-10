@@ -26,6 +26,9 @@ build:
     - cd -
     - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-nolapack-noklu-extended
     - rm -r /usr/local/lib/python*/dist-packages/pycvodes*
+    # Need to remove cache so that new sundials/pyodesys doesn't try to use the old
+    # compiled native code wrappers
+    - rm -r /root/.cache/*pyodesys*
     # "Normal" (double, int) tests
     - .ci/run_ci.sh pyodesys /drone/sund-3.1.2-klu
     - ./scripts/prepare_deploy.sh
