@@ -22,7 +22,7 @@ requirements:
     - python
     - numpy
     - sym >=0.3.3
-    - sympy <=1.1.1
+    - sympy >=1.1.1,!=1.2
     - scipy
     - matplotlib
     - appdirs
@@ -32,6 +32,7 @@ requirements:
     - pycvodes >=0.11.6
     - pycompilation
     - pycodeexport >=0.1.2
+    - cython
     - python-symengine
     - symcxx
     - pysym

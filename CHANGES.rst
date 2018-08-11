@@ -1,7 +1,15 @@
+v0.12.1
+=======
+- Fix CSE in native code-generation
+
 v0.12.0
 =======
 - Support for "jtimes" (jacobian times vector) for use with iterative solvers
 - NativeSys now uses latest AnyODE
+
+v0.11.16
+========
+- Fix CSE in native code-generation
 
 v0.11.15
 ========
