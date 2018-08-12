@@ -77,8 +77,8 @@ def integrate_tolerance_series(odesys, atols, rtols, x, y0, params=(),
         diffs = np.array([result0.yout[ix, :] - r.yout[ix, :] for r in results])
         tols = np.array([atol + rtol*np.abs(r.yout[ix, :]) for r, atol, rtol in
                          zip([result0] + results, atols, rtols)])
-        ln_tols = np.log(tols)
-        ln_absd = np.log(np.abs(diffs))
+        ln_tols = np.log(tols).astype(np.float64)
+        ln_absd = np.log(np.abs(diffs)).astype(np.float64)
         yerrs = []
         for iy in range(result0.yout.shape[-1]):
             if np.all(diffs[:, iy] == 0):

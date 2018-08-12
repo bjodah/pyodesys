@@ -13,10 +13,20 @@ _config, get_include = import_('pycvodes', '_config', 'get_include')
 class NativeCvodeCode(_NativeCodeBase):
     wrapper_name = '_cvode_wrapper'
 
+    try:
+        _realtype = _config.env.get('REAL_TYPE', 'double')
+        _indextype = _config.env.get('INDEX_TYPE', 'int')
+    except ModuleNotFoundError:
+        _realtype = 'double'
+        _indextype = 'int'
+
     namespace = {
         'p_includes': ['"odesys_anyode_iterative.hpp"'],
         'p_support_recoverable_error': True,
-        'p_jacobian_set_to_zero_by_solver': True
+        'p_jacobian_set_to_zero_by_solver': True,
+        'p_baseclass': 'OdeSysIterativeBase',
+        'p_realtype': _realtype,
+        'p_indextype': _indextype
     }
     _support_roots = True
 

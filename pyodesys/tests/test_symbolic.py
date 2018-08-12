@@ -21,7 +21,7 @@ else:
 from .. import ODESys
 from ..core import integrate_auto_switch, chained_parameter_variation
 from ..symbolic import SymbolicSys, ScaledSys, symmetricsys, PartiallySolvedSystem, get_logexp, _group_invariants
-from ..util import requires
+from ..util import requires, pycvodes_double
 from .bateman import bateman_full  # analytic, never mind the details
 from .test_core import vdp_f
 from . import _cetsa
@@ -1176,6 +1176,7 @@ def test_symmetricsys__invariants():
 
 
 @requires('sym', 'pycvodes')
+@pycvodes_double
 def test_SymbolicSys__roots():
     def f(t, y):
         return [y[0]]
@@ -1183,7 +1184,7 @@ def test_SymbolicSys__roots():
     def roots(t, y, p, backend):
         return [y[0] - backend.exp(1)]
     odesys = SymbolicSys.from_callback(f, 1, roots_cb=roots)
-    kwargs = dict(first_step=1e-12, atol=1e-12, rtol=1e-12, method='adams', integrator='cvode')
+    kwargs = dict(first_step=1e-14, atol=1e-14, rtol=1e-14, method='adams', integrator='cvode')
     xout, yout, info = odesys.integrate(2, [1], **kwargs)
     assert len(info['root_indices']) == 1
     assert np.min(np.abs(xout - 1)) < 1e-11
