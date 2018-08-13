@@ -3,11 +3,16 @@ from __future__ import (absolute_import, division, print_function)
 
 import copy
 import os
+import sys
 
 from ..util import import_
 from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
 _config, get_include = import_('pycvodes', '_config', 'get_include')
+
+if sys.version_info < (3, 6, 0):
+    class ModuleNotFoundError(ImportError):
+        pass
 
 
 class NativeCvodeCode(_NativeCodeBase):
