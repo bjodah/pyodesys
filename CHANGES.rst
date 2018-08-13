@@ -1,3 +1,7 @@
+v0.12.2
+=======
+- cvodes code now support multiple precisions (sundials may be compiled with float, double or long double)
+
 v0.12.1
 =======
 - Fix CSE in native code-generation
