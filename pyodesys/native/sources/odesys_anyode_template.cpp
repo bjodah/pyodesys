@@ -238,9 +238,9 @@ namespace odesys_anyode {
                                           realtype * const __restrict__ jac,
                                           long int ldim,
                                           realtype * const __restrict__ dfdt) {
-    %if p_jac is not None and p_odesys.nnz < 0:
-    %if order in p_jac:
-        ${p_jac[order]}
+    %if p_jac_dense is not None:
+    %if order in p_jac_dense:
+        ${p_jac_dense[order]}
     %else:
         // The AnyODE::ignore(...) calls below are used to generate code free from false compiler warnings.
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
@@ -248,14 +248,14 @@ namespace odesys_anyode {
         ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
 
-      %for cse_token, cse_expr in p_jac['cses']:
+      %for cse_token, cse_expr in p_jac_dense['cses']:
         const auto ${cse_token} = ${cse_expr};
       %endfor
 
       %for i_major in range(p_odesys.ny):
        %for i_minor in range(p_odesys.ny):
     <%
-          curr_expr = p_jac['exprs'][i_minor*p_odesys.ny + i_major] if order == 'cmaj' else p_jac['exprs'][i_major*p_odesys.ny + i_minor]
+          curr_expr = p_jac_dense['exprs'][i_minor, i_major] if order == 'cmaj' else p_jac_dense['exprs'][i_major, i_minor]
           if curr_expr == '0' and p_jacobian_set_to_zero_by_solver:
               continue
     %>    jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
@@ -263,7 +263,7 @@ namespace odesys_anyode {
 
       %endfor
         if (dfdt){
-          %for idx, expr in enumerate(p_jac['dfdt_exprs']):
+          %for idx, expr in enumerate(p_jac_dense['dfdt_exprs']):
             dfdt[${idx}] = ${expr};
           %endfor
         }
@@ -302,25 +302,25 @@ namespace odesys_anyode {
                                                                realtype * const __restrict__ data,
                                                                indextype * const __restrict__ colptrs,
                                                                indextype * const __restrict__ rowvals) {
-    %if p_jac is not None and p_odesys.nnz >= 0:
+    %if p_jac_sparse is not None:
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
         ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
         ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
-        %for cse_token, cse_expr in p_jac['cses']:
+        %for cse_token, cse_expr in p_jac_sparse['cses']:
             const auto ${cse_token} = ${cse_expr};
         %endfor
 
         %for i in range(p_odesys.nnz):
-          data[${i}] = ${p_jac['exprs'][i]};
+          data[${i}] = ${p_jac_sparse['exprs'][i]};
         %endfor
 
         %for i in range(p_odesys.nnz):
-          rowvals[${i}] = ${p_jac['rowvals'][i]};
+          rowvals[${i}] = ${p_jac_sparse['rowvals'][i]};
         %endfor
 
         %for i in range(p_odesys.ny + 1):
-          colptrs[${i}] = ${p_jac['colptrs'][i]};
+          colptrs[${i}] = ${p_jac_sparse['colptrs'][i]};
         %endfor
         this->njev++;
         return AnyODE::Status::success;

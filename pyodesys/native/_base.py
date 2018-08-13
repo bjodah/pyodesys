@@ -238,12 +238,17 @@ class _NativeCodeBase(Cpp_Code):
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in jtimes_cses],
                 'exprs': list(map(_ccode, jtimes_exprs))
             },
-            p_jac=None if jac is False else {
+            p_jac_dense=None if jac is False or nnz >= 0 else {
+                'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
+                'exprs': {(idx//ny, idx % ny): _ccode(expr)
+                          for idx, expr in enumerate(jac_exprs[:ny*ny])},
+                'dfdt_exprs': list(map(_ccode, jac_exprs[ny*ny:]))
+            },
+            p_jac_sparse=None if jac is False or nnz < 0 else {
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
                 'exprs': list(map(_ccode, jac_exprs[:nj])),
-                'dfdt_exprs': list(map(_ccode, jac_exprs[nj:])),
-                'colptrs': None if nnz < 0 else self.odesys._colptrs,
-                'rowvals': None if nnz < 0 else self.odesys._rowvals
+                'colptrs': self.odesys._colptrs,
+                'rowvals': self.odesys._rowvals
             },
             p_first_step=None if first_step is None else {
                 'cses': first_step_cses,
