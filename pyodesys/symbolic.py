@@ -278,7 +278,7 @@ class SymbolicSys(ODESys):
         if _param_names is True:
             kwargs['param_names'] = [p.name for p in self.params]
 
-        self.sparse = sparse # needed by get_j_ty_callback
+        self.sparse = sparse  # needed by get_j_ty_callback
         self.band = kwargs.get('band', None)  # needed by get_j_ty_callback
         # bounds needed by get_f_ty_callback:
         self.lower_bounds = None if lower_bounds is None else np.array(lower_bounds)*np.ones(self.ny)
@@ -635,7 +635,7 @@ class SymbolicSys(ODESys):
         if self._jac is True:
             if self.sparse is True:
                 self._jac, self._colptrs, self._rowvals = self.be.sparse_jacobian_csc(self.exprs, self.dep)
-            elif self.band is not None: #Banded
+            elif self.band is not None:  # Banded
                 self._jac = self.be.banded_jacobian(self.exprs, self.dep, *self.band)
             else:
                 f = self.be.Matrix(1, self.ny, self.exprs)
