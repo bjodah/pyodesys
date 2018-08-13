@@ -125,9 +125,14 @@ class _NativeCodeBase(Cpp_Code):
         all_invar = tuple(self.odesys.all_invariants())
         ninvar = len(all_invar)
         jac = self.odesys.get_jac()
+        nnz = self.odesys.nnz
         all_exprs = self.odesys.exprs + all_invar
-        if jac is not False:
+        if jac is not False and nnz < 0:
             jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
+            all_exprs += tuple(jac_dfdx)
+            nj = len(jac_dfdx)
+        elif jac is not False and nnz >= 0:
+            jac_dfdx = list(reduce(add, jac.tolist()))
             all_exprs += tuple(jac_dfdx)
             nj = len(jac_dfdx)
         else:
@@ -235,9 +240,10 @@ class _NativeCodeBase(Cpp_Code):
             },
             p_jac=None if jac is False else {
                 'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
-                'exprs': {(idx//ny, idx % ny): _ccode(expr)
-                          for idx, expr in enumerate(jac_exprs[:ny*ny])},
-                'dfdt_exprs': list(map(_ccode, jac_exprs[ny*ny:]))
+                'exprs': list(map(_ccode, jac_exprs[:nj])),
+                'dfdt_exprs': list(map(_ccode, jac_exprs[nj:])),
+                'colptrs': None if nnz < 0 else self.odesys._colptrs,
+                'rowvals': None if nnz < 0 else self.odesys._rowvals
             },
             p_first_step=None if first_step is None else {
                 'cses': first_step_cses,
