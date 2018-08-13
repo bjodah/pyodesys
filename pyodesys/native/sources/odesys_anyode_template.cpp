@@ -325,8 +325,8 @@ namespace odesys_anyode {
         this->njev++;
         return AnyODE::Status::success;
     %else:
-        AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(data);
-        AnyODE::ignore(colptrs); AnyODE::ignore(rowvals);
+        AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(fy);
+         AnyODE::ignore(data); AnyODE::ignore(colptrs); AnyODE::ignore(rowvals);
         return AnyODE::Status::unrecoverable_error;
     %endif
     }
