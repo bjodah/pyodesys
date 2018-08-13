@@ -8,7 +8,7 @@ import pytest
 import numpy as np
 from .. import ODESys, OdeSys, chained_parameter_variation  # OdeSys deprecated
 from ..core import integrate_chained
-from ..util import requires
+from ..util import requires, pycvodes_klu
 
 
 @requires('pycvodes')
@@ -231,6 +231,17 @@ def sine_jac(t, y, p):
     return Jmat
 
 
+def sine_jac_sparse(t, y, p):
+    from scipy.sparse import csc_matrix
+    k = p[0]
+    Jmat = np.zeros((2, 2))
+    Jmat[0, 0] = 0
+    Jmat[0, 1] = 1
+    Jmat[1, 0] = -k**2
+    Jmat[1, 1] = 0
+    return csc_matrix(Jmat)
+
+
 def sine_dfdt(t, y, p):
     return [0, 0]
 
@@ -306,6 +317,22 @@ def test_integrate_multiple_adaptive__pyodeint():
 def test_integrate_multiple_adaptive__pygslodeiv2():
     _test_integrate_multiple_adaptive(ODESys(sine, sine_jac, dfdx=sine_dfdt),
                                       integrator='gsl', method='bsimp')
+
+
+@requires('pycvodes', 'scipy')
+@pycvodes_klu
+def test_sparse_jac():
+    odesys = ODESys(sine, sine_jac_sparse, nnz=2)
+    A, k = 2, 3  # np.array(3) does not support len()
+    xout, yout, info = odesys.integrate(np.linspace(0, 1), [0, A*k], [k],
+                                        integrator='cvode', linear_solver='klu')
+    assert info['success']
+    ref = [
+        A*np.sin(k*(xout - xout[0])),
+        A*np.cos(k*(xout - xout[0]))*k
+    ]
+    assert np.allclose(yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
+    assert np.allclose(yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
 
 
 def decay_factory(ny):
