@@ -21,7 +21,7 @@ requirements:
   run:
     - python
     - numpy
-    - sym >=0.3.3
+    - sym >=0.3.4
     - sympy >=1.1.1,!=1.2
     - scipy
     - matplotlib
