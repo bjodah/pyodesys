@@ -50,6 +50,7 @@ namespace odesys_anyode {
                std::vector<realtype>);
         int nrev=0;  // number of calls to roots
         indextype get_ny() const override;
+        indextype get_nnz() const override;
         int get_nquads() const override;
         int get_nroots() const override;
         realtype get_dx0(realtype, const realtype * const) override;
@@ -70,6 +71,12 @@ namespace odesys_anyode {
                                       realtype * const __restrict__ jac,
                                       long int ldim,
                                       realtype * const __restrict__ dfdt=nullptr) override;
+        AnyODE::Status sparse_jac_csc(realtype t,
+                                      const realtype * const __restrict__ y,
+                                      const realtype * const __restrict__ fy,
+                                      realtype * const __restrict__ data,
+                                      indextype * const __restrict__ colptrs,
+                                      indextype * const __restrict__ rowvals) override;
         AnyODE::Status jtimes(const realtype * const __restrict__ vec,
                               realtype * const __restrict__ out,
                               realtype t,
@@ -115,6 +122,10 @@ namespace odesys_anyode {
 
     indextype OdeSys<realtype, indextype>::get_ny() const {
         return ${p_odesys.ny};
+    }
+
+    indextype OdeSys<realtype, indextype>::get_nnz() const {
+        return ${p_odesys.nnz};
     }
 
     int OdeSys<realtype, indextype>::get_nquads() const {
@@ -227,7 +238,7 @@ namespace odesys_anyode {
                                           realtype * const __restrict__ jac,
                                           long int ldim,
                                           realtype * const __restrict__ dfdt) {
-    %if p_jac is not None:
+    %if p_jac is not None and p_odesys.nnz < 0:
     %if order in p_jac:
         ${p_jac[order]}
     %else:
@@ -244,7 +255,7 @@ namespace odesys_anyode {
       %for i_major in range(p_odesys.ny):
        %for i_minor in range(p_odesys.ny):
     <%
-          curr_expr = p_jac['exprs'][i_minor, i_major] if order == 'cmaj' else p_jac['exprs'][i_major, i_minor]
+          curr_expr = p_jac['exprs'][i_minor*p_odesys.ny + i_major] if order == 'cmaj' else p_jac['exprs'][i_major*p_odesys.ny + i_minor]
           if curr_expr == '0' and p_jacobian_set_to_zero_by_solver:
               continue
     %>    jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
@@ -282,6 +293,41 @@ namespace odesys_anyode {
         ${'' if p_odesys.indep in p_odesys.first_step_expr.free_symbols else 'AnyODE::ignore(x);'}
         ${'' if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else 'AnyODE::ignore(y);'}
         return ${p_first_step['expr']};
+    %endif
+    }
+
+    AnyODE::Status OdeSys<realtype, indextype>::sparse_jac_csc(realtype x,
+                                                               const realtype * const __restrict__ y,
+                                                               const realtype * const __restrict__ fy,
+                                                               realtype * const __restrict__ data,
+                                                               indextype * const __restrict__ colptrs,
+                                                               indextype * const __restrict__ rowvals) {
+    %if p_jac is not None and p_odesys.nnz >= 0:
+        AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
+        ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
+        ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
+                                   not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
+        %for cse_token, cse_expr in p_jac['cses']:
+            const auto ${cse_token} = ${cse_expr};
+        %endfor
+
+        %for i in range(p_odesys.nnz):
+          data[${i}] = ${p_jac['exprs'][i]};
+        %endfor
+
+        %for i in range(p_odesys.nnz):
+          rowvals[${i}] = ${p_jac['rowvals'][i]};
+        %endfor
+
+        %for i in range(p_odesys.ny + 1):
+          colptrs[${i}] = ${p_jac['colptrs'][i]};
+        %endfor
+        this->njev++;
+        return AnyODE::Status::success;
+    %else:
+        AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(data);
+        AnyODE::ignore(colptrs); AnyODE::ignore(rowvals);
+        return AnyODE::Status::unrecoverable_error;
     %endif
     }
 
