@@ -9,6 +9,7 @@ import operator
 from pkg_resources import parse_requirements, parse_version
 
 import numpy as np
+import pytest
 
 
 def stack_1d_on_left(x, y):
@@ -225,7 +226,6 @@ class requires(object):
                             self.incomp.append(str(req))
 
     def __call__(self, cb):
-        import pytest
         r = 'Unfulfilled requirements.'
         if self.missing:
             r += " Missing modules: %s." % ', '.join(self.missing)
@@ -235,7 +235,6 @@ class requires(object):
 
 
 def pycvodes_double(cb):
-    import pytest
     try:
         from pycvodes._config import env
         prec = env.get('SUNDIALS_PRECISION', 'double')
