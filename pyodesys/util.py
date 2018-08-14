@@ -244,10 +244,13 @@ def pycvodes_double(cb):
     return pytest.mark.skipif(prec != "double", reason=r)(cb)
 
 
-try:
-    from pycvodes.tests.test_cvodes_numpy import requires_klu as pycvodes_klu
-except (ModuleNotFoundError, ImportError):
-    pycvodes_klu = pytest.skip("Sparse jacobian tests require pycvodes and sundials with KLU enabled.")
+def pycvodes_klu(cb):
+    try:
+        from pycvodes._config import env
+        no_klu = env['NO_KLU'] == '1'
+    except (ModuleNotFoundError, ImportError):
+        no_klu = True
+    return pytest.mark.skipif(no_klu, reason="Sparse jacobian tests require pycvodes and sundials with KLU enabled.")(cb)
 
 
 class MissingImport(object):
