@@ -1,6 +1,10 @@
+v0.12.3
+=======
+- Support for sparse jacobians. Implementation by @spcornelius
+
 v0.12.2
 =======
-- cvodes code now support multiple precisions (sundials may be compiled with float, double or long double)
+- cvodes code now support multiple precisions (sundials may be compiled with float, double or long double). Implementation by @spcornelius
 
 v0.12.1
 =======

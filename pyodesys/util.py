@@ -5,11 +5,16 @@ from functools import reduce
 import inspect
 import math
 import operator
+import sys
 
 from pkg_resources import parse_requirements, parse_version
 
 import numpy as np
 import pytest
+
+if sys.version_info < (3, 6, 0):
+    class ModuleNotFoundError(ImportError):
+        pass
 
 
 def stack_1d_on_left(x, y):
