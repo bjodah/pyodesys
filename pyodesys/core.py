@@ -48,9 +48,15 @@ class ODESys(object):
         dependent variable (x). Signature is any of:
             - ``rhs(x, y[:]) -> f[:]``
             - ``rhs(x, y[:], p[:]) -> f[:]``
-            - ``rhs(x, y[:], p[:], backend=math) -> f[:]``
+            - ``rhs(x, y[:], p[:], backend=math) -> f[:]``.
     jac : callback
         Jacobian matrix (dfdy). Required for implicit methods.
+        Signature should be either of:
+            - ``jac(x, y[:]) -> J``
+            - ``jac(x, y[:], p[:]) -J``.
+        If ``nnz < 0``, ``J`` should be a 2D array-like object if ``nnz < 0``
+        corresponding to a dense or banded jacobian (see also ``band``).
+        If ``nnz >= 0``, ``J`` should be an instance of ``scipy.sparse.csc_matrix``.
     dfdx : callback
         Signature ``dfdx(x, y[:], p[:]) -> out[:]`` (used by e.g. GSL)
     jtimes : callback
@@ -100,6 +106,9 @@ class ODESys(object):
         Describes whether the independent variable appears in the rhs expressions.
         If set to ``True`` the underlying solver is allowed to shift the
         independent variable during integration.
+    nnz : int (default : -1)
+        Maximum number of non-zero entries in sparse jacobian. When
+        non-negative, jacobian is assumed to be dense or banded.
 
     Attributes
     ----------
@@ -115,6 +124,7 @@ class ODESys(object):
         For calculating the first step based on x0, y0 & p.
     roots_cb : callback
     nroots : int
+    nnz : int
     names : tuple of strings
     param_names : tuple of strings
     description : str
@@ -151,7 +161,7 @@ class ODESys(object):
                  par_by_name=False, latex_names=(), latex_param_names=(), latex_indep_name=None,
                  taken_names=None, pre_processors=None, post_processors=None, append_iv=False,
                  autonomous_interface=None, to_arrays_callbacks=None, autonomous_exprs=None,
-                 _indep_autonomous_key=None, numpy=None, **kwargs):
+                 _indep_autonomous_key=None, numpy=None, nnz=-1, **kwargs):
         self.f_cb = _ensure_4args(f)
         self.j_cb = _ensure_4args(jac) if jac is not None else None
         self.jtimes_cb = _ensure_4args(jtimes) if jtimes is not None else None
@@ -163,6 +173,7 @@ class ODESys(object):
             if not band[0] >= 0 or not band[1] >= 0:
                 raise ValueError("bands needs to be > 0 if provided")
         self.band = band
+        self.nnz = nnz
         self.names = tuple(names or ())
         self.param_names = tuple(param_names or ())
         self.indep_name = indep_name
@@ -577,16 +588,29 @@ class ODESys(object):
             if with_jacobian is None:
                 raise Exception("Must pass with_jacobian")
             elif with_jacobian is True:
-                def _j(x, y, jout, dfdx_out=None, fy=None):
-                    if len(_p) > 0:
-                        jout[:, :] = np.asarray(self.j_cb(x, y, _p))
-                    else:
-                        jout[:, :] = np.asarray(self.j_cb(x, y))
-                    if dfdx_out is not None:
+                if self.nnz >= 0:
+                    def _j(x, y, data, colptrs, rowvals):
                         if len(_p) > 0:
-                            dfdx_out[:] = np.asarray(self.dfdx_cb(x, y, _p))
+                            J = self.j_cb(x, y, _p)
                         else:
-                            dfdx_out[:] = np.asarray(self.dfdx_cb(x, y))
+                            J = self.j_cb(x, y)
+                        J = J.asformat("csc")
+                        data[:] = J.data
+                        colptrs[:] = J.indptr
+                        rowvals[:] = J.indices
+
+                    new_kwargs['nnz'] = self.nnz
+                else:
+                    def _j(x, y, jout, dfdx_out=None, fy=None):
+                        if len(_p) > 0:
+                            jout[:, :] = np.asarray(self.j_cb(x, y, _p))
+                        else:
+                            jout[:, :] = np.asarray(self.j_cb(x, y))
+                        if dfdx_out is not None:
+                            if len(_p) > 0:
+                                dfdx_out[:] = np.asarray(self.dfdx_cb(x, y, _p))
+                            else:
+                                dfdx_out[:] = np.asarray(self.dfdx_cb(x, y))
             else:
                 _j = None
 

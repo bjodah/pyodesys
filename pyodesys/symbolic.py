@@ -177,6 +177,10 @@ class SymbolicSys(ODESys):
         When ``True`` construct using ``be.Symbol``. See also :attr:`init_indep`.
     init_dep : tuple of Symbols, ``True`` or ``None``
         When ``True`` construct using ``be.Symbol``. See also :attr:`init_dep`.
+    sparse : bool (default ``False``)
+        When ``True``, jacobian will be derived and stored (if ``jac = True``)
+        in compressed sparse column (CSC) format and the jacobian callback
+        will return an instance of ``scipy.sparse.csc_matrix``.
     \*\*kwargs:
         See :py:class:`ODESys`
 
@@ -228,7 +232,7 @@ class SymbolicSys(ODESys):
                  jtimes=False, first_step_expr=None, roots=None, backend=None, lower_bounds=None,
                  upper_bounds=None, linear_invariants=None, nonlinear_invariants=None,
                  linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False,
-                 init_indep=None, init_dep=None, **kwargs):
+                 init_indep=None, init_dep=None, sparse=False, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
         if params is True or params is None:
@@ -278,6 +282,7 @@ class SymbolicSys(ODESys):
         if _param_names is True:
             kwargs['param_names'] = [p.name for p in self.params]
 
+        self.sparse = sparse  # needed by get_j_ty_callback
         self.band = kwargs.get('band', None)  # needed by get_j_ty_callback
         # bounds needed by get_f_ty_callback:
         self.lower_bounds = None if lower_bounds is None else np.array(lower_bounds)*np.ones(self.ny)
@@ -294,6 +299,8 @@ class SymbolicSys(ODESys):
             autonomous_exprs=_is_autonomous(self.indep, self.exprs),
             **kwargs)
 
+        if self.sparse:
+            self.nnz = len(self._rowvals)
         self.linear_invariants = linear_invariants
         self.nonlinear_invariants = nonlinear_invariants
         self.linear_invariant_names = linear_invariant_names or None
@@ -630,11 +637,13 @@ class SymbolicSys(ODESys):
     def get_jac(self):
         """ Derives the jacobian from ``self.exprs`` and ``self.dep``. """
         if self._jac is True:
-            if self.band is None:
+            if self.sparse is True:
+                self._jac, self._colptrs, self._rowvals = self.be.sparse_jacobian_csc(self.exprs, self.dep)
+            elif self.band is not None:  # Banded
+                self._jac = self.be.banded_jacobian(self.exprs, self.dep, *self.band)
+            else:
                 f = self.be.Matrix(1, self.ny, self.exprs)
                 self._jac = f.jacobian(self.be.Matrix(1, self.ny, self.dep))
-            else:  # Banded
-                self._jac = self.be.banded_jacobian(self.exprs, self.dep, *self.band)
         elif self._jac is False:
             return False
 
@@ -704,7 +713,17 @@ class SymbolicSys(ODESys):
         j_exprs = self.get_jac()
         if j_exprs is False:
             return None
-        return self._callback_factory(j_exprs)
+        cb = self._callback_factory(j_exprs)
+        if self.sparse:
+            from scipy.sparse import csc_matrix
+
+            def sparse_cb(x, y, p=()):
+                data = cb(x, y, p).flatten()
+                return csc_matrix((data, self._rowvals, self._colptrs))
+
+            return sparse_cb
+        else:
+            return cb
 
     def get_dfdx_callback(self):
         """ Generate a callback for evaluating derivative of ``self.exprs`` """

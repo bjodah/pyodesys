@@ -19,6 +19,7 @@ namespace odesys_anyode {
                bool, Real_t, std::vector<Real_t>);
         int nrev=0;  // number of calls to roots
         Index_t get_ny() const override;
+        Index_t get_nnz() const override;
         int get_nquads() const override;
         int get_nroots() const override;
         Real_t get_dx0(Real_t, const Real_t * const) override;
@@ -39,6 +40,12 @@ namespace odesys_anyode {
                                       Real_t * const __restrict__ jac,
                                       long int ldim,
                                       Real_t * const __restrict__ dfdt=nullptr) override;
+        AnyODE::Status sparse_jac_csc(Real_t t,
+                                      const Real_t * const __restrict__ y,
+                                      const Real_t * const __restrict__ fy,
+                                      Real_t * const __restrict__ data,
+                                      Index_t * const __restrict__ colptrs,
+                                      Index_t * const __restrict__ rowvals) override;
         AnyODE::Status jtimes(const Real_t * const __restrict__ vec,
                               Real_t * const __restrict__ out,
                               Real_t t,
