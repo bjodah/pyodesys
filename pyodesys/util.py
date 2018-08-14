@@ -250,7 +250,8 @@ def pycvodes_klu(cb):
         no_klu = env['NO_KLU'] == '1'
     except (ModuleNotFoundError, ImportError):
         no_klu = True
-    return pytest.mark.skipif(no_klu, reason="Sparse jacobian tests require pycvodes and sundials with KLU enabled.")(cb)
+    return pytest.mark.skipif(no_klu,
+                              reason="Sparse jacobian tests require pycvodes and sundials with KLU enabled.")(cb)
 
 
 class MissingImport(object):
