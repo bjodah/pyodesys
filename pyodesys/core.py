@@ -52,10 +52,11 @@ class ODESys(object):
     jac : callback
         Jacobian matrix (dfdy). Required for implicit methods.
         Signature should be either of:
-            - ``jac(x, y[:])``
-            - ``jac(x, y[:], p[:])``.
-        Should return a 2D array J[:,:] for dense/banded jacobians or
-        an instance of ``scipy.sparse.csc_matrix`` if ``sparse=True``.
+            - ``jac(x, y[:]) -> J``
+            - ``jac(x, y[:], p[:]) -J``.
+        If ``nnz < 0``, ``J`` should be a 2D array-like object if ``nnz < 0``
+        corresponding to a dense or banded jacobian (see also ``band``).
+        If ``nnz >= 0``, ``J`` should be an instance of ``scipy.sparse.csc_matrix``.
     dfdx : callback
         Signature ``dfdx(x, y[:], p[:]) -> out[:]`` (used by e.g. GSL)
     jtimes : callback
@@ -107,8 +108,7 @@ class ODESys(object):
         independent variable during integration.
     nnz : int (default : -1)
         Maximum number of non-zero entries in sparse jacobian. When
-        non-negative, indicates that ``jac`` returns a ``scipy.sparse`` matrix
-        instance. When negative, ``jac`` should return a dense/banded matrix.
+        non-negative, jacobian is assumed to be dense or banded.
 
     Attributes
     ----------

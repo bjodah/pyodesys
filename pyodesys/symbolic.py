@@ -177,6 +177,10 @@ class SymbolicSys(ODESys):
         When ``True`` construct using ``be.Symbol``. See also :attr:`init_indep`.
     init_dep : tuple of Symbols, ``True`` or ``None``
         When ``True`` construct using ``be.Symbol``. See also :attr:`init_dep`.
+    sparse : bool (default ``False``)
+        When ``True``, jacobian will be derived and stored (if ``jac = True``)
+        in compressed sparse column (CSC) format and the jacobian callback
+        will return an instance of ``scipy.sparse.csc_matrix``.
     \*\*kwargs:
         See :py:class:`ODESys`
 
