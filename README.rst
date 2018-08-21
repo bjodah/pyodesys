@@ -263,7 +263,5 @@ Contributors are welcome to suggest improvements at https://github.com/bjodah/py
 
 Author
 ------
-Björn I. Dahlgren, contact:
-
-    - gmail address: bjodah
-    - kth.se address: bda
+Original author: Björn I. Dahlgren (gmail address: bjodah).
+See file `AUTHORS <AUTHORS>`_ for a list of all authors.
