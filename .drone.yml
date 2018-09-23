@@ -17,6 +17,9 @@ build:
     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   commands:
     - git fetch -tq
+    - python3 -m pip install pytest .
+    - python3 -m pytest --pyargs pyodesys
+    - python3 -m pip uninstall -y pyodesys
     - if [ ! -d /drone/sund-3.1.2-klu ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
     - if [ ! -d /drone/sund-3.1.2-nolapack-noklu-extended ]; then .ci/get_sundials.sh 3.1.2 /drone/sund-3.1.2-nolapack-noklu-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
     # Need to install pycvodes from source for extended precision/int64 test, since
