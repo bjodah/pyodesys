@@ -17,8 +17,8 @@ build:
     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   commands:
     - git fetch -tq
-    - if [ ! -d /drone/sund-3.2.0-klu ]; then .ci/get_sundials.sh 3.2.0 /drone/sund-3.2.0-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
-    - if [ ! -d /drone/sund-3.2.0-nolapack-noklu-extended ]; then .ci/get_sundials.sh 3.2.0 /drone/sund-3.2.0-nolapack-noklu-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_INDEX_TYPE:STRING="int32_t" -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
+    - if [ ! -d /drone/sund-3.2.0-klu ]; then .ci/get_sundials.sh 3.2.0 /drone/sund-3.2.0-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
+    - if [ ! -d /drone/sund-3.2.0-nolapack-noklu-extended ]; then .ci/get_sundials.sh 3.2.0 /drone/sund-3.2.0-nolapack-noklu-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_INDEX_SIZE=32 -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
     # Need to install pycvodes from source for extended precision/int64 test, since
     # that requires no LAPACK, whereas the pypi version installs with LAPACK
     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git /drone/pycvodes
