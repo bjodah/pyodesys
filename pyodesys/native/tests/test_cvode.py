@@ -265,3 +265,9 @@ def test_sparse_jac_native_cvode(nu=0.01, k=1.0, m=1.0, x0=1.0, atol=1.0e-12, rt
 @requires('pycvodes', 'sympy')
 def test_render_native_cse_regression():
     _test_render_native_code_cse(NativeSys)
+
+
+@pytest.mark.slow
+@requires('sym', 'pycvodes')
+def test_constraints():
+    _test_multiple_predefined(NativeSys, atol=1e-10, rtol=1e-10, constraints=[1.0, 1.0])
