@@ -118,7 +118,7 @@ def integrate_adaptive(floating [:, ::1] y0,
         vector[realtype] atol_vec
         vector[realtype] special_settings_vec
         int idx, yi, tidx = 0
-        realtype ** ew_ele = NULL
+        realtype *** ew_ele = NULL
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
