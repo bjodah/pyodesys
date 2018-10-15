@@ -8,7 +8,7 @@ cache:
     - /drone/sund-3.2.0-klu
     - /drone/sund-3.2.0-nolapack-noklu-extended
 build:
-  image: bjodah/bjodahimg18dev:v1.3
+  image: bjodah/bjodahimg18dev:v1.4
   environment:
     - OMP_NUM_THREADS=1
     - ANYODE_NUM_THREADS=2
