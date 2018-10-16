@@ -19,14 +19,6 @@ license = 'BSD'
 
 RELEASE_VERSION = os.environ.get('%s_RELEASE_VERSION' % pkg_name.upper(), '')  # v*
 
-# http://conda.pydata.org/docs/build.html#environment-variables-set-during-the-build-process
-if os.environ.get('CONDA_BUILD', '0') == '1':
-    try:
-        RELEASE_VERSION = 'v' + open(
-            '__conda_version__.txt', 'rt').readline().rstrip()
-    except IOError:
-        pass
-
 
 def _path_under_setup(*args):
     return os.path.join(os.path.dirname(__file__), *args)
@@ -52,7 +44,8 @@ else:
         else:
             if 'develop' not in sys.argv:
                 warnings.warn("Using git to derive version: dev-branches may compete.")
-                __version__ = re.sub('v([0-9.]+)-(\d+)-(\w+)', r'\1.post\2+\3', _git_version)  # .dev < '' < .post
+                _ver_tmplt = r'\1.post\2' if os.environ.get('CONDA_BUILD', '0') == '1' else r'\1.post\2+\3'
+                __version__ = re.sub('v([0-9.]+)-(\d+)-(\S+)', _ver_tmplt, _git_version)  # .dev < '' < .post
 
 
 classifiers = [

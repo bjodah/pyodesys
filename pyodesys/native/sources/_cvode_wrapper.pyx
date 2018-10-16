@@ -82,6 +82,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_min
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
         bool success
+        int idx, yi, tidx = 0
+        double *** ew_ele = NULL
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -136,8 +138,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
             xyout_arr, td_arr,
             systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
-            maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes, 0, NULL,
-	    constraints
+            maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes,
+	    tidx, ew_ele, constraints
         )
         xout, yout = [], []
         for idx in range(y0.shape[0]):
@@ -202,6 +204,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         unsigned nderiv = 0
         int nreached
         bool success
+        realtype **ew_ele = NULL
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -252,7 +255,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data,
         <double *>yout.data, mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian,
         iter_type_from_name(_iter_t), linear_solver, maxl, eps_lin, nderiv, autorestart,
-        return_on_error, with_jtimes, NULL, constraints)
+        return_on_error, with_jtimes, ew_ele, constraints)
 
     for idx in range(y0.shape[0]):
         nreached = result[idx].first
