@@ -34,6 +34,7 @@ build:
     - .ci/run_ci.sh pyodesys /drone/sund-3.2.0-klu
     - ./scripts/prepare_deploy.sh
     - rm -r ~/.cache/python*pyodesys*/
+    - git clean -fd
     - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
     - PATH=/opt/miniconda3/bin:$PATH conda upgrade --quiet conda-build
     - PATH=/opt/miniconda3/bin:$PATH conda build --output-folder "deploy/public_html/branches/${CI_BRANCH}" conda-recipe
