@@ -136,11 +136,12 @@ def _ensure_4args(func):
         return func
 
     self_arg = 1 if inspect.ismethod(func) else 0
-    if len(inspect.getargspec(func)[0]) == 4 + self_arg:
+    args = inspect.getfullargspec(func)[0]
+    if len(args) == 4 + self_arg:
         return func
-    if len(inspect.getargspec(func)[0]) == 3 + self_arg:
+    if len(args) == 3 + self_arg:
         return lambda x, y, p=(), backend=math: func(x, y, p)
-    elif len(inspect.getargspec(func)[0]) == 2 + self_arg:
+    elif len(args) == 2 + self_arg:
         return lambda x, y, p=(), backend=math: func(x, y)
     else:
         raise ValueError("Incorrect numer of arguments")

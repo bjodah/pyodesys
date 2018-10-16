@@ -10,6 +10,6 @@ for ipynb in *.ipynb; do
     if [[ $PREC != "double" && $ipynb == "_robertson.ipynb" ]]; then
         continue
     fi
-    jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=300 $ipynb
+    jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=420 $ipynb
 done
 ../scripts/render_index.sh *.html
