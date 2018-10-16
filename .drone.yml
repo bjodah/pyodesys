@@ -37,7 +37,7 @@ build:
     - git clean -fd
     - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
     - PATH=/opt/miniconda3/bin:$PATH conda upgrade --quiet conda-build
-    - PATH=/opt/miniconda3/bin:$PATH conda build --output-folder "deploy/public_html/branches/${CI_BRANCH}" conda-recipe
+    - PATH=/opt/miniconda3/bin:$PATH conda build conda-recipe  # --output-folder "deploy/public_html/branches/${CI_BRANCH}"
     - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
     - ./scripts/grep-for-merge-blocking-token.sh
     - ./scripts/grep-for-binary-data.sh
