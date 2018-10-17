@@ -1,3 +1,7 @@
+v0.12.4
+=======
+- Support for constraints in pycvodes using sundials >=3.2.0
+
 v0.12.3
 =======
 - Support for sparse jacobians. Implementation by @spcornelius
