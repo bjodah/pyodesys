@@ -1,3 +1,7 @@
+v0.11.17
+========
+- Support for constraints in pycvodes when using sundials >=3.2
+
 v0.11.16
 ========
 - Fix CSE in native code-generation
