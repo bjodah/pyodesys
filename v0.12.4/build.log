@@ -1,0 +1,40 @@
+Running Sphinx v1.7.6
+loading translations [en]... done
+loading pickled environment... done
+building [mo]: targets for 0 po files that are out of date
+building [html]: targets for 3 source files that are out of date
+updating environment: [config changed] 3 added, 0 changed, 0 removed
+reading sources... [ 33%] index
+reading sources... [ 66%] pyodesys
+reading sources... [100%] pyodesys.native
+
+looking for now-outdated files... none found
+pickling environment... done
+checking consistency... done
+preparing documents... done
+writing output... [ 33%] index
+writing output... [ 66%] pyodesys
+writing output... [100%] pyodesys.native
+
+generating indices... genindex py-modindex
+highlighting module code... [  8%] _operator
+highlighting module code... [ 16%] pyodesys.convergence
+highlighting module code... [ 25%] pyodesys.core
+highlighting module code... [ 33%] pyodesys.integrators
+highlighting module code... [ 41%] pyodesys.native.cvode
+highlighting module code... [ 50%] pyodesys.native.gsl
+highlighting module code... [ 58%] pyodesys.native.odeint
+highlighting module code... [ 66%] pyodesys.native.util
+highlighting module code... [ 75%] pyodesys.plotting
+highlighting module code... [ 83%] pyodesys.results
+highlighting module code... [ 91%] pyodesys.symbolic
+highlighting module code... [100%] pyodesys.util
+
+writing additional pages... search
+copying static files... done
+copying extra files... done
+dumping search index in English (code: en) ... done
+dumping object inventory... done
+build succeeded, 1464 warnings.
+
+The HTML pages are in _build/html.
