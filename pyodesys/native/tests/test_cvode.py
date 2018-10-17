@@ -220,3 +220,15 @@ def test_chained_parameter_variation_native_cvode():
 @requires('pycvodes', 'sympy')
 def test_render_native_cse_regression():
     _test_render_native_code_cse(NativeSys)
+
+try:
+    from pycvodes import sundials_version
+except Exception:  # ModuleNotFoundError in newer versions of python
+    sundials_version = (0, 0, 0)
+
+@pytest.mark.slow
+@requires('sym', 'pycvodes')
+@pytest.mark.skipif(sundials_version[:2] < (3,2), reason="constraints req. sundials >=3.2")
+def test_constraints():
+    _test_multiple_predefined(NativeSys, atol=1e-10, rtol=1e-10, constraints=[1.0, 1.0])
+

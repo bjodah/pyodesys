@@ -29,7 +29,7 @@ requirements:
     - boost
     - pyodeint <0.9.5
     - pygslodeiv2 <0.9.0
-    - pycvodes <0.11.0
+    - pycvodes >=0.10.12,<0.11.0
     - pycompilation
     - pycodeexport
     - cython
