@@ -33,6 +33,11 @@ build:
     # "Normal" (double, int) tests
     - .ci/run_ci.sh pyodesys /drone/sund-3.2.0-klu
     - ./scripts/prepare_deploy.sh
+    - ( python2 -m pip >/dev/null || curl -Ls https://bootstrap.pypa.io/get-pip.py | python2 - --user )
+    - python2 -m pip install --user virtualenv
+    - python2 -m virtualenv /tmp/test_py2
+    - sed -i -E -e "/python_requires/d" setup.py
+    - bash -c "source /tmp/test_py2/bin/activate; pip install pytest '.[all]' && pytest -rs --pyargs pyodesys"
     - rm -r ~/.cache/python*pyodesys*/
     - git clean -fd
     - # PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
