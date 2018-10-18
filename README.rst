@@ -44,8 +44,8 @@ The numerical integration is performed using either:
 Note that implicit steppers require a user supplied callback for calculating the Jacobian.
 ``pyodesys.SymbolicSys`` derives the Jacobian automatically.
 
-The symbolic representation is usually in the form of `SymPy <https://www.sympy.org/>`_
-expressions, but the user may choose another symbolic back-end (see `sym <https://github.com/bjodah/sym>`_).
+The symbolic representation is usually in the form of SymPy expressions, but the user may
+choose another symbolic back-end (see `sym <https://github.com/bjodah/sym>`_).
 
 When performance is of utmost importance, e.g. in model fitting where results are needed
 for a large set of initial conditions and parameters, the user may transparently
