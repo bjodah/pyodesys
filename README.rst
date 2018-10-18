@@ -37,9 +37,14 @@ between libraries.
 The numerical integration is performed using either:
 
 - `scipy.integrate.ode <http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.ode.html>`_
-- `pygslodeiv2 <https://github.com/bjodah/pygslodeiv2>`_
-- `pyodeint <https://github.com/bjodah/pyodeint>`_
-- `pycvodes <https://github.com/bjodah/pycvodes>`_
+- pygslodeiv2_
+- pyodeint_
+- pycvodes_
+
+.. _pygslodeiv2: https://github.com/bjodah/pygslodeiv2 
+.. _pyodeint: https://github.com/bjodah/pyodeint
+.. _pycvodes: https://github.com/bjodah/pycvodes
+
 
 Note that implicit steppers require a user supplied callback for calculating the Jacobian.
 ``pyodesys.SymbolicSys`` derives the Jacobian automatically.
@@ -85,10 +90,9 @@ The reason for why some tests are skipped should be because missing optional sol
 To install the optional solvers you will first need to install third party libraries for
 the solvers and then their python bindings. The 3rd party requirements are as follows:
 
-- `pygslodeiv2 <https://github.com/bjodah/pygslodeiv2>`_ (requires GSL_ >=1.16)
-- `pyodeint <https://github.com/bjodah/pyodeint>`_ (requires boost_ >=1.65.0)
-- `pycvodes <https://github.com/bjodah/pycvodes>`_ (requires SUNDIALS_ >=2.7.0)
-
+- pygslodeiv2_ (requires GSL_ >=1.16)
+- pyodeint_ (requires boost_ >=1.65.0)
+- pycvodes_ (requires SUNDIALS_ >=2.7.0)
 
 .. _GSL: https://www.gnu.org/software/gsl/
 .. _boost: http://www.boost.org/
@@ -253,8 +257,8 @@ you can get per-version DOIs from the zenodo archive:
    :alt: Zenodo DOI
 
 
-License
--------
+Licenseing
+----------
 The source code is Open Source and is released under the simplified 2-clause BSD license. See `LICENSE <LICENSE>`_ for further details.
 
 Contributing
