@@ -136,7 +136,7 @@ def _ensure_4args(func):
         return func
 
     self_arg = 1 if inspect.ismethod(func) else 0
-    args = inspect.getfullargspec(func)[0]
+    args = getattr(inspect, 'getfullargspec', inspect.getargspec)(func)[0]
     if len(args) == 4 + self_arg:
         return func
     if len(args) == 3 + self_arg:
