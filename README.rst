@@ -26,7 +26,7 @@ pyodesys
    :target: https://doi.org/10.21105/joss.00490
    :alt: Journal of Open Source Software DOI
 
-`pyodesys <https://github.com/bjodah/pyodesys>`_ provides a straightforward way
+``pyodesys`` provides a straightforward way
 of numerically integrating systems of ordinary differential equations (initial value problems).
 It unifies the interface of several libraries for performing the numerical integration as well as
 several libraries for symbolic representation. It also provides a convenience class for 
