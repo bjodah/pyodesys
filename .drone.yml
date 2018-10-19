@@ -5,8 +5,8 @@ clone:
     external/anyode: git://github.com/bjodah/anyode.git
 cache:
   mount:
-    - /drone/sund-3.2.0-klu
-    - /drone/sund-3.2.0-nolapack-noklu-extended
+    - /drone/sund-3.2.1-klu
+    - /drone/sund-3.2.1-nolapack-noklu-extended
 build:
   image: bjodah/bjodahimg18dev:v1.4
   environment:
@@ -17,27 +17,23 @@ build:
     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   commands:
     - git fetch -tq
-    - if [ ! -d /drone/sund-3.2.0-klu ]; then .ci/get_sundials.sh 3.2.0 /drone/sund-3.2.0-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
-    - if [ ! -d /drone/sund-3.2.0-nolapack-noklu-extended ]; then .ci/get_sundials.sh 3.2.0 /drone/sund-3.2.0-nolapack-noklu-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_INDEX_SIZE=32 -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
+    - if [ ! -d /drone/sund-3.2.1-klu ]; then .ci/get_sundials.sh 3.2.1 /drone/sund-3.2.1-klu -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
+    - if [ ! -d /drone/sund-3.2.1-nolapack-noklu-extended ]; then .ci/get_sundials.sh 3.2.1 /drone/sund-3.2.1-nolapack-noklu-extended -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_INDEX_SIZE=32 -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
     # Need to install pycvodes from source for extended precision/int64 test, since
     # that requires no LAPACK, whereas the pypi version installs with LAPACK
     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git /drone/pycvodes
     - cd /drone/pycvodes
-    - LIBRARY_PATH=/drone/sund-3.2.0-nolapack-noklu-extended/lib:$LIBRARY_PATH CPLUS_INCLUDE_PATH=/drone/sund-3.2.0-nolapack-noklu-extended/include:$CPLUS_INCLUDE_PATH LD_LIBRARY_PATH=/drone/sund-3.2.0-nolapack-noklu-extended/lib:$LD_LIBRARY_PATH PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py install
+    - LIBRARY_PATH=/drone/sund-3.2.1-nolapack-noklu-extended/lib:$LIBRARY_PATH CPLUS_INCLUDE_PATH=/drone/sund-3.2.1-nolapack-noklu-extended/include:$CPLUS_INCLUDE_PATH LD_LIBRARY_PATH=/drone/sund-3.2.1-nolapack-noklu-extended/lib:$LD_LIBRARY_PATH PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py install
     - cd -
-    - .ci/run_ci.sh pyodesys /drone/sund-3.2.0-nolapack-noklu-extended
+    - .ci/run_ci.sh pyodesys /drone/sund-3.2.1-nolapack-noklu-extended
     - rm -r /usr/local/lib/python*/dist-packages/pycvodes*
     # Need to remove cache so that new sundials/pyodesys doesn't try to use the old
     # compiled native code wrappers
     - rm -r /root/.cache/*pyodesys*
     # "Normal" (double, int) tests
-    - .ci/run_ci.sh pyodesys /drone/sund-3.2.0-klu
+    - .ci/run_ci.sh pyodesys /drone/sund-3.2.1-klu
     - ./scripts/prepare_deploy.sh
-    - ( python2 -m pip >/dev/null || curl -Ls https://bootstrap.pypa.io/get-pip.py | python2 - --user )
-    - python2 -m pip install --user virtualenv
-    - python2 -m virtualenv /tmp/test_py2
-    - sed -i -E -e "/python_requires/d" setup.py
-    - bash -c "source /tmp/test_py2/bin/activate; pip install pytest '.[all]' && pytest -rs --pyargs pyodesys"
+    - .ci/test_py2.sh pyodesys /drone/sund-3.2.1-klu
     - rm -r ~/.cache/python*pyodesys*/
     - git clean -fd
     - # PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
