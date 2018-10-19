@@ -54,6 +54,9 @@ classifiers = [
     'Operating System :: OS Independent',
     'Topic :: Scientific/Engineering',
     'Topic :: Scientific/Engineering :: Mathematics',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
 ]
 
 submodules = [
@@ -97,7 +100,8 @@ setup_kwargs = dict(
     install_requires=['numpy>=1.8.0', 'scipy>=0.19.1', 'sym>=0.3.4',
                       'sympy>=1.1.1,!=1.2', 'matplotlib>=2.0.2', 'jupyter'],
     tests_require=['pytest>=2.9.2'],
-    extras_require=extras_req
+    extras_require=extras_req,
+    python_requires='>=3.5',
 )
 
 if __name__ == '__main__':
