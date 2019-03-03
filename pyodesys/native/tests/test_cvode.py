@@ -233,6 +233,7 @@ except Exception:  # ModuleNotFoundError in newer versions of python
 def test_constraints():
     _test_multiple_predefined(NativeSys, atol=1e-10, rtol=1e-10, constraints=[1.0, 1.0])
 
+
 @pytest.mark.slow
 @requires('sym', 'pycvodes')
 def test_ew_ele():
