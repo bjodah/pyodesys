@@ -25,8 +25,6 @@ cdef extern from "numpy/arrayobject.h":
 cnp.import_array()  # Numpy C-API initialization
 
 
-from odesys_util cimport adaptive_return
-
 
 def _as_dict(unordered_map[string, int] nfo,
              unordered_map[string, double] nfo_dbl,
@@ -64,7 +62,8 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        bool record_order=False, bool record_fpe=False,
                        double get_dx_max_factor=-1.0, bool error_outside_bounds=False,
                        double max_invariant_violation=0.0, vector[double] special_settings=[],
-                       bool autonomous_exprs=False, int nprealloc=500, vector[double] constraints=[]):
+                       bool autonomous_exprs=False, int nprealloc=500, bool ew_ele=False,
+                       vector[double] constraints=[]):
     cdef:
         double ** xyout_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
         int * td_arr = <int *>malloc(y0.shape[0]*sizeof(int))
@@ -83,7 +82,10 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
         bool success
         int idx, yi, tidx = 0
-        double *** ew_ele = NULL
+	double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
+
+#    ew_ele_arr =
+#        cnp.ndarray[cnp.float64_t, ndim=3] ew_ele_arr = np.empty((xout.size, 2, ny))
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -132,6 +134,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         xyout_arr[idx][0] = x0[idx]
         for yi in range(y0.shape[1]):
             xyout_arr[idx][yi+1] = y0[idx, yi]
+	    ew_ele_arr[idx] = <double *>malloc(2*nprealloc*ny*sizeof(double))
 
     try:
         result = multi_adaptive[OdeSys](
@@ -139,7 +142,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
             systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes,
-	    tidx, ew_ele, constraints
+	    tidx, &ew_ele_arr if ew_ele else NULL, constraints
         )
         xout, yout = [], []
         for idx in range(y0.shape[0]):
@@ -188,7 +191,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          bool record_order=False, bool record_fpe=False,
                          double get_dx_max_factor=0.0, bool error_outside_bounds=False,
                          double max_invariant_violation=0.0, vector[double] special_settings=[],
-                         bool autonomous_exprs=False, vector[double] constraints=[]):
+                         bool autonomous_exprs=False, ew_ele=False, vector[double] constraints=[]):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
@@ -204,7 +207,11 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         unsigned nderiv = 0
         int nreached
         bool success
-        realtype **ew_ele = NULL
+        double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
+        cnp.npy_intp ew_ele_dims[3]
+    ew_ele_dims[0] = xout.shape[1]
+    ew_ele_dims[1] = 2
+    ew_ele_dims[2] = y0.shape[1]
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -248,6 +255,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems[idx].record_jac_xvals = record_jac_xvals
         systems[idx].record_order = record_order
         systems[idx].record_fpe = record_fpe
+        ew_ele_arr[idx] = <double *>malloc(xout.shape[1]*2*y0.shape[1]*sizeof(double))
 
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
@@ -255,7 +263,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data,
         <double *>yout.data, mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian,
         iter_type_from_name(_iter_t), linear_solver, maxl, eps_lin, nderiv, autorestart,
-        return_on_error, with_jtimes, ew_ele, constraints)
+        return_on_error, with_jtimes, ew_ele_arr if ew_ele else NULL, constraints)
 
     for idx in range(y0.shape[0]):
         nreached = result[idx].first
@@ -267,6 +275,10 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                              root_indices=result[idx].second.first,
                              root_out=result[idx].second.second, mode='predefined',
                              success=success, nreached=nreached))
+        if ew_ele:
+            ew_ele_np = cnp.PyArray_SimpleNewFromData(3, ew_ele_dims, cnp.NPY_DOUBLE, <void *>ew_ele_arr[idx])
+            PyArray_ENABLEFLAGS(ew_ele_np, cnp.NPY_OWNDATA)
+            nfos['ew_ele'] = np.array
         del systems[idx]
 
     yout_arr = np.asarray(yout)
