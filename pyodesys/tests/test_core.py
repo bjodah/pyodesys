@@ -190,6 +190,7 @@ def _test_integrate_multiple_predefined(odes, **kwargs):
         assert np.allclose(yout[:, 0], ref)
         assert np.allclose(yout[:, 1], _y0[idx, 0] - ref + _y0[idx, 1])
         assert info['nfev'] > 0
+    return results
 
 
 @requires('scipy')
@@ -293,6 +294,7 @@ def _test_integrate_multiple_adaptive(odes, **kwargs):
         assert np.allclose(yout[:, 0], ref[0], atol=1e-5, rtol=1e-5)
         assert np.allclose(yout[:, 1], ref[1], atol=1e-5, rtol=1e-5)
         assert info['nfev'] > 0
+    return results
 
 
 @requires('scipy')
