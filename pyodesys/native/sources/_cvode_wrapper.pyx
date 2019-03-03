@@ -134,7 +134,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         xyout_arr[idx][0] = x0[idx]
         for yi in range(y0.shape[1]):
             xyout_arr[idx][yi+1] = y0[idx, yi]
-        ew_ele_arr[idx] = <double *>malloc(2*nprealloc*ny*sizeof(double))
+        ew_ele_arr[idx] = <double *>malloc(2*nprealloc*y0.shape[1]*sizeof(double))
 
     try:
         result = multi_adaptive[OdeSys](
