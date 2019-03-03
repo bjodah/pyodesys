@@ -82,7 +82,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
         bool success
         int idx, yi, tidx = 0
-    double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
+        double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
 
 #    ew_ele_arr =
 #        cnp.ndarray[cnp.float64_t, ndim=3] ew_ele_arr = np.empty((xout.size, 2, ny))
