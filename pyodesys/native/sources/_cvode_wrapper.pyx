@@ -83,9 +83,9 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         bool success
         int idx, yi, tidx = 0
         double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
-
-#    ew_ele_arr =
-#        cnp.ndarray[cnp.float64_t, ndim=3] ew_ele_arr = np.empty((xout.size, 2, ny))
+        cnp.npy_intp ew_ele_dims[3]
+    ew_ele_dims[1] = 2
+    ew_ele_dims[2] = y0.shape[1]
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -167,10 +167,16 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                                  systems[idx].current_info.nfo_vecint,
                                  root_indices[idx], root_out=None, mode='adaptive',
                                  success=success))
+            if ew_ele:
+                ew_ele_dims[0] = dims[0]
+                ew_ele_np = cnp.PyArray_SimpleNewFromData(3, ew_ele_dims, cnp.NPY_DOUBLE, <void *>ew_ele_arr[idx])
+                PyArray_ENABLEFLAGS(ew_ele_np, cnp.NPY_OWNDATA)
+                nfos[-1]['ew_ele'] = ew_ele_np
 
             del systems[idx]
     finally:
         free(td_arr)
+        free(ew_ele_arr)
 
     return xout, yout, nfos
 
@@ -278,8 +284,9 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         if ew_ele:
             ew_ele_np = cnp.PyArray_SimpleNewFromData(3, ew_ele_dims, cnp.NPY_DOUBLE, <void *>ew_ele_arr[idx])
             PyArray_ENABLEFLAGS(ew_ele_np, cnp.NPY_OWNDATA)
-            nfos['ew_ele'] = np.array
+            nfos[-1]['ew_ele'] = ew_ele_np
         del systems[idx]
 
+    free(<void*>(ew_ele_arr))
     yout_arr = np.asarray(yout)
     return yout, nfos

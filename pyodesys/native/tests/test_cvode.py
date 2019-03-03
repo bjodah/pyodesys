@@ -238,7 +238,7 @@ def test_constraints():
 @requires('sym', 'pycvodes')
 def test_ew_ele():
     for tst in [_test_multiple_predefined, _test_multiple_adaptive]:
-        results = tst(NativeSys, atol=1e-10, rtol=1e-10, ew_ele=True)
+        results = tst(NativeSys, atol=1e-10, rtol=1e-10, ew_ele=True, nsteps=1400)
         for res in results:
             ee = res.info['ew_ele']
             assert ee.ndim == 3 and ee.shape[1] == 2
