@@ -82,7 +82,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
         bool success
         int idx, yi, tidx = 0
-	double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
+    double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
 
 #    ew_ele_arr =
 #        cnp.ndarray[cnp.float64_t, ndim=3] ew_ele_arr = np.empty((xout.size, 2, ny))
@@ -134,7 +134,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         xyout_arr[idx][0] = x0[idx]
         for yi in range(y0.shape[1]):
             xyout_arr[idx][yi+1] = y0[idx, yi]
-	    ew_ele_arr[idx] = <double *>malloc(2*nprealloc*ny*sizeof(double))
+        ew_ele_arr[idx] = <double *>malloc(2*nprealloc*ny*sizeof(double))
 
     try:
         result = multi_adaptive[OdeSys](
@@ -142,7 +142,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
             systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes,
-	    tidx, &ew_ele_arr if ew_ele else NULL, constraints
+        tidx, &ew_ele_arr if ew_ele else NULL, constraints
         )
         xout, yout = [], []
         for idx in range(y0.shape[0]):
