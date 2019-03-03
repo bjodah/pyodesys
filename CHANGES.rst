@@ -1,3 +1,7 @@
+v0.11.18
+========
+- Support for ew_ele in pycvodes when using native wrappers
+
 v0.11.17
 ========
 - Support for constraints in pycvodes when using sundials >=3.2
