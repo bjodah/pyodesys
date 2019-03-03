@@ -232,3 +232,13 @@ except Exception:  # ModuleNotFoundError in newer versions of python
 @pytest.mark.skipif(sundials_version[:2] < (3, 2), reason="constraints req. sundials >=3.2")
 def test_constraints():
     _test_multiple_predefined(NativeSys, atol=1e-10, rtol=1e-10, constraints=[1.0, 1.0])
+
+
+@pytest.mark.slow
+@requires('sym', 'pycvodes')
+def test_ew_ele():
+    for tst in [_test_multiple_predefined, _test_multiple_adaptive]:
+        results = tst(NativeSys, atol=1e-10, rtol=1e-10, ew_ele=True, nsteps=1400)
+        for res in results:
+            ee = res.info['ew_ele']
+            assert ee.ndim == 3 and ee.shape[1] == 2
