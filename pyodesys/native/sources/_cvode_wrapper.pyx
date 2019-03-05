@@ -117,9 +117,10 @@ def integrate_adaptive(floating [:, ::1] y0,
         vector[realtype] atol_vec
         vector[realtype] special_settings_vec
         int idx, yi, tidx = 0
-        realtype *** ew_ele = NULL
-        double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
+        realtype ** ew_ele_arr = <realtype **>malloc(y0.shape[0]*sizeof(realtype*))
         cnp.npy_intp ew_ele_dims[3]
+        realtype [:,:,::1] ew_ele_view
+
     ew_ele_dims[1] = 2
     ew_ele_dims[2] = y0.shape[1]
 
@@ -180,6 +181,8 @@ def integrate_adaptive(floating [:, ::1] y0,
         xyout[idx][0] = <realtype> x0[idx]
         for yi in range(y0.shape[1]):
             xyout[idx][yi+1] = <realtype> y0[idx, yi]
+        if ew_ele:
+            ew_ele_arr[idx] = <realtype *>malloc(2*nprealloc*y0.shape[1]*sizeof(realtype))
 
     try:
         result = multi_adaptive[CvodesOdeSys](
@@ -215,17 +218,17 @@ def integrate_adaptive(floating [:, ::1] y0,
                                  success=success))
             if ew_ele:
                 ew_ele_dims[0] = dims[0]
-                ew_ele_np = cnp.PyArray_SimpleNewFromData(3, ew_ele_dims, cnp.NPY_DOUBLE, <void *>ew_ele_arr[idx])
-                PyArray_ENABLEFLAGS(ew_ele_np, cnp.NPY_OWNDATA)
-                nfos[-1]['ew_ele'] = ew_ele_np
+                ew_ele_view = <realtype [:ew_ele_dims[0], :ew_ele_dims[1],:ew_ele_dims[2]:1]>ew_ele_arr[idx]
+                nfos[-1]['ew_ele'] = np.asarray(ew_ele_view, dtype=dtype)
+                free(ew_ele_arr[idx])
 
             del systems[idx]
     finally:
         free(td)
-        free(ew_ele_arr)
         # memory of xyout[i] is freed by xyout_arr taking ownership
         # but memory of xyout itself must be freed here
         free(xyout)
+        free(ew_ele_arr)
 
     return xout, yout, nfos
 
@@ -267,7 +270,8 @@ def integrate_predefined(floating [:, ::1] y0,
         cnp.ndarray[realtype, ndim=2, mode='c'] params_arr = np.asarray(params, dtype=dtype)
         vector[realtype] atol_vec
         vector[realtype] special_settings_vec
-        double ** ew_ele_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
+        realtype ** ew_ele_arr = <realtype **>malloc(y0.shape[0]*sizeof(realtype*))
+        realtype [:,:,::1] ew_ele_view
         cnp.npy_intp ew_ele_dims[3]
     ew_ele_dims[0] = xout.shape[1]
     ew_ele_dims[1] = 2
@@ -324,7 +328,8 @@ def integrate_predefined(floating [:, ::1] y0,
         systems[idx].record_jac_xvals = record_jac_xvals
         systems[idx].record_order = record_order
         systems[idx].record_fpe = record_fpe
-        ew_ele_arr[idx] = <double *>malloc(xout.shape[1]*2*y0.shape[1]*sizeof(double))
+        if ew_ele:
+            ew_ele_arr[idx] = <realtype *>malloc(xout.shape[1]*2*y0.shape[1]*sizeof(realtype))
 
 
     yout_arr = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]), dtype=dtype)
@@ -346,9 +351,10 @@ def integrate_predefined(floating [:, ::1] y0,
                              root_out=result[idx].second.second, mode='predefined',
                              success=success, nreached=nreached))
         if ew_ele:
-            ew_ele_np = cnp.PyArray_SimpleNewFromData(3, ew_ele_dims, cnp.NPY_DOUBLE, <void *>ew_ele_arr[idx])
-            PyArray_ENABLEFLAGS(ew_ele_np, cnp.NPY_OWNDATA)
-            nfos[-1]['ew_ele'] = ew_ele_np
+            ew_ele_view = <realtype[:ew_ele_dims[0],:ew_ele_dims[1],:ew_ele_dims[2]:1]>ew_ele_arr[idx]
+            nfos[-1]['ew_ele'] = np.asarray(ew_ele_view, dtype=dtype)
+            free(<void*>ew_ele_arr[idx])
+
         del systems[idx]
 
     free(<void*>(ew_ele_arr))
