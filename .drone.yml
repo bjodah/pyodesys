@@ -9,8 +9,6 @@ build:
   commands:
     - python2 -m pip install --ignore-installed --no-deps quantities==0.12.2  # https://github.com/python-quantities/python-quantities/issues/122
     - python3 -m pip install --ignore-installed --no-deps quantities==0.12.2
-    - python2 -m pip install https://github.com/bjodah/pycvodes/archive/0.10.x-ew_ele.tar.gz
-    - python3 -m pip install https://github.com/bjodah/pycvodes/archive/0.10.x-ew_ele.tar.gz
     - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
     - .ci/test_py2.sh pyodesys /drone/sund-3.2.1-klu
