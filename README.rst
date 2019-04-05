@@ -1,8 +1,8 @@
 pyodesys
 ========
 
-.. image:: http://hera.physchem.kth.se:9090/api/badges/bjodah/pyodesys/status.svg
-   :target: http://hera.physchem.kth.se:9090/bjodah/pyodesys
+.. image:: http://hera.physchem.kth.se:8090/api/badges/bjodah/pyodesys/status.svg
+   :target: http://hera.physchem.kth.se:8090/bjodah/pyodesys
    :alt: Build status on Drone
 .. image:: https://circleci.com/gh/bjodah/pyodesys.svg?style=svg
    :target: https://circleci.com/gh/bjodah/pyodesys
@@ -10,7 +10,7 @@ pyodesys
 .. image:: https://img.shields.io/pypi/v/pyodesys.svg
    :target: https://pypi.python.org/pypi/pyodesys
    :alt: PyPI version
-.. image:: https://img.shields.io/badge/python-2.7,3.5,3.6-blue.svg
+.. image:: https://img.shields.io/badge/python-3.6,3.7-blue.svg
    :target: https://www.python.org/
    :alt: Python version
 .. image:: https://img.shields.io/pypi/l/pyodesys.svg
