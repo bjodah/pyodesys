@@ -29,7 +29,7 @@ pipeline:
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
     commands:
       - export SUNDBASE=$(pwd)/ci_cache/sund-3.2.1-klu
-- if [ ! -d $SUNDBASE ]; then .ci/get_sundials.sh 3.2.1 $SUNDBASE -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
+      - if [ ! -d $SUNDBASE ]; then .ci/get_sundials.sh 3.2.1 $SUNDBASE -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
       - mkdir -p $HOME/.config/pip/; echo -e "[global]\ncache-dir = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
       - if [[ -e pycvodes
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
