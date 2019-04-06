@@ -28,26 +28,15 @@ if [ -d "$PREFIX" ]; then >&2 echo "Directory already exists: $PREFIX"; exit 1; 
 if [[ "$VERSION" == "2.7.0" ]]; then
     SUNDIALS_FNAME="sundials-2.7.0.tar.gz"
     SUNDIALS_MD5="c304631b9bc82877d7b0e9f4d4fd94d3"
-elif [[ "$VERSION" == "3.1.1" ]]; then
-    SUNDIALS_FNAME="sundials-3.1.1.tar.gz"
-    SUNDIALS_MD5="e63f4de0be5be97f750b30b0fa11ef34"
+    SUNDIALS_SHA256="d39fcac7175d701398e4eb209f7e92a5b30a78358d4a0c0fcc23db23c11ba104"
 elif [[ "$VERSION" == "3.1.2" ]]; then
     SUNDIALS_FNAME="sundials-3.1.2.tar.gz"
     SUNDIALS_MD5="63304dafc935c94a0ad37832085384bc"
-elif [[ "$VERSION" == "3.2.0" ]]; then
-    SUNDIALS_FNAME="sundials-3.2.0.tar.gz"
-    SUNDIALS_MD5="669e05565d3294478848ed497ac35a6e"
+    SUNDIALS_SHA256="a8985bb1e851d90e24260450667b134bc13d71f5c6effc9e1d7183bd874fe116"
 elif [[ "$VERSION" == "3.2.1" ]]; then
     SUNDIALS_FNAME="sundials-3.2.1.tar.gz"
     SUNDIALS_MD5="65c42e4fec7d1f4f4bcd670f9bbe31c0"
-elif [[ "$VERSION" == "4.0.0" ]]; then
-    SUNDIALS_FNAME="sundials-4.0.0.tar.gz"
-    SUNDIALS_MD5="5f584274f1ef7743526076f5a08319be"
-    SUNDIALS_SHA256="953dd7c30d25d5e28f6aa4d803c5b6160294a5c0c9572ac4e9c7e2d461bd9a19"
-elif [[ "$VERSION" == "4.0.1" ]]; then
-    SUNDIALS_FNAME="sundials-4.0.1.tar.gz"
-    SUNDIALS_MD5="7399c3da7a857ef857645275fc6d393c"
-    SUNDIALS_SHA256="29e409c8620e803990edbda1ebf49e03a38c08b9187b90658d86bddae913aed4"
+    SUNDIALS_SHA256="47d94d977ab2382cdcdd02f72a25ebd4ba8ca2634bbb2f191fe1636e71c86808"
 elif [[ "$VERSION" == "4.0.2" ]]; then
     SUNDIALS_FNAME="sundials-4.0.2.tar.gz"
     SUNDIALS_MD5="2d840ed467ca491a3c1fe4ce67d2a99a"
@@ -76,16 +65,6 @@ for URL in "${SUNDIALS_URLS[@]}"; do
     fi
     if echo $SUNDIALS_MD5 $SUNDIALS_FNAME | md5sum -c --; then
         tar xzf $SUNDIALS_FNAME
-	if [[ "$VERSION" == "4.0.0" ]]; then
-	    cd sundials-$VERSION
-	    ( set -xe; patch -p1 < ../.ci/patch_001_sund400.diff )
-	    #( set -xe; git apply --verbose ../.ci/patch_001_sund400.diff )
-	    cd -
-	fi
-	if grep "RCONST(1)" -R sundials-*/; then
-	    >&2 echo "Found incorrect RCONST(1) in source"
-	    exit 1;
-	fi
         mkdir sundials_build
         cd sundials_build
 	( set -x; \

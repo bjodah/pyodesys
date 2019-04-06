@@ -28,7 +28,8 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, latex_names=None, xlabel=None, ylabel=None,
-                xscale=None, yscale=None, legend=False, yerr=None, labels=None, tex_lbl_fmt='$%s$'):
+                xscale=None, yscale=None, legend=False, yerr=None, labels=None, tex_lbl_fmt='$%s$',
+                fig_kw=None, xlim=None, ylim=None):
     """
     Plot the depepndent variables vs. the independent variable
 
@@ -76,7 +77,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
     import matplotlib.pyplot as plt
 
     if ax is None:
-        ax = plt.subplot(1, 1, 1)
+        _fig, ax = plt.subplots(1, 1, **(fig_kw or {}))
     if plot_kwargs_cb is None:
         def plot_kwargs_cb(idx, lines=False, markers=False, labels=None):
 
@@ -191,6 +192,11 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
         pass
     else:
         ax.legend(**legend)
+
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
     return ax
 
 
