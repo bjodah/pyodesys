@@ -30,7 +30,7 @@ pipeline:
     commands:
       - export SUNDBASE=$(pwd)/ci_cache/sund-3.2.1-klu
       - if [ ! -d $SUNDBASE ]; then .ci/get_sundials.sh 3.2.1 $SUNDBASE -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
-      - mkdir -p $HOME/.config/pip/; echo -e "[global]\ncache-dir = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
+      - mkdir -p $HOME/.config/pip/; echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
       - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
@@ -55,7 +55,7 @@ pipeline:
       - cd /tmp/pycvodes
       - LIBRARY_PATH=$SUNDBASE/lib:$LIBRARY_PATH CPATH=$SUNDBASE/include:$CPATH LD_LIBRARY_PATH=$SUNDBASE/lib:$LD_LIBRARY_PATH PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py install
       - cd -
-      - mkdir -p $HOME/.config/pip/; echo -e "[global]\ncache-dir = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
+      - mkdir -p $HOME/.config/pip/; echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
 
   test-conda-recipe:
