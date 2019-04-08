@@ -25,4 +25,4 @@ python3 -m pip install virtualenv
 python3 -m virtualenv venv
 git archive -o dist/$PKG_NAME-head.zip HEAD  # test pip installable zip (symlinks break)
 set +u
-(source ./venv/bin/activate; cd dist/; python3 -m pip install pytest $PKG_NAME-head.zip; python3 -m pytest $PKG_NAME)
+(source ./venv/bin/activate; cd dist/; python3 -m pip install pytest $PKG_NAME-head.zip; python3 -m pytest --pyargs $PKG_NAME)
