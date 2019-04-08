@@ -192,7 +192,7 @@ def integrate_adaptive(floating [:, ::1] y0,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
             linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes,
-            tidx, &ew_ele_arr if ew_ele else NULL, constraints
+            tidx, ew_ele_arr if ew_ele else NULL, constraints
         )
         xout, yout = [], []
         for idx in range(y0.shape[0]):

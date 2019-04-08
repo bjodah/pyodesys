@@ -18,3 +18,5 @@ gks.svg
 .ipython/
 .jupyter/*
 !.jupyter/jupyter_notebook_config.py
+tmp/
+.gdb*
