@@ -58,13 +58,6 @@ pipeline:
       - mkdir -p $HOME/.config/pip/; bash -c 'echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf'
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
 
-  test-conda-recipe:
-    group: testing
-    image: bjodah/bjodahimg18dev:v1.5
-    commands:
-      - export CONDA_PKGS_DIRS=$(pwd)/ci_cache/conda_packages
-      - PATH=/opt/miniconda3/bin:$PATH conda build  --output-folder "deploy/public_html/branches/${CI_BRANCH}" conda-recipe
-
   test-py2:
     image: bjodah/bjodahimg18:v1.5
     environment:
@@ -76,6 +69,14 @@ pipeline:
     commands:
       - export SUNDBASE=$(pwd)/ci_cache/sund-3.2.1-klu
       - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
+
+  test-conda-recipe:
+    group: testing
+    image: bjodah/bjodahimg18dev:v1.5
+    commands:
+      - export CONDA_PKGS_DIRS=$(pwd)/ci_cache/conda_packages
+      - PATH=/opt/miniconda3/bin:$PATH conda update conda-build
+      - PATH=/opt/miniconda3/bin:$PATH conda build  --output-folder "deploy/public_html/branches/${CI_BRANCH}" conda-recipe
 
 deploy:
 
