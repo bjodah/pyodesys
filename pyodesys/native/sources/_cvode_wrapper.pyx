@@ -3,6 +3,7 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -std=c++11 -fopenmp
 # distutils: extra_link_args = -fopenmp
+# cython: language_level=3str
 
 from collections import Iterable
 
@@ -54,8 +55,6 @@ ctypedef fused floating:
 
 ctypedef OdeSys[realtype, indextype] CvodesOdeSys
 
-from odesys_util cimport adaptive_return
-
 
 def _as_dict(unordered_map[string, int] nfo,
              unordered_map[string, double] nfo_dbl,
@@ -93,7 +92,8 @@ def integrate_adaptive(floating [:, ::1] y0,
                        bool record_order=False, bool record_fpe=False,
                        realtype get_dx_max_factor=0.0, bool error_outside_bounds=False,
                        realtype max_invariant_violation=0.0, special_settings=None,
-                       bool autonomous_exprs=False, int nprealloc=500, vector[realtype] constraints=[]):
+                       bool autonomous_exprs=False, int nprealloc=500, bool ew_ele=False,
+                       vector[realtype] constraints=[]):
     cdef:
         realtype ** xyout = <realtype **>malloc(y0.shape[0]*sizeof(realtype *))
         realtype [:,::1] xyout_view
@@ -118,7 +118,12 @@ def integrate_adaptive(floating [:, ::1] y0,
         vector[realtype] atol_vec
         vector[realtype] special_settings_vec
         int idx, yi, tidx = 0
-        realtype *** ew_ele = NULL
+        realtype ** ew_ele_arr = <realtype **>malloc(y0.shape[0]*sizeof(realtype*))
+        cnp.npy_intp ew_ele_dims[3]
+        realtype [:,:,::1] ew_ele_view
+
+    ew_ele_dims[1] = 2
+    ew_ele_dims[2] = y0.shape[1]
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
@@ -177,6 +182,8 @@ def integrate_adaptive(floating [:, ::1] y0,
         xyout[idx][0] = <realtype> x0[idx]
         for yi in range(y0.shape[1]):
             xyout[idx][yi+1] = <realtype> y0[idx, yi]
+        if ew_ele:
+            ew_ele_arr[idx] = <realtype *>malloc(2*nprealloc*y0.shape[1]*sizeof(realtype))
 
     try:
         result = multi_adaptive[CvodesOdeSys](
@@ -185,7 +192,7 @@ def integrate_adaptive(floating [:, ::1] y0,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
             linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes,
-            tidx, ew_ele, constraints
+            tidx, ew_ele_arr if ew_ele else NULL, constraints
         )
         xout, yout = [], []
         for idx in range(y0.shape[0]):
@@ -210,6 +217,11 @@ def integrate_adaptive(floating [:, ::1] y0,
                                  systems[idx].current_info.nfo_vecint,
                                  root_indices[idx], root_out=None, mode='adaptive',
                                  success=success))
+            if ew_ele:
+                ew_ele_dims[0] = dims[0]
+                ew_ele_view = <realtype [:ew_ele_dims[0], :ew_ele_dims[1],:ew_ele_dims[2]:1]>ew_ele_arr[idx]
+                nfos[-1]['ew_ele'] = np.asarray(ew_ele_view, dtype=dtype)
+                free(ew_ele_arr[idx])
 
             del systems[idx]
     finally:
@@ -217,6 +229,7 @@ def integrate_adaptive(floating [:, ::1] y0,
         # memory of xyout[i] is freed by xyout_arr taking ownership
         # but memory of xyout itself must be freed here
         free(xyout)
+        free(ew_ele_arr)
 
     return xout, yout, nfos
 
@@ -237,7 +250,7 @@ def integrate_predefined(floating [:, ::1] y0,
                          bool record_order=False, bool record_fpe=False,
                          realtype get_dx_max_factor=0.0, bool error_outside_bounds=False,
                          realtype max_invariant_violation=0.0, special_settings=None,
-                         bool autonomous_exprs=False, vector[realtype] constraints=[]):
+                         bool autonomous_exprs=False, ew_ele=False, vector[realtype] constraints=[]):
     cdef:
         vector[CvodesOdeSys *] systems
         list nfos = []
@@ -258,7 +271,13 @@ def integrate_predefined(floating [:, ::1] y0,
         cnp.ndarray[realtype, ndim=2, mode='c'] params_arr = np.asarray(params, dtype=dtype)
         vector[realtype] atol_vec
         vector[realtype] special_settings_vec
-        realtype **ew_ele = NULL
+        realtype ** ew_ele_arr = <realtype **>malloc(y0.shape[0]*sizeof(realtype*))
+        realtype [:,:,::1] ew_ele_view
+        cnp.npy_intp ew_ele_dims[3]
+    ew_ele_dims[0] = xout.shape[1]
+    ew_ele_dims[1] = 2
+    ew_ele_dims[2] = y0.shape[1]
+
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
 
@@ -310,6 +329,8 @@ def integrate_predefined(floating [:, ::1] y0,
         systems[idx].record_jac_xvals = record_jac_xvals
         systems[idx].record_order = record_order
         systems[idx].record_fpe = record_fpe
+        if ew_ele:
+            ew_ele_arr[idx] = <realtype *>malloc(xout.shape[1]*2*y0.shape[1]*sizeof(realtype))
 
 
     yout_arr = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]), dtype=dtype)
@@ -318,7 +339,7 @@ def integrate_predefined(floating [:, ::1] y0,
         <realtype *> xout_arr.data, <realtype *> yout_arr.data, mxsteps, &_dx0[0], &_dx_min[0],
         &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
         linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
-        maxl, eps_lin, nderiv, autorestart, return_on_error, with_jtimes, ew_ele, constraints)
+        maxl, eps_lin, nderiv, autorestart, return_on_error, with_jtimes, ew_ele_arr if ew_ele else NULL, constraints)
 
     for idx in range(y0.shape[0]):
         nreached = result[idx].first
@@ -330,6 +351,12 @@ def integrate_predefined(floating [:, ::1] y0,
                              root_indices=result[idx].second.first,
                              root_out=result[idx].second.second, mode='predefined',
                              success=success, nreached=nreached))
+        if ew_ele:
+            ew_ele_view = <realtype[:ew_ele_dims[0],:ew_ele_dims[1],:ew_ele_dims[2]:1]>ew_ele_arr[idx]
+            nfos[-1]['ew_ele'] = np.asarray(ew_ele_view, dtype=dtype)
+            free(<void*>ew_ele_arr[idx])
+
         del systems[idx]
 
+    free(<void*>(ew_ele_arr))
     return yout_arr, nfos

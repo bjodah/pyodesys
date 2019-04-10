@@ -1,9 +1,5 @@
 {% set name = "pyodesys" %}
-{% set version = GIT_DESCRIBE_TAG | replace("v", "") %}
-{% set number = GIT_DESCRIBE_NUMBER | int %}
-{% if number > 0 %}
-   {% set version = version + ".post" + GIT_DESCRIBE_NUMBER %}
-{% endif %}
+{% set version = "0.13.0.dev0+git" %}
 
 package:
   name: {{ name|lower }}
@@ -33,7 +29,7 @@ requirements:
     - boost
     - pyodeint >=0.10.1
     - pygslodeiv2 >=0.9.1
-    - pycvodes >=0.11.9
+    - pycvodes >=0.11.12
     - pycompilation
     - pycodeexport >=0.1.2
     - cython

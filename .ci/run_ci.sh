@@ -17,11 +17,12 @@ export PYTHONHASHSEED=$(python3 -c "import random; print(random.randint(1,2**32-
 PYTHON="python3 -R" ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 
 ./scripts/render_notebooks.sh
-(cd $PKG_NAME/tests; jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=360 *.ipynb)
+(cd $PKG_NAME/tests; jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=600 *.ipynb)
 ./scripts/generate_docs.sh
 
 # Test package without any 3rd party libraries that are in extras_require:
 python3 -m pip install virtualenv
 python3 -m virtualenv venv
+git archive -o dist/$PKG_NAME-head.zip HEAD  # test pip installable zip (symlinks break)
 set +u
-(source ./venv/bin/activate; python3 -m pip install pytest .; python3 -m pytest $PKG_NAME)
+(source ./venv/bin/activate; cd dist/; python3 -m pip install pytest $PKG_NAME-head.zip; python3 -m pytest --pyargs $PKG_NAME)

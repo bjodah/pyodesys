@@ -187,12 +187,12 @@ def _test_PartiallySolved_symmetric_native_multi(NativeSys, multiple=False, forg
 
 def _test_multiple_adaptive(NativeSys, **kwargs):
     native = NativeSys.from_callback(sine, 2, 1)
-    _test_integrate_multiple_adaptive(native, integrator='native', **kwargs)
+    return _test_integrate_multiple_adaptive(native, integrator='native', **kwargs)
 
 
 def _test_multiple_predefined(NativeSys, **kwargs):
     native = NativeSys.from_callback(decay, 2, 1)
-    _test_integrate_multiple_predefined(native, integrator='native', **kwargs)
+    return _test_integrate_multiple_predefined(native, integrator='native', **kwargs)
 
 
 def _test_multiple_adaptive_chained(MySys, kw, **kwargs):
