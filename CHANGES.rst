@@ -1,3 +1,7 @@
+v0.12.5
+=======
+- Fix for ew_ele in native CVode(s) interface.
+
 v0.12.4
 =======
 - Support for constraints in pycvodes using sundials >=3.2.0
