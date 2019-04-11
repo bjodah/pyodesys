@@ -1,7 +1,7 @@
 #!/bin/bash -xeu
 # Usage:
 #
-#    $ ANFILTE_CHANNELS="defaults conda-forge bjodah" ./scripts/post_release.sh v1.2.3 GITHUB_USER myserver.example.com
+#    $ ./scripts/post_release.sh v1.2.3 GITHUB_USER myserver.example.com
 #
 VERSION=${1#v}
 GITHUBUSER=$2
@@ -24,8 +24,8 @@ sed -i -E \
     dist/conda-recipe-$VERSION/meta.yaml
 
 ssh $PKG@$SERVER 'mkdir -p ~/public_html/conda-packages'
-anfilte-build . dist/conda-recipe-$VERSION dist/
-scp dist/noarch/${PKG}-${VERSION}*.bz2 $PKG@$SERVER:~/public_html/conda-packages/
+#anfilte-build . dist/conda-recipe-$VERSION dist/
+#scp dist/noarch/${PKG}-${VERSION}*.bz2 $PKG@$SERVER:~/public_html/conda-packages/
 ssh $PKG@$SERVER 'mkdir -p ~/public_html/conda-recipes'
 scp -r dist/conda-recipe-$VERSION/ $PKG@$SERVER:~/public_html/conda-recipes/
 scp "$SDIST_FILE" "$PKG@$SERVER:~/public_html/releases/"
