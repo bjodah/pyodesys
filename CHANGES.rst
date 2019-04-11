@@ -1,3 +1,7 @@
+v0.11.19
+========
+- Fix for ew_ele in native CVode(s) interface.
+
 v0.11.18
 ========
 - Support for ew_ele in pycvodes when using native wrappers
