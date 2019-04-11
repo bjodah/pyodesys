@@ -9,7 +9,7 @@ pipeline:
     ttl: 90  # liftetime in days
 
   test:
-    image: bjodah/bjodahimg16dev:v1.6
+    image: bjodah/bjodahimg18dev:v1.6
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
