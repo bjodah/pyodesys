@@ -1,35 +1,52 @@
-cache:
-  mount:
-    - /drone/sundials-3.2.1
+pipeline:
+  restore-cache:
+    image: drillster/drone-volume-cache
+    restore: true
+    mount:
+      - ./ci_cache/sund-3.2.1-klu
+    volumes:
+      - /tmp/cache:/cache
+    ttl: 90  # liftetime in days
 
-build:
-  image: bjodah/bjodahimg16dev:v1.6
-  environment:
-    - OMP_NUM_THREADS=1
-    - ANYODE_NUM_THREADS=2
-    - CPLUS_INCLUDE_PATH=/opt/boost_1_69_0/include:/drone/sundials-3.2.1/include
-    - LIBRARY_PATH=/opt/boost_1_69_0/lib:/drone/sundials-3.2.1/lib
-    - LD_LIBRARY_PATH=/opt/boost_1_69_0/lib:/drone/sundials-3.2.1/lib
-  commands:
-    - if [ ! -d /drone/sundials-3.2.1 ]; then .ci/get_sundials.sh 3.2.1 /drone/sundials-3.2.1 -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32; fi
-    - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
-    - ./scripts/prepare_deploy.sh
-    - .ci/test_py2.sh pyodesys /drone/sund-3.2.1-klu
-    - rm -r ~/.cache/python*pyodesys*/
-    - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
-    - PATH=/opt/miniconda3/bin:$PATH conda upgrade conda-build
-    - PATH=/opt/miniconda3/bin:$PATH conda-build conda-recipe
-    - bash -c '[[ $(python setup.py --version) =~ ^[0-9]+.* ]]'
-    - ./scripts/grep-for-merge-blocking-token.sh
-    - ./scripts/grep-for-binary-data.sh
+  test:
+    image: bjodah/bjodahimg16dev:v1.6
+    environment:
+      - OMP_NUM_THREADS=1
+      - ANYODE_NUM_THREADS=2
+      - CPLUS_INCLUDE_PATH=/opt/boost_1_69_0/include:/usr/include/suitesparse
+      - LIBRARY_PATH=/opt/boost_1_69_0/lib:/usr/lib/x86_64-linux-gnu
+      - LD_LIBRARY_PATH=/opt/boost_1_69_0/lib:/usr/lib/x86_64-linux-gnu
+    commands:
+      - export SUNDBASE=$(pwd)/ci_cache/sund-3.2.1-klu
+      - if [ ! -d $SUNDBASE ]; then .ci/get_sundials.sh 3.2.1 $SUNDBASE -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
+      - export LIBRARY_PATH=$SUNDBASE/lib:$LIBRARY_PATH CPATH=$SUNDBASE/include:$CPATH LD_LIBRARY_PATH=$SUNDBASE/lib:$LD_LIBRARY_PATH
+      - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
+      - ./scripts/prepare_deploy.sh
+      - .ci/test_py2.sh pyodesys $SUNDBASE
+      - rm -r ~/.cache/python*pyodesys*/
+      - PATH=/opt/miniconda3/bin:$PATH conda config --add channels bjodah  # sym, pyodesys, pyneqsys
+      - PATH=/opt/miniconda3/bin:$PATH conda upgrade conda-build
+      - PATH=/opt/miniconda3/bin:$PATH conda-build conda-recipe
+      - bash -c '[[ $(python setup.py --version) =~ ^[0-9]+.* ]]'
+      - ./scripts/grep-for-merge-blocking-token.sh
+      - ./scripts/grep-for-binary-data.sh
 
 deploy:
+  rebuild-cache:
+    image: drillster/drone-volume-cache
+    rebuild: true
+    mount:
+      - ./ci_cache/sund-3.2.1-klu
+    volumes:
+      - /tmp/cache:/cache
 
-  rsync:
-    host: hera.physchem.kth.se
+  deploy:
+    image: drillster/drone-rsync
+    when:
+      event: [push]
+    hosts: [ "hera.physchem.kth.se" ]
     port: 22
     user: pyodesys
-    source: deploy/
-    target: ~
-    recursive: true
-    delete: false
+    secrets: [ rsync_key ]  # secret only set from event "push" not "pull_request"
+    source: ./deploy/public_html
+    target: ~/
