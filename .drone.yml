@@ -20,6 +20,7 @@ pipeline:
       - export SUNDBASE=$(pwd)/ci_cache/sund-3.2.1-klu
       - if [ ! -d $SUNDBASE ]; then .ci/get_sundials.sh 3.2.1 $SUNDBASE -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
       - export LIBRARY_PATH=$SUNDBASE/lib:$LIBRARY_PATH CPATH=$SUNDBASE/include:$CPATH LD_LIBRARY_PATH=$SUNDBASE/lib:$LD_LIBRARY_PATH
+      - ( python2 -m pip >/dev/null || curl -Ls https://bootstrap.pypa.io/get-pip.py | python2 - --user )
       - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
       - ./scripts/prepare_deploy.sh
       - .ci/test_py2.sh pyodesys $SUNDBASE
