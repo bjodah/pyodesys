@@ -1,14 +1,17 @@
+cache:
+  mount:
+    - /drone/sundials-3.2.1
+
 build:
-  image: bjodah/bjodahimg16dev:v1.3
+  image: bjodah/bjodahimg16dev:v1.6
   environment:
     - OMP_NUM_THREADS=1
     - ANYODE_NUM_THREADS=2
-    - CPLUS_INCLUDE_PATH=/opt/boost_1_65_0/include
-    - LIBRARY_PATH=/opt/boost_1_65_0/lib
-    - LD_LIBRARY_PATH=/opt/boost_1_65_0/lib
+    - CPLUS_INCLUDE_PATH=/opt/boost_1_69_0/include:/drone/sundials-3.2.1/include
+    - LIBRARY_PATH=/opt/boost_1_69_0/lib:/drone/sundials-3.2.1/lib
+    - LD_LIBRARY_PATH=/opt/boost_1_69_0/lib:/drone/sundials-3.2.1/lib
   commands:
-    - python2 -m pip install --ignore-installed --no-deps quantities==0.12.2  # https://github.com/python-quantities/python-quantities/issues/122
-    - python3 -m pip install --ignore-installed --no-deps quantities==0.12.2
+    - if [ ! -d /drone/sundials-3.2.1 ]; then .ci/get_sundials.sh 3.2.1 /drone/sundials-3.2.1 -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32; fi
     - PYCVODES_LAPACK=lapack,blas ./scripts/ci.sh pyodesys
     - ./scripts/prepare_deploy.sh
     - .ci/test_py2.sh pyodesys /drone/sund-3.2.1-klu

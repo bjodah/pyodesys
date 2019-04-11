@@ -142,7 +142,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
             systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes,
-        tidx, &ew_ele_arr if ew_ele else NULL, constraints
+        tidx, ew_ele_arr if ew_ele else NULL, constraints
         )
         xout, yout = [], []
         for idx in range(y0.shape[0]):
