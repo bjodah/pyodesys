@@ -14,12 +14,11 @@ build:
   script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
-  build:
+  host:
     - python
     - setuptools
     - pip
   run:
-    - python
     - numpy
     - sym >=0.3.4
     - sympy >=1.1.1,!=1.2
@@ -30,19 +29,21 @@ requirements:
     - pyodeint >=0.10.1
     - pygslodeiv2 >=0.9.1
     - pycvodes >=0.11.12
-    - pycompilation
+    - pycompilation >=0.4.6
     - pycodeexport >=0.1.2
     - cython
     - python-symengine
-    - symcxx
-    - pysym
+#    - symcxx
+#    - pysym
     - matplotlib >=2.0.2
+    - gxx_linux-64
+
 
 test:
   imports:
     - {{ name }}
   requires:
-    - pytest
+    - pytest -x
 
 
 about:
