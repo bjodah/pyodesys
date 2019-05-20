@@ -167,7 +167,7 @@ class SymbolicSys(ODESys):
         When ``True`` construct using ``be.Symbol``. See also :attr:`init_indep`.
     init_dep : tuple of Symbols, ``True`` or ``None``
         When ``True`` construct using ``be.Symbol``. See also :attr:`init_dep`.
-    \*\*kwargs:
+    \\*\\*kwargs:
         See :py:class:`ODESys`
 
     Attributes
@@ -385,7 +385,7 @@ class SymbolicSys(ODESys):
             its return value from dict to array.
         par_by_name : bool
             Make ``p`` passed to ``rhs`` a dict (keys from :attr:`param_names`).
-        \*\*kwargs :
+        \\*\\*kwargs :
             Keyword arguments passed onto :class:`SymbolicSys`.
 
         Examples
@@ -763,7 +763,7 @@ class TransformedSys(SymbolicSys):
     check_transforms : bool
         Passed as keyword argument ``check`` to :func:`.util.transform_exprs_dep` and
         :func:`.util.transform_exprs_indep`.
-    \*\*kwargs :
+    \\*\\*kwargs :
         Keyword arguments passed onto :class:`SymbolicSys`.
 
     """
@@ -849,7 +849,7 @@ class TransformedSys(SymbolicSys):
         roots_cb : callable
             Callback with signature ``roots(x, y[:], p[:], backend=math) -> r[:]``.
             Callback should return untransformed roots.
-        \*\*kwargs :
+        \\*\\*kwargs :
             Keyword arguments passed onto :class:`TransformedSys`.
 
         """
@@ -917,7 +917,7 @@ def symmetricsys(dep_tr=None, indep_tr=None, SuperClass=TransformedSys, **kwargs
         Forward and backward transformation to be applied to the
         independent variable.
     SuperClass : class
-    \*\*kwargs :
+    \\*\\*kwargs :
         Default keyword arguments for the TransformedSys subclass.
 
     Returns
@@ -987,7 +987,7 @@ class ScaledSys(TransformedSys):
         scaling of the independent variable (default: 1)
     params :
         see :class:`SymbolicSys`
-    \*\*kwargs :
+    \\*\\*kwargs :
         Keyword arguments passed onto :class:`TransformedSys`.
 
     Examples
@@ -1047,7 +1047,7 @@ class ScaledSys(TransformedSys):
             scaling of the dependent variables (default: 1)
         indep_scaling: number (>0)
             scaling of the independent variable (default: 1)
-        \*\*kwargs :
+        \\*\\*kwargs :
             Keyword arguments passed onto :class:`ScaledSys`.
 
         Examples
@@ -1088,7 +1088,7 @@ class PartiallySolvedSystem(SymbolicSys):
         the signature: ``my_factory(x0, y0, p0, backend) -> dict``, where the returned
         dictionary maps dependent variabels (from ``original_system.dep``)
         to new expressions in remaining variables and initial conditions.
-    \*\*kwargs : dict
+    \\*\\*kwargs : dict
         Keyword arguments passed onto :class:`SymbolicSys`.
 
     Attributes
@@ -1230,7 +1230,7 @@ class PartiallySolvedSystem(SymbolicSys):
         preferred : iterable of preferred dependent variables
             Due to numerical rounding it is preferable to choose the variables
             which are expected to be of the largest magnitude during integration.
-        \*\*kwargs :
+        \\*\\*kwargs :
             Keyword arguments passed on to constructor.
         """
         _be = ori_sys.be
