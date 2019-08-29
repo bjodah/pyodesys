@@ -63,7 +63,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        double get_dx_max_factor=-1.0, bool error_outside_bounds=False,
                        double max_invariant_violation=0.0, vector[double] special_settings=[],
                        bool autonomous_exprs=False, int nprealloc=500, bool ew_ele=False,
-                       vector[double] constraints=[]):
+                       vector[double] constraints=[], bool stab_lim_det=False):
     cdef:
         double ** xyout_arr = <double **>malloc(y0.shape[0]*sizeof(double*))
         int * td_arr = <int *>malloc(y0.shape[0]*sizeof(int))
@@ -142,7 +142,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
             systems, atol, rtol, lmm_from_name(_lmm), <double *>xend.data, mxsteps,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t), linear_solver,
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes,
-        tidx, ew_ele_arr if ew_ele else NULL, constraints
+        tidx, ew_ele_arr if ew_ele else NULL, constraints, stab_lim_det
         )
         xout, yout = [], []
         for idx in range(y0.shape[0]):
@@ -197,7 +197,8 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          bool record_order=False, bool record_fpe=False,
                          double get_dx_max_factor=0.0, bool error_outside_bounds=False,
                          double max_invariant_violation=0.0, vector[double] special_settings=[],
-                         bool autonomous_exprs=False, ew_ele=False, vector[double] constraints=[]):
+                         bool autonomous_exprs=False, ew_ele=False, vector[double] constraints=[],
+                         bool stab_lim_det=False):
     cdef:
         vector[OdeSys *] systems
         list nfos = []
@@ -269,7 +270,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         systems, atol, rtol, lmm_from_name(_lmm), <double *>y0.data, xout.shape[1], <double *>xout.data,
         <double *>yout.data, mxsteps, &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian,
         iter_type_from_name(_iter_t), linear_solver, maxl, eps_lin, nderiv, autorestart,
-        return_on_error, with_jtimes, ew_ele_arr if ew_ele else NULL, constraints)
+        return_on_error, with_jtimes, ew_ele_arr if ew_ele else NULL, constraints, stab_lim_det)
 
     for idx in range(y0.shape[0]):
         nreached = result[idx].first

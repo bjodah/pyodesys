@@ -72,7 +72,6 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
     latex_names : iterable of str
     labels : iterable of str
         If ``None``, use ``latex_names`` or ``names`` (in that order).
-
     """
     import matplotlib.pyplot as plt
 

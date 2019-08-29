@@ -65,6 +65,7 @@ class _NativeCodeBase(Cpp_Code):
     source_files = ('odesys_anyode.cpp',)
     obj_files = ('odesys_anyode.o',)
     _save_temp = False
+    _native_cse = None
 
     namespace_default = {'p_anon': None}
     namespace = {
@@ -142,11 +143,18 @@ class _NativeCodeBase(Cpp_Code):
                 yield self.odesys.be.Symbol('m_p_cse[%d]' % idx)
                 idx += 1
 
-        if os.getenv('PYODESYS_NATIVE_CSE', '1') == '1':
-            cse_cb = self.odesys.be.cse
+        if self._native_cse is None:
+            _native_cse_key = "PYODESYS_NATIVE_CSE"
+            _native_cse = os.getenv(_native_cse_key, '1') != '0'
+            if _native_cse_key in os.environ:
+                logger.info("Read config (%s) of for common subexpression elimination (%s)" % (_native_cse, _native_cse_key))
         else:
-            logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
+            _native_cse = self._native_cse
+
+        if _native_cse:
             cse_cb = lambda exprs, **kwargs: ([], exprs)
+        else:
+            cse_cb = self.odesys.be.cse
 
         common_cses, common_exprs = cse_cb(
             all_exprs, symbols=self.odesys.be.numbered_symbols('cse'),
