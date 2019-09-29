@@ -37,7 +37,7 @@ def integrate_tolerance_series(odesys, atols, rtols, x, y0, params=(),
         Passed on to ``odesys.integrate``.
     fit : callable
     val : callable
-    \*\*kwargs:
+    \\*\\*kwargs:
         Passed on to ``odesys.integrate``.
 
     Returns

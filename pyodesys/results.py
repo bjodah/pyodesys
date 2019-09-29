@@ -213,7 +213,7 @@ class Result(object):
         deriv : bool
             Plot derivatives (internal variables).
         names : iterable of str
-        \*\*kwargs:
+        \\*\\*kwargs:
             See :func:`pyodesys.plotting.plot_result`
         """
         if between is not None:
@@ -255,7 +255,7 @@ class Result(object):
         ----------
         indices : iterable of int
         names : iterable of str
-        \*\*kwargs:
+        \\*\\*kwargs:
             See :func:`pyodesys.plotting.plot_phase_plane`
 
         """
