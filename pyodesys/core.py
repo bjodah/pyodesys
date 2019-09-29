@@ -461,7 +461,7 @@ class ODESys(object):
 
         Parameters
         ----------
-        \*args :
+        \\*args :
             See :meth:`integrate`.
         name : str (default: 'lsoda'/'dopri5' when jacobian is available/not)
             What integrator wrapped in scipy.integrate.ode to use.
@@ -671,7 +671,7 @@ class ODESys(object):
 
         Parameters
         ----------
-        \*args :
+        \\*args :
             see :meth:`integrate`
         method : str (default: 'bsimp')
             what stepper to use, see :py:attr:`gslodeiv2.steppers`
