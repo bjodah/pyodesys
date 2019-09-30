@@ -285,7 +285,7 @@ class Result(object):
                 else self.odesys.numpy.linspace(x0, xend, npoints+1)
             ), self.yout[..., -1, :], params or self.params, **kwargs
         )
-        self.xout = self.odesys.numpy.concatenate((self.xout, res.xout[1:] + (x0 if autonomous else 0)))
+        self.xout = self.odesys.numpy.concatenate((self.xout, res.xout[1:] + (x0 if autonomous else 0*x0)))
         self.yout = self.odesys.numpy.concatenate((self.yout, res.yout[..., 1:, :]))
         new_info = {k: v for k, v in self.info.items() if not (
             k.startswith('internal') and odesys is not self.odesys)}
@@ -298,7 +298,9 @@ class Result(object):
             elif k == 'success':
                 new_info[k] = new_info[k] and v
             elif k.endswith('_xvals'):
-                new_info[k] = self.odesys.numpy.concatenate((new_info[k], v + (x0 if autonomous else 0)))
+                if not v:
+                    continue
+                new_info[k] = self.odesys.numpy.concatenate((new_info[k], v + (x0 if autonomous else 0*x0)))
             elif k.endswith('_indices'):
                 new_info[k].extend([itm + nx0 - 1 for itm in v])
             elif isinstance(v, str):
