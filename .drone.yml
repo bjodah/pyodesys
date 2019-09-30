@@ -20,7 +20,7 @@ pipeline:
 
   test-sund-3.2.1-klu:
     group: testing
-    image: bjodah/bjodahimg18:v1.5
+    image: bjodah/bjodahimg18:v3.0
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
@@ -39,7 +39,7 @@ pipeline:
       
   test-sund-4.1.0-nolapack-noklu-extended:
     group: testing
-    image: bjodah/bjodahimg18:v1.5
+    image: bjodah/bjodahimg18:v3.0
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
@@ -59,7 +59,7 @@ pipeline:
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
 
   test-py2:
-    image: bjodah/bjodahimg18:v1.5
+    image: bjodah/bjodahimg18:v3.0
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
@@ -72,7 +72,7 @@ pipeline:
 
   test-conda-recipe:
     group: testing
-    image: bjodah/bjodahimg18dev:v1.5
+    image: bjodah/bjodahimg18dev:v3.0
     commands:
       - export CONDA_PKGS_DIRS=$(pwd)/ci_cache/conda_packages
       - PATH=/opt/miniconda3/bin:$PATH conda update conda-build
