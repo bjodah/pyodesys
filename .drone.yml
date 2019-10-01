@@ -24,7 +24,7 @@ pipeline:
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
     commands:
@@ -43,7 +43,7 @@ pipeline:
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
     commands:
@@ -63,7 +63,7 @@ pipeline:
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
     commands:
