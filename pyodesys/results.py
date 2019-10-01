@@ -298,7 +298,7 @@ class Result(object):
             elif k == 'success':
                 new_info[k] = new_info[k] and v
             elif k.endswith('_xvals'):
-                if not v:
+                if len(v) == 0:
                     continue
                 new_info[k] = self.odesys.numpy.concatenate((new_info[k], v + (x0 if autonomous else 0*x0)))
             elif k.endswith('_indices'):
