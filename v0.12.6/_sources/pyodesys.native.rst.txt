@@ -1,0 +1,43 @@
+pyodesys.native package
+=======================
+
+.. automodule:: pyodesys.native
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+pyodesys.native.cvode module
+----------------------------
+
+.. automodule:: pyodesys.native.cvode
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyodesys.native.gsl module
+--------------------------
+
+.. automodule:: pyodesys.native.gsl
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyodesys.native.odeint module
+-----------------------------
+
+.. automodule:: pyodesys.native.odeint
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyodesys.native.util module
+---------------------------
+
+.. automodule:: pyodesys.native.util
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
