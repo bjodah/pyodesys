@@ -51,7 +51,7 @@ def _test_chained_multi_native(NativeSys, integrator='cvode', rtol_close=0.02, a
 
     for sys_iter, kw in [
             ([our_sys, ori_sys], {
-                'nsteps': [100*steps_fact, 1613*1.01*steps_fact],
+                'nsteps': [100*steps_fact, 1613*1.05*steps_fact],
                 'return_on_error': [True, False]
             }),
             ([ori_sys], {

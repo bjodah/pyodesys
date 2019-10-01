@@ -1,3 +1,7 @@
+v0.12.6
+=======
+- Updated pycvodes req. version (>=v0.11.15)
+
 v0.12.5
 =======
 - Fix for ew_ele in native CVode(s) interface.
