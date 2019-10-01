@@ -93,7 +93,8 @@ def integrate_adaptive(floating [:, ::1] y0,
                        realtype get_dx_max_factor=0.0, bool error_outside_bounds=False,
                        realtype max_invariant_violation=0.0, special_settings=None,
                        bool autonomous_exprs=False, int nprealloc=500, bool ew_ele=False,
-                       vector[realtype] constraints=[]):
+                       vector[realtype] constraints=[], long int max_steps_between_jac=0,
+                       bool stab_lim_det=False):
     cdef:
         realtype ** xyout = <realtype **>malloc(y0.shape[0]*sizeof(realtype *))
         realtype [:,::1] xyout_view
@@ -192,7 +193,7 @@ def integrate_adaptive(floating [:, ::1] y0,
             &_dx0[0], &_dx_min[0], &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
             linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
             maxl, eps_lin, nderiv, return_on_root, autorestart, return_on_error, with_jtimes,
-            tidx, ew_ele_arr if ew_ele else NULL, constraints
+            tidx, ew_ele_arr if ew_ele else NULL, constraints, msbj, stab_lim_det
         )
         xout, yout = [], []
         for idx in range(y0.shape[0]):
@@ -250,7 +251,8 @@ def integrate_predefined(floating [:, ::1] y0,
                          bool record_order=False, bool record_fpe=False,
                          realtype get_dx_max_factor=0.0, bool error_outside_bounds=False,
                          realtype max_invariant_violation=0.0, special_settings=None,
-                         bool autonomous_exprs=False, ew_ele=False, vector[realtype] constraints=[]):
+                         bool autonomous_exprs=False, ew_ele=False, vector[realtype] constraints=[],
+                         long int max_steps_between_jac=0, bool stab_lim_det=False):
     cdef:
         vector[CvodesOdeSys *] systems
         list nfos = []
@@ -339,7 +341,8 @@ def integrate_predefined(floating [:, ::1] y0,
         <realtype *> xout_arr.data, <realtype *> yout_arr.data, mxsteps, &_dx0[0], &_dx_min[0],
         &_dx_max[0], with_jacobian, iter_type_from_name(_iter_t),
         linear_solver_from_name(linear_solver.lower().encode('UTF-8')),
-        maxl, eps_lin, nderiv, autorestart, return_on_error, with_jtimes, ew_ele_arr if ew_ele else NULL, constraints)
+        maxl, eps_lin, nderiv, autorestart, return_on_error, with_jtimes,
+        ew_ele_arr if ew_ele else NULL, constraints, msbj, stab_lim_det)
 
     for idx in range(y0.shape[0]):
         nreached = result[idx].first
