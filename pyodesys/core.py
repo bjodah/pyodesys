@@ -310,7 +310,7 @@ class ODESys(object):
             Final value of the independent variable.
         params : array_like
             See :meth:`integrate`.
-        \*\*kwargs :
+        \\*\\*kwargs :
             See :meth:`integrate`.
 
         Returns
@@ -332,7 +332,7 @@ class ODESys(object):
         xout : array_like
         params : array_like
             See :meth:`integrate`.
-        \*\*kwargs:
+        \\*\\*kwargs:
             See :meth:`integrate`
 
         Returns
@@ -461,11 +461,11 @@ class ODESys(object):
 
         Parameters
         ----------
-        \*args :
+        \\*args :
             See :meth:`integrate`.
         name : str (default: 'lsoda'/'dopri5' when jacobian is available/not)
             What integrator wrapped in scipy.integrate.ode to use.
-        \*\*kwargs :
+        \\*\\*kwargs :
             Keyword arguments passed onto `set_integrator(...) <
         http://docs.scipy.org/doc/scipy/reference/generated/
         scipy.integrate.ode.set_integrator.html#scipy.integrate.ode.set_integrator>`_
@@ -671,11 +671,11 @@ class ODESys(object):
 
         Parameters
         ----------
-        \*args :
+        \\*args :
             see :meth:`integrate`
         method : str (default: 'bsimp')
             what stepper to use, see :py:attr:`gslodeiv2.steppers`
-        \*\*kwargs :
+        \\*\\*kwargs :
             keyword arguments passed onto
             :py:func:`gslodeiv2.integrate_adaptive`/:py:func:`gslodeiv2.integrate_predefined`
 
@@ -834,7 +834,7 @@ def integrate_auto_switch(odes, kw, x, y0, params=(), **kwargs):
     x : array_like
     y0 : array_like
     params : array_like
-    \*\*kwargs:
+    \\*\\*kwargs:
         See :meth:`ODESys.integrate`
 
     Notes

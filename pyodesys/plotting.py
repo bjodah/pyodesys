@@ -215,7 +215,7 @@ def plot_phase_plane(x, y, indices=None, plot=None, names=None, ax=None, **kwarg
         Uses ``matplotlib.pyplot.plot`` if ``None``
     names: iterable of strings
         Labels for x and y axis.
-    \*\*kwargs:
+    \\*\\*kwargs:
         Keyword arguemtns passed to ``plot()``.
 
     """
