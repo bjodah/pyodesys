@@ -10,26 +10,23 @@ pipeline:
     image: drillster/drone-volume-cache
     restore: true
     mount:
-      - ./ci_cache/sund-3.2.1-klu
-      - ./ci_cache/sund-4.1.0-nolapack-noklu-extended
       - ./ci_cache/conda_packages
       - ./ci_cache/pip_cache
     volumes:
       - /tmp/cache:/cache
     ttl: 90  # liftetime in days
 
-  test-sund-3.2.1-klu:
+  test-sund-5.1.0-klu:
     group: testing
-    image: bjodah/bjodahimg18:v3.0
+    image: bjodah/bjodahimg18dev:v3.0.2
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
       - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - SUNDBASE=/opt/sundials-5.1.0-klu-lapack
     commands:
-      - export SUNDBASE=$(pwd)/ci_cache/sund-3.2.1-klu
-      - if [ ! -d $SUNDBASE ]; then .ci/get_sundials.sh 3.2.1 $SUNDBASE -DLAPACK_ENABLE:BOOL=ON -DSUNDIALS_INDEX_SIZE=32 -DKLU_ENABLE:BOOL=ON -DKLU_INCLUDE_DIR=/usr/include/suitesparse -DKLU_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu; fi
       - mkdir -p $HOME/.config/pip/; bash -c 'echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf'
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
@@ -37,18 +34,17 @@ pipeline:
       - ./scripts/grep-for-merge-blocking-token.sh
       - ./scripts/grep-for-binary-data.sh
       
-  test-sund-4.1.0-nolapack-noklu-extended:
+  test-sund-5.1.0-nolapack-noklu-extended:
     group: testing
-    image: bjodah/bjodahimg18:v3.0
+    image: bjodah/bjodahimg18dev:v3.0.2
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
       - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - SUNDBASE=/opt/sundials-5.1.0-noklu-nolapack-extended-int64
     commands:
-      - export SUNDBASE=$(pwd)/ci_cache/sund-4.1.0-nolapack-noklu-extended
-      - if [ ! -d $SUNDBASE ]; then .ci/get_sundials.sh 4.1.0 $SUNDBASE -DLAPACK_ENABLE:BOOL=OFF -DSUNDIALS_INDEX_SIZE=32 -DSUNDIALS_PRECISION:STRING="extended" -DKLU_ENABLE:BOOL=OFF; fi
       # Need to install pycvodes from source for extended precision/int64 test, since
       # that requires no LAPACK, whereas the pypi version installs with LAPACK
       - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git /tmp/pycvodes
@@ -59,24 +55,16 @@ pipeline:
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
 
   test-py2:
-    image: bjodah/bjodahimg18:v3.0
+    image: bjodah/bjodahimg18dev:v3.0.2
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
       - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - SUNDBASE=/opt/sundials-5.1.0-klu-lapack
     commands:
-      - export SUNDBASE=$(pwd)/ci_cache/sund-3.2.1-klu
       - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
-
-  test-conda-recipe:
-    group: testing
-    image: bjodah/bjodahimg18dev:v3.0
-    commands:
-      - export CONDA_PKGS_DIRS=$(pwd)/ci_cache/conda_packages
-      - PATH=/opt/miniconda3/bin:$PATH conda update conda-build
-      - PATH=/opt/miniconda3/bin:$PATH conda build  --output-folder "deploy/public_html/branches/${CI_BRANCH}" conda-recipe
 
 deploy:
 
@@ -84,8 +72,6 @@ deploy:
     image: drillster/drone-volume-cache
     rebuild: true
     mount:
-      - ./ci_cache/sund-3.2.1-klu
-      - ./ci_cache/sund-4.1.0-nolapack-noklu-extended
       - ./ci_cache/conda_packages
       - ./ci_cache/pip_cache
     volumes:

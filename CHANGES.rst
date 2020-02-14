@@ -1,3 +1,7 @@
+v0.13.0
+=======
+- Use sundials>=5.1.0 & pycvodes>=0.12.0
+
 v0.12.6
 =======
 - Updated pycvodes req. version (>=v0.11.15)
