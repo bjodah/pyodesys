@@ -6,9 +6,13 @@ from collections import defaultdict, OrderedDict
 from itertools import product
 import math
 
+try:
+    from time import clock as perf_counter
+except ImportError:
+    from time import perf_counter
+
 import numpy as np
 import pytest
-import time
 
 try:
     import sym
@@ -262,9 +266,9 @@ def test_ScaledSys_from_callback__exprs():
 
 
 def timeit(callback, *args, **kwargs):
-    t0 = time.clock()
+    t0 = perf_counter()
     result = callback(*args, **kwargs)
-    return time.clock() - t0, result
+    return perf_counter() - t0, result
 
 
 @requires('sym', 'pyodeint')
