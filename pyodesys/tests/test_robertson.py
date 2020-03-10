@@ -123,7 +123,7 @@ def test_get_ode_exprs_symbolic():
 
         if reduced != 3:
             _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
-                      atol=1e-8, rtol=1e-10, extra_forgive=1, first_step=1e-14)
+                      atol=1e-12, rtol=5e-13, extra_forgive=1, first_step=1e-14)
 
             _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-9, atol=1e-13, rtol=1e-14,
                       first_step=1e-10, extra_forgive=2)
