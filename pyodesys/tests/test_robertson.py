@@ -143,7 +143,7 @@ def test_get_ode_exprs_ODESys():
         _test_goe(symbolic=False, reduced=reduced, extra_forgive=3)
         if reduced != 2:
             _test_goe(symbolic=False, reduced=reduced, logc=True, logt=False, zero_conc=1e-18,
-                      atol=1e-8, rtol=1e-10, extra_forgive=2, first_step=1e-14)
+                      atol=1e-10, rtol=1e-11, extra_forgive=2, first_step=1e-14)
         if reduced == 3:
             _test_goe(symbolic=False, reduced=reduced, logc=True, logt=True, zero_conc=1e-18, zero_time=1e-12,
                       atol=1e-12, rtol=5e-13, extra_forgive=1e-3, first_step=1e-13)  # note extra_forgive
