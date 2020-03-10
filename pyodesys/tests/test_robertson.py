@@ -162,11 +162,12 @@ def test_get_ode_exprs_ODESys():
     (0, [(1, 1705*1.01), (4988*1.01, 1), (200, 1633), (4988*0.69, 1705*0.69)]),  # pays off in steps!
     (1, [(1, 1563*1.1), (100, 1700*1.01)]),  # worse than using nothing
     (2, [(1, 1674*1.1), (100, 1597*1.1)]),  # no pay back
-    (3, [(1, 1591*1.1), (4700, 1), (100, 1600), (4572*0.66, 1100)])  # no pay back
+    (3, [(1, 1591*1.1), (5000, 1), (100, 1600), (4572*0.66, 1100)])  # no pay back
 ])
 def test_integrate_chained_robertson(reduced_nsteps):
+    reduced, all_nsteps = reduced_nsteps
     rtols = {0: 0.02, 1: 0.1, 2: 0.02, 3: 0.015}
-    odes = logsys, linsys = [ODESys(*get_ode_exprs(l, l, reduced=reduced_nsteps[0])) for l in [True, False]]
+    odes = logsys, linsys = [ODESys(*get_ode_exprs(l, l, reduced=reduced)) for l in [True, False]]
 
     def pre(x, y, p):
         return np.log(x), np.log(y), p
@@ -179,13 +180,13 @@ def test_integrate_chained_robertson(reduced_nsteps):
     zero_time, zero_conc = 1e-10, 1e-18
     init_conc = (1, zero_conc, zero_conc)
     k = (.04, 1e4, 3e7)
-    for nsteps in reduced_nsteps[1]:
-        y0 = [_ for i, _ in enumerate(init_conc) if i != reduced_nsteps[0] - 1]
+    for nsteps in all_nsteps:
+        y0 = [_ for i, _ in enumerate(init_conc) if i != reduced - 1]
         x, y, nfo = integrate_chained(odes, {'nsteps': nsteps, 'return_on_error': [True, False]}, (zero_time, 1e11),
                                       y0, k+init_conc, integrator='cvode', atol=1e-10, rtol=1e-14, first_step=1e-12)
-        if reduced_nsteps[0] > 0:
-            y = np.insert(y, reduced_nsteps[0]-1, init_conc[0] - np.sum(y, axis=1), axis=1)
-        assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=rtols[reduced_nsteps[0]])
+        if reduced > 0:
+            y = np.insert(y, reduced-1, init_conc[0] - np.sum(y, axis=1), axis=1)
+        assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=rtols[reduced])
         assert nfo['success'] == True  # noqa
         assert nfo['nfev'] > 100
         assert nfo['njev'] > 10
