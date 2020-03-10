@@ -160,7 +160,7 @@ def test_get_ode_exprs_ODESys():
 @pycvodes_double
 @pytest.mark.parametrize('reduced_nsteps', [
     (0, [(1, 1705*1.01), (4988*1.01, 1), (200, 1633), (4988*0.69, 1705*0.69)]),  # pays off in steps!
-    (1, [(1, 1563), (100, 1700)]),  # worse than using nothing
+    (1, [(1, 1563*1.1), (100, 1700)]),  # worse than using nothing
     (2, [(1, 1674), (100, 1597*1.01)]),  # no pay back
     (3, [(1, 1591*1.01), (4700, 1), (100, 1600), (4572*0.66, 1100)])  # no pay back
 ])

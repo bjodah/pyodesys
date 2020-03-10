@@ -12,7 +12,7 @@ python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested 
 python3 setup.py sdist
 (cd dist/; python3 -m pip install $PKG_NAME-$(python3 ../setup.py --version).tar.gz)
 python3 -m pip install --upgrade --upgrade-strategy only-if-needed .[all]
-
+python3 -m pytest -xv -k test_integrate_chained_robertson pyodesys/tests/test_robertson.py
 export PYTHONHASHSEED=$(python3 -c "import random; print(random.randint(1,2**32-1))")
 PYTHON="python3 -R" ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 
