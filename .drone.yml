@@ -18,11 +18,11 @@ pipeline:
 
   test-sund-5.1.0-klu:
     group: testing
-    image: bjodah/bjodahimg18dev:v3.0.2
+    image: bjodah/bjodahimg20dev:v1.0.3
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.1.0-klu-lapack
@@ -36,11 +36,11 @@ pipeline:
       
   test-sund-5.1.0-nolapack-noklu-extended:
     group: testing
-    image: bjodah/bjodahimg18dev:v3.0.2
+    image: bjodah/bjodahimg20dev:v1.0.3
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.1.0-noklu-nolapack-extended-int64
@@ -55,11 +55,11 @@ pipeline:
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
 
   test-py2:
-    image: bjodah/bjodahimg18dev:v3.0.2
+    image: bjodah/bjodahimg20dev:v1.0.3
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_71_0/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.1.0-klu-lapack
