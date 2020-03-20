@@ -20,7 +20,7 @@ cd examples/
 PREC=`python3 -c "from pycvodes._config import env; print(env.get('SUNDIALS_PRECISION', 'double'))"`
 set -x
 for ipynb in *.ipynb; do
-    if [[ $ipynb == "_native_standalone.ipynb" ]]; thenn
+    if [[ $ipynb == "_native_standalone.ipynb" ]]; then
         continue  # issue with boost's program options
     fi
     if [[ $PREC != "double" && $ipynb == "_robertson.ipynb" ]]; then
