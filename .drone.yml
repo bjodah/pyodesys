@@ -18,7 +18,7 @@ pipeline:
 
   test-sund-5.1.0-klu:
     group: testing
-    image: bjodah/bjodahimg20dev:v1.0.3
+    image: bjodah/bjodahimg20dev:v1.0.4
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
@@ -36,7 +36,7 @@ pipeline:
       
   test-sund-5.1.0-nolapack-noklu-extended:
     group: testing
-    image: bjodah/bjodahimg20dev:v1.0.3
+    image: bjodah/bjodahimg20dev:v1.0.4
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
@@ -55,7 +55,7 @@ pipeline:
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
 
   test-py2:
-    image: bjodah/bjodahimg20dev:v1.0.3
+    image: bjodah/bjodahimg20dev:v1.0.4
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
