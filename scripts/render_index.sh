@@ -15,6 +15,7 @@ cat <<EOF>index.html
 </head>
 <body>
 EOF
+set -x
 for f in $@; do
     img=$(basename $f .html).png
     wkhtmltopdf $f $tmpdir/$img 1200px*900px
