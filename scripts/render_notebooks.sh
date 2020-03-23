@@ -35,4 +35,4 @@ for ipynb in *.ipynb; do
     #    exit ${QUIET_EXIT_CODE}
     #fi
 done
-../scripts/render_index.sh *.html
+#../scripts/render_index.sh *.html
