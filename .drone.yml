@@ -64,7 +64,7 @@ pipeline:
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.1.0-klu-lapack
     commands:
-      - apt-get update && apt-get install python2-dev
+      - apt-get update && apt-get --assume-yes install python2-dev
       - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
 
 deploy:
