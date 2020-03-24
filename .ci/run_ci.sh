@@ -10,14 +10,15 @@ done
 python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
 
 python3 setup.py sdist
-(cd dist/; python3 -m pip install $PKG_NAME-$(python3 ../setup.py --version).tar.gz)
+PKG_VERSION=$(python3 setup.py --version)
+(cd dist/; python3 -m pip install $PKG_NAME-$PKG_VERSION.tar.gz)
 python3 -m pip install --upgrade --upgrade-strategy only-if-needed .[all]
 python3 -m pytest -xv -k test_integrate_chained_robertson pyodesys/tests/test_robertson.py
 export PYTHONHASHSEED=$(python3 -c "import random; print(random.randint(1,2**32-1))")
 PYTHON="python3 -R" ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 
 ./scripts/render_notebooks.sh
-(cd $PKG_NAME/tests; jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=600 *.ipynb)
+(cd $PKG_NAME/tests; jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=600 *.ipynb)
 ./scripts/generate_docs.sh
 
 # Test package without any 3rd party libraries that are in extras_require:

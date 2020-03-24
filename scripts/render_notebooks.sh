@@ -26,11 +26,13 @@ for ipynb in *.ipynb; do
     if [[ $PREC != "double" && $ipynb == "_robertson.ipynb" ]]; then
         continue
     fi
+    if [[ $ipynb == "_bench_native_odesys_multi.ipynb" ]]; then
+        continue
+    fi
     #quiet_unless_fail
-    jupyter nbconvert --debug --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=900 "${ipynb}" \
-        | grep -v -e "^\[NbConvertApp\] content: {'data':.*'image/png'"
+    jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=900 "${ipynb}"
     #if [ ${QUIET_EXIT_CODE} -ne 0 ]; then
     #    exit ${QUIET_EXIT_CODE}
     #fi
 done
-../scripts/render_index.sh *.html
+#../scripts/render_index.sh *.html

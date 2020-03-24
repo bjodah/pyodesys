@@ -15,9 +15,10 @@ cat <<EOF>index.html
 </head>
 <body>
 EOF
+set -x
 for f in $@; do
     img=$(basename $f .html).png
-    wkhtmltopdf $f $tmpdir/$img 1200px*900px
+    wkhtmltopdf $f $tmpdir/$img  # --crop-w 1200px --crop-h 900px
     convert $tmpdir/$img -resize 400x300 thumbs/$img
     cat <<EOF>>index.html
 <p style='text-align: center'>

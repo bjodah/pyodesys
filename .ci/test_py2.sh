@@ -12,4 +12,4 @@ done
 python2 -m pip install --user virtualenv
 python2 -m virtualenv /tmp/test_py2
 sed -i -E -e "/python_requires/d" setup.py
-bash -c "source /tmp/test_py2/bin/activate; pip install 'numpy<1.17' pytest '.[all]' && pytest -rs --pyargs ${PKG_NAME}"
+bash -c "source /tmp/test_py2/bin/activate; pip install 'numpy<1.17' pytest '.[all]' && pytest -rs --pyargs ${PKG_NAME} -k not test_run_integration"
