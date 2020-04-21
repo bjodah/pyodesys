@@ -38,8 +38,6 @@ pipeline:
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
       - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
-      - ./scripts/grep-for-merge-blocking-token.sh
-      - ./scripts/grep-for-binary-data.sh
       
   test-sund-5.2.0-nolapack-noklu-extended:
     group: testing
@@ -70,6 +68,9 @@ pipeline:
     commands:
       - apt-get update && apt-get --assume-yes install python2-dev
       - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
+      - git clean -xfd
+      - ./scripts/grep-for-merge-blocking-token.sh
+      - ./scripts/grep-for-binary-data.sh
 
 deploy:
 
