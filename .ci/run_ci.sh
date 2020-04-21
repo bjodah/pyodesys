@@ -14,11 +14,10 @@ mkdir -p $HOME/.config/pip/
 echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
 python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
 
-export CFLAGS="-isystem $SUNDBASE/include $CFLAGS"
-export LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $LDFLAGS"
-
-(cd ./tmp/pycvodes; python3 setup.py install)
+(cd ./tmp/pycvodes; CFLAGS="-isystem $SUNDBASE/include $CFLAGS" LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $LDFLAGS" python3 setup.py install)
 git clean -e tmp/ -xfd
+
+export CPATH=$SUNDBASE/include
 
 python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)
