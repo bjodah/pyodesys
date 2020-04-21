@@ -23,7 +23,7 @@ git clean -e tmp/ -xfd
 python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)
 (cd dist/; python3 -m pip install $PKG_NAME-$PKG_VERSION.tar.gz)
-python3 -m pip install -e --upgrade --upgrade-strategy only-if-needed .[all]
+python3 -m pip install -e .[all]
 python3 -m pytest -xv -k test_integrate_chained_robertson pyodesys/tests/test_robertson.py
 export PYTHONHASHSEED=$(python3 -c "import random; print(random.randint(1,2**32-1))")
 PYTHON="python3 -R" ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
