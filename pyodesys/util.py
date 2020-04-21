@@ -245,8 +245,8 @@ class requires(object):
 
 def pycvodes_double(cb):
     try:
-        from pycvodes._config import env
-        prec = env.get('SUNDIALS_PRECISION', 'double')
+        from pycvodes import config
+        prec = config.get('SUNDIALS_PRECISION', 'double')
     except:
         prec = "double"
     r = "Test is designed only for pycvodes built with double precision."
@@ -255,11 +255,11 @@ def pycvodes_double(cb):
 
 def pycvodes_klu(cb):
     try:
-        from pycvodes._config import env
-        no_klu = env['NO_KLU'] == '1'
+        from pycvodes import config
+        klu = env['KLU']
     except (ModuleNotFoundError, ImportError):
-        no_klu = True
-    return pytest.mark.skipif(no_klu,
+        klu = False
+    return pytest.mark.skipif(not klu,
                               reason="Sparse jacobian tests require pycvodes and sundials with KLU enabled.")(cb)
 
 
