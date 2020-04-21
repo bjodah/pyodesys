@@ -18,6 +18,8 @@ python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested 
 git clean -e tmp/ -xfd
 
 export CPATH=$SUNDBASE/include
+export LIBRARY_PATH=$SUNDBASE/lib
+export LD_LIBRARY_PATH=$SUNDBASE/lib
 
 python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)
