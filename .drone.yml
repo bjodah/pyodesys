@@ -16,56 +16,56 @@ pipeline:
       - /tmp/cache:/cache
     ttl: 90  # liftetime in days
 
-  test-sund-5.1.0-klu:
+  get-pre-reqs:
+    image: bjodah/bjodahimg20dev:v1.1.0
+    commands:
+      - mkdir ./tmp
+      - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git ./tmp/pycvodes
+
+  test-sund-5.2.0-klu:
     group: testing
-    image: bjodah/bjodahimg20dev:v1.0.4
+    image: bjodah/bjodahimg20dev:v1.1.0
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
       - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - SUNDBASE=/opt/sundials-5.1.0-klu-lapack
+      - SUNDBASE=/opt/sundials-5.2.0-klu-lapack
     commands:
-      - mkdir -p $HOME/.config/pip/; bash -c 'echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf'
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
       - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
       - ./scripts/grep-for-merge-blocking-token.sh
       - ./scripts/grep-for-binary-data.sh
       
-  test-sund-5.1.0-nolapack-noklu-extended:
+  test-sund-5.2.0-nolapack-noklu-extended:
     group: testing
-    image: bjodah/bjodahimg20dev:v1.0.4
+    image: bjodah/bjodahimg20dev:v1.1.0
     environment:
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
       - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - SUNDBASE=/opt/sundials-5.1.0-noklu-nolapack-extended-int64
+      - SUNDBASE=/opt/sundials-5.2.0-noklu-nolapack-extended-int64
+      - PYCVODES_LAPACK=0
+      - PYCVODES_NO_KLU=1
     commands:
-      # Need to install pycvodes from source for extended precision/int64 test, since
-      # that requires no LAPACK, whereas the pypi version installs with LAPACK
-      - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git /tmp/pycvodes
-      - cd /tmp/pycvodes
-      - LIBRARY_PATH=$SUNDBASE/lib:$LIBRARY_PATH CPATH=$SUNDBASE/include:$CPATH LD_LIBRARY_PATH=$SUNDBASE/lib:$LD_LIBRARY_PATH PYCVODES_LAPACK=0 PYCVODES_NO_KLU=1 python3 setup.py install
-      - cd -
-      - mkdir -p $HOME/.config/pip/; bash -c 'echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf'
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
 
-  # test-py2:
-  #   image: bjodah/bjodahimg20dev:v1.0.4
-  #   environment:
-  #     - OMP_NUM_THREADS=1
-  #     - ANYODE_NUM_THREADS=2
-  #     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
-  #     - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-  #     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-  #     - SUNDBASE=/opt/sundials-5.1.0-klu-lapack
-  #   commands:
-  #     - apt-get update && apt-get --assume-yes install python2-dev
-  #     - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
+  test-py2:
+    image: bjodah/bjodahimg20dev:v1.1.0
+    environment:
+      - OMP_NUM_THREADS=1
+      - ANYODE_NUM_THREADS=2
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
+      - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - SUNDBASE=/opt/sundials-5.2.0-klu-lapack
+    commands:
+      - apt-get update && apt-get --assume-yes install python2-dev
+      - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
 
 deploy:
 

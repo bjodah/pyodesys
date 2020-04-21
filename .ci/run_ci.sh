@@ -1,13 +1,24 @@
 #!/bin/bash -xe
 
+set -u
 export PKG_NAME=$1
+SUNDBASE=$2
+set +u
 
-for p in "${@:2}"
-do
-export CPATH=$p/include:$CPATH LIBRARY_PATH=$p/lib:$LIBRARY_PATH LD_LIBRARY_PATH=$p/lib:$LD_LIBRARY_PATH
-done
+if [ ! -e "$SUNDBASE/include/sundials/sundials_config.h" ]; then
+    >&2 echo "Not a valid prefix for sundials: $SUNDBASE"
+    exit 1
+fi
 
+export CFLAGS="-isystem $SUNDBASE/include $CFLAGS"
+export LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $LDFLAGS"
+
+mkdir -p $HOME/.config/pip/
+echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
 python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
+
+(cd ./tmp/pycvodes; python3 setup.py install)
+git clean -e tmp/ -xfd
 
 python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)
