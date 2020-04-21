@@ -256,7 +256,7 @@ def pycvodes_double(cb):
 def pycvodes_klu(cb):
     try:
         from pycvodes import config
-        klu = env['KLU']
+        klu = config['KLU']
     except (ModuleNotFoundError, ImportError):
         klu = False
     return pytest.mark.skipif(not klu,
