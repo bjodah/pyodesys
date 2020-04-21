@@ -53,7 +53,7 @@ pipeline:
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.2.0-noklu-nolapack-extended-int64
-      - PYCVODES_LAPACK=0
+      - PYCVODES_NO_LAPACK=1
       - PYCVODES_NO_KLU=1
     commands:
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"

@@ -8,7 +8,7 @@ import sys
 from ..util import import_
 from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
-_config, get_include = import_('pycvodes', '_config', 'get_include')
+_config, get_include, _libs = import_('pycvodes', 'config', 'get_include', "_libs")
 
 if sys.version_info < (3, 6, 0):
     class ModuleNotFoundError(ImportError):
@@ -37,13 +37,13 @@ class NativeCvodeCode(_NativeCodeBase):
 
     def __init__(self, *args, **kwargs):
         self.compile_kwargs = copy.deepcopy(_compile_kwargs)
-        self.compile_kwargs['define'] = ['PYCVODES_NO_KLU={}'.format(_config.env.get('NO_KLU', '0')),
-                                         'PYCVODES_NO_LAPACK={}'.format(_config.env.get('NO_LAPACK', '0')),
-                                         'ANYODE_NO_LAPACK={}'.format(_config.env.get('NO_LAPACK', '0'))]
+        self.compile_kwargs['define'] = ['PYCVODES_NO_KLU={}'.format("0" if _config.get('KLU', True) else "1"),
+                                         'PYCVODES_NO_LAPACK={}'.format("0" if _config.get('LAPACK', True) else "1"),
+                                         'ANYODE_NO_LAPACK={}'.format("0" if _config.get('LAPACK', True) else "1")]
         self.compile_kwargs['include_dirs'].append(get_include())
-        self.compile_kwargs['libraries'].extend(_config.env['SUNDIALS_LIBS'].split(','))
-        self.compile_kwargs['libraries'].extend(os.environ.get(
-            'PYODESYS_LAPACK', [l for l in _config.env['LAPACK'].split(',') if l not in ('', '0')]))
+        self.compile_kwargs['libraries'].extend(_libs.get_link_libs().split(','))
+        self.compile_kwargs['libraries'].extend([l for l in os.environ.get(
+            'PYODESYS_LAPACK', "lapack,blas" if _config["LAPACK"] else "").split(",") if l != ""])
         super(NativeCvodeCode, self).__init__(*args, **kwargs)
 
 
