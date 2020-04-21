@@ -41,7 +41,7 @@ class NativeCvodeCode(_NativeCodeBase):
                                          'PYCVODES_NO_LAPACK={}'.format("0" if _config.get('LAPACK', True) else "1"),
                                          'ANYODE_NO_LAPACK={}'.format("0" if _config.get('LAPACK', True) else "1")]
         self.compile_kwargs['include_dirs'].append(get_include())
-        self.compile_kwargs['libraries'].extend(_libs.get_link_libs().split(','))
+        self.compile_kwargs['libraries'].extend(_libs.get_libs().split(','))
         self.compile_kwargs['libraries'].extend([l for l in os.environ.get(
             'PYODESYS_LAPACK', "lapack,blas" if _config["LAPACK"] else "").split(",") if l != ""])
         super(NativeCvodeCode, self).__init__(*args, **kwargs)
