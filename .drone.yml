@@ -25,6 +25,8 @@ pipeline:
   test-py2:  # will drop python2 tests any day now...
     image: bjodah/bjodahimg20dev:v1.1.0
     environment:
+      - CC=gcc-10
+      - CXX=g++-10
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
       - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
