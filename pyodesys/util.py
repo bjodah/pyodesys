@@ -275,6 +275,9 @@ class MissingImport(object):
         else:
             raise self._exc  # ImportError("Failed to import %s" % self._modname)
 
+    def __getitem__(self, key):
+        raise self._exc  # ImportError("Failed to import %s" % self._modname)
+
     def __call__(self, *args, **kwargs):
         raise self._exc  # ImportError("Failed to import %s" % self._modname)
 
