@@ -19,11 +19,11 @@ class NativeCvodeCode(_NativeCodeBase):
     wrapper_name = '_cvode_wrapper'
 
     try:
-        _realtype = _config.env.get('REAL_TYPE', 'double')
-        _indextype = _config.env.get('INDEX_TYPE', 'int')
+        _realtype = _config['REAL_TYPE']
+        _indextype = _config['INDEX_TYPE']
     except ModuleNotFoundError:
-        _realtype = 'double'
-        _indextype = 'int'
+        _realtype = '#error "realtype_failed-to-import-pycvodes-or-too-old-version"'
+        _indextype = '#error "indextype_failed-to-import-pycvodes-or-too-old-version"'
 
     namespace = {
         'p_includes': ['"odesys_anyode_iterative.hpp"'],
