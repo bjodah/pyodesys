@@ -16,11 +16,11 @@ pipeline:
       - /tmp/cache:/cache
     ttl: 90  # liftetime in days
 
-  get-pre-reqs:
-    image: bjodah/bjodahimg20dev:v1.1.0
-    commands:
-      - mkdir ./tmp
-      - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git ./tmp/pycvodes
+  # get-pre-reqs:
+  #   image: bjodah/bjodahimg20dev:v1.1.0
+  #   commands:
+  #     - mkdir ./tmp
+  #     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git ./tmp/pycvodes
 
   # test-py2:
   #   image: bjodah/bjodahimg20dev:v1.1.0
