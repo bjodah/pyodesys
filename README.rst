@@ -10,7 +10,7 @@ pyodesys
 .. image:: https://img.shields.io/pypi/v/pyodesys.svg
    :target: https://pypi.python.org/pypi/pyodesys
    :alt: PyPI version
-.. image:: https://img.shields.io/badge/python-3.6,3.7-blue.svg
+.. image:: https://img.shields.io/badge/python-3.7,3.8-blue.svg
    :target: https://www.python.org/
    :alt: Python version
 .. image:: https://img.shields.io/pypi/l/pyodesys.svg
@@ -91,8 +91,8 @@ To install the optional solvers you will first need to install third party libra
 the solvers and then their python bindings. The 3rd party requirements are as follows:
 
 - pygslodeiv2_ (requires GSL_ >=1.16)
-- pyodeint_ (requires boost_ >=1.65.0)
-- pycvodes_ (requires SUNDIALS_ >=2.7.0)
+- pyodeint_ (requires boost_ >=1.72.0)
+- pycvodes_ (requires SUNDIALS_ >=5.2.0)
 
 .. _GSL: https://www.gnu.org/software/gsl/
 .. _boost: http://www.boost.org/
