@@ -77,7 +77,7 @@ if not len(long_descr) > 100:
 _author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().split('<')
 
 extras_req = {
-    'integrators': ['pyodeint>=0.10.3', 'pycvodes>=0.13', 'pygslodeiv2>=0.9.3'],
+    'integrators': ['pyodeint>=0.10.3', 'pycvodes>=0.13.1', 'pygslodeiv2>=0.9.3'],
     'native': ['pycompilation>=0.4.3', 'pycodeexport>=0.1.2', 'appdirs'],
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
     'testing': ['pytest', 'pytest-cov', 'pytest-flakes', 'pytest-pep8', 'rstcheck']

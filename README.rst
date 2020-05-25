@@ -92,7 +92,7 @@ the solvers and then their python bindings. The 3rd party requirements are as fo
 
 - pygslodeiv2_ (requires GSL_ >=1.16)
 - pyodeint_ (requires boost_ >=1.72.0)
-- pycvodes_ (requires SUNDIALS_ >=5.2.0)
+- pycvodes_ (requires SUNDIALS_ >=5.3.0)
 
 .. _GSL: https://www.gnu.org/software/gsl/
 .. _boost: http://www.boost.org/

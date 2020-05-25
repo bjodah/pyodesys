@@ -18,9 +18,9 @@ python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested 
 CFLAGS="-isystem $SUNDBASE/include $CFLAGS" LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $LDFLAGS" python3 -m pip install pycvodes # setup.py install )
 git clean -xfd # -e tmp/
 
-export CPATH=$SUNDBASE/include
-export LIBRARY_PATH=$SUNDBASE/lib
-export LD_LIBRARY_PATH=$SUNDBASE/lib
+# export CPATH=$SUNDBASE/include
+# export LIBRARY_PATH=$SUNDBASE/lib
+# export LD_LIBRARY_PATH=$SUNDBASE/lib
 
 python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)
