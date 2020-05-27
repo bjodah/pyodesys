@@ -78,7 +78,7 @@ _author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().spl
 
 extras_req = {
     'integrators': ['pyodeint>=0.10.3', 'pycvodes>=0.13.1', 'pygslodeiv2>=0.9.3'],
-    'native': ['pycompilation>=0.4.3', 'pycodeexport>=0.1.2', 'appdirs'],
+    'native': ['pycompilation>=0.4.8', 'pycodeexport>=0.1.2', 'appdirs'],
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
     'testing': ['pytest', 'pytest-cov', 'pytest-flakes', 'pytest-pep8', 'rstcheck']
 }
