@@ -80,6 +80,10 @@ class _NativeCodeBase(Cpp_Code):
     # `namespace_extend` is set in init
 
     def __init__(self, odesys, *args, **kwargs):
+        if Cpp_Code is object:
+            raise ModuleNotFoundError("failed to import Cpp_Code from pycodeexport")
+        if compile_sources is None:
+            raise ModuleNotFoundError("failed to import compile_sources from pycompilation")
         if odesys.nroots > 0 and not self._support_roots:
             raise ValueError("%s does not support nroots > 0" % self.__class__.__name__)
         self.namespace_override = kwargs.pop('namespace_override', {})

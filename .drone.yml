@@ -17,55 +17,55 @@ pipeline:
     ttl: 90  # liftetime in days
 
   # get-pre-reqs:
-  #   image: bjodah/bjodahimg20dev:v1.1.0
+  #   image: bjodah/bjodahimg20dev:v1.2.0
   #   commands:
   #     - mkdir ./tmp
   #     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git ./tmp/pycvodes
 
   # test-py2:
-  #   image: bjodah/bjodahimg20dev:v1.1.0
+  #   image: bjodah/bjodahimg20dev:v1.2.0
   #   environment:
   #     - CC=gcc-10
   #     - CXX=g++-10
   #     - OMP_NUM_THREADS=1
   #     - ANYODE_NUM_THREADS=2
-  #     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
+  #     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_73_p/include
   #     - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   #     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-  #     - SUNDBASE=/opt/sundials-5.2.0-klu-lapack
+  #     - SUNDBASE=/opt/sundials-5.3.0-klu-lapack
   #   commands:
   #     - apt-get update && apt-get --assume-yes install python2-dev
   #     - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
 
-  test-sund-5.2.0-klu:
+  test-sund-5.3.0-klu:
     group: testing
-    image: bjodah/bjodahimg20dev:v1.1.0
+    image: bjodah/bjodahimg20dev:v1.2.0
     environment:
       - CC=gcc-10
       - CXX=g++-10
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_73_p/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - SUNDBASE=/opt/sundials-5.2.0-klu-lapack
+      - SUNDBASE=/opt/sundials-5.3.0-klu-lapack
     commands:
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
       - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
       
-  test-sund-5.2.0-nolapack-noklu-extended:
+  test-sund-5.3.0-nolapack-noklu-extended:
     group: testing
-    image: bjodah/bjodahimg20dev:v1.1.0
+    image: bjodah/bjodahimg20dev:v1.2.0
     environment:
       - CC=gcc-10
       - CXX=g++-10
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_72_p/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_73_p/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - SUNDBASE=/opt/sundials-5.2.0-noklu-nolapack-extended-int64
+      - SUNDBASE=/opt/sundials-5.3.0-noklu-nolapack-extended-int64
       - PYCVODES_NO_LAPACK=1
       - PYCVODES_NO_KLU=1
     commands:
