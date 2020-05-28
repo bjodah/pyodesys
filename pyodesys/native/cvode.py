@@ -8,7 +8,6 @@ import sys
 from ..util import import_
 from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
 
-#_config, get_include, _libs = import_('pycvodes', 'config', 'get_include', "_libs")
 get_include, config, _libs = import_("pycvodes", "get_include", "config", "_libs")
 
 if sys.version_info < (3, 6, 0):
