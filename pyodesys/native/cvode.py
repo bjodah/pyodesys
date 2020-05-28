@@ -44,6 +44,8 @@ class NativeCvodeCode(_NativeCodeBase):
         self.compile_kwargs['libraries'].extend(_libs.get_libs().split(','))
         self.compile_kwargs['libraries'].extend([l for l in os.environ.get(
             'PYODESYS_LAPACK', "lapack,blas" if config["LAPACK"] else "").split(",") if l != ""])
+        self.compile_kwargs['flags'] = [f for f in os.environ.get("PYODESYS_CVODE_FLAGS", "").split() if f]
+        self.compile_kwargs['ldflags'] = [f for f in os.environ.get("PYODESYS_CVODE_LDFLAGS", "").split() if f]
         super(NativeCvodeCode, self).__init__(*args, **kwargs)
 
 
