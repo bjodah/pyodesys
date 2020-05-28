@@ -1,3 +1,7 @@
+v0.13.1
+=======
+- Allow CFLAGS/LDFLAGS to be passed to cvode backend through PYODESYS_CVODE_{FLAGS,LDFLAGS}
+
 v0.13.0
 =======
 - Use sundials>=5.1.0 & pycvodes>=0.12.0
