@@ -57,31 +57,35 @@ namespace odesys_anyode {
         realtype get_dx_max(realtype, const realtype * const) override;
         realtype max_euler_step(realtype, const realtype * const);
         AnyODE::Status rhs(realtype t,
-                           const realtype * const __restrict__ y,
-                           realtype * const __restrict__ f) override;
+                           const realtype * const ANYODE_RESTRICT y,
+                           realtype * const ANYODE_RESTRICT f) override;
         AnyODE::Status dense_jac_cmaj(realtype t,
-                                      const realtype * const __restrict__ y,
-                                      const realtype * const __restrict__ fy,
-                                      realtype * const __restrict__ jac,
+                                      const realtype * const ANYODE_RESTRICT y,
+                                      const realtype * const ANYODE_RESTRICT fy,
+                                      realtype * const ANYODE_RESTRICT jac,
                                       long int ldim,
-                                      realtype * const __restrict__ dfdt=nullptr) override;
+                                      realtype * const ANYODE_RESTRICT dfdt=nullptr) override;
         AnyODE::Status dense_jac_rmaj(realtype t,
-                                      const realtype * const __restrict__ y,
-                                      const realtype * const __restrict__ fy,
-                                      realtype * const __restrict__ jac,
+                                      const realtype * const ANYODE_RESTRICT y,
+                                      const realtype * const ANYODE_RESTRICT fy,
+                                      realtype * const ANYODE_RESTRICT jac,
                                       long int ldim,
-                                      realtype * const __restrict__ dfdt=nullptr) override;
+                                      realtype * const ANYODE_RESTRICT dfdt=nullptr) override;
         AnyODE::Status sparse_jac_csc(realtype t,
-                                      const realtype * const __restrict__ y,
-                                      const realtype * const __restrict__ fy,
-                                      realtype * const __restrict__ data,
-                                      indextype * const __restrict__ colptrs,
-                                      indextype * const __restrict__ rowvals) override;
-        AnyODE::Status jtimes(const realtype * const __restrict__ vec,
-                              realtype * const __restrict__ out,
+                                      const realtype * const ANYODE_RESTRICT y,
+                                      const realtype * const ANYODE_RESTRICT fy,
+                                      realtype * const ANYODE_RESTRICT data,
+                                      indextype * const ANYODE_RESTRICT colptrs,
+                                      indextype * const ANYODE_RESTRICT rowvals) override;
+        AnyODE::Status jtimes(const realtype * const ANYODE_RESTRICT vec,
+                              realtype * const ANYODE_RESTRICT out,
                               realtype t,
-                              const realtype * const __restrict__ y,
-                              const realtype * const __restrict__ fy) override;
+                              const realtype * const ANYODE_RESTRICT y,
+                              const realtype * const ANYODE_RESTRICT fy) override;
+
+        AnyODE::Status jtimes_setup(realtype /*t*/,
+                                    const realtype * const ANYODE_RESTRICT /*y*/,
+                                    const realtype * const ANYODE_RESTRICT /*fy*/) override;
         AnyODE::Status roots(realtype t, const realtype * const y, realtype * const out) override;
     };
 
@@ -141,8 +145,8 @@ namespace odesys_anyode {
     }
 
     AnyODE::Status OdeSys<realtype, indextype>::rhs(realtype x,
-                               const realtype * const __restrict__ y,
-                               realtype * const __restrict__ f) {
+                               const realtype * const ANYODE_RESTRICT y,
+                               realtype * const ANYODE_RESTRICT f) {
     %if isinstance(p_rhs, str):
         ${p_rhs}
     %else:
@@ -199,12 +203,20 @@ namespace odesys_anyode {
     %endif
     }
 
+
+    AnyODE::Status OdeSys<realtype, indextype>::jtimes_setup(
+        realtype /*t*/,
+        const realtype * const ANYODE_RESTRICT /*y*/,
+        const realtype * const ANYODE_RESTRICT /*fy*/) {
+        throw std::runtime_error("jtimes_setup not implemented");
+    }
+
     AnyODE::Status OdeSys<realtype, indextype>::jtimes(
-                                  const realtype * const __restrict__ v,
-                                  realtype * const __restrict__ Jv,
+                                  const realtype * const ANYODE_RESTRICT v,
+                                  realtype * const ANYODE_RESTRICT Jv,
                                   realtype x,
-                                  const realtype * const __restrict__ y,
-                                  const realtype * const __restrict__ fy) {
+                                  const realtype * const ANYODE_RESTRICT y,
+                                  const realtype * const ANYODE_RESTRICT fy) {
     %if p_jtimes is not None:
     %if isinstance(p_jtimes, str):
         ${p_jtimes}
@@ -233,11 +245,11 @@ namespace odesys_anyode {
 
     %for order in ('cmaj', 'rmaj'):
     AnyODE::Status OdeSys<realtype, indextype>::dense_jac_${order}(realtype x,
-                                          const realtype * const __restrict__ y,
-                                          const realtype * const __restrict__ fy,
-                                          realtype * const __restrict__ jac,
+                                          const realtype * const ANYODE_RESTRICT y,
+                                          const realtype * const ANYODE_RESTRICT fy,
+                                          realtype * const ANYODE_RESTRICT jac,
                                           long int ldim,
-                                          realtype * const __restrict__ dfdt) {
+                                          realtype * const ANYODE_RESTRICT dfdt) {
     %if p_jac_dense is not None:
     %if order in p_jac_dense:
         ${p_jac_dense[order]}
@@ -297,11 +309,11 @@ namespace odesys_anyode {
     }
 
     AnyODE::Status OdeSys<realtype, indextype>::sparse_jac_csc(realtype x,
-                                                               const realtype * const __restrict__ y,
-                                                               const realtype * const __restrict__ fy,
-                                                               realtype * const __restrict__ data,
-                                                               indextype * const __restrict__ colptrs,
-                                                               indextype * const __restrict__ rowvals) {
+                                                               const realtype * const ANYODE_RESTRICT y,
+                                                               const realtype * const ANYODE_RESTRICT fy,
+                                                               realtype * const ANYODE_RESTRICT data,
+                                                               indextype * const ANYODE_RESTRICT colptrs,
+                                                               indextype * const ANYODE_RESTRICT rowvals) {
     %if p_jac_sparse is not None:
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
         ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}

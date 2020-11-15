@@ -119,7 +119,7 @@ def test_get_ode_exprs_symbolic():
                       atol=1e-8, rtol=1e-10, extra_forgive=2, first_step=1e-14)
         if reduced == 3:
             _test_goe(symbolic=True, reduced=reduced, logc=True, logt=True, zero_conc=1e-18,
-                      zero_time=1e-12, atol=1e-12, rtol=1e-10, extra_forgive=1e-4)  # note extra_forgive
+                      zero_time=1e-12, atol=1e-12, rtol=1e-10, extra_forgive=2e-4)  # note extra_forgive
 
         if reduced != 3:
             _test_goe(symbolic=True, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
@@ -182,11 +182,13 @@ def test_integrate_chained_robertson(reduced_nsteps):
     k = (.04, 1e4, 3e7)
     for nsteps in all_nsteps:
         y0 = [_ for i, _ in enumerate(init_conc) if i != reduced - 1]
+        #_atol = [1e-18, 1e-24, 1e-10]
+        _atol = [1e-10]*3
         x, y, nfo = integrate_chained(odes, {'nsteps': nsteps, 'return_on_error': [True, False]}, (zero_time, 1e11),
-                                      y0, k+init_conc, integrator='cvode', atol=1e-10, rtol=1e-14, first_step=1e-12)
+                                      y0, k+init_conc, integrator='cvode', atol=[at for i, at in enumerate(_atol) if i != reduced - 1], rtol=1e-14, first_step=1e-12)
         if reduced > 0:
             y = np.insert(y, reduced-1, init_conc[0] - np.sum(y, axis=1), axis=1)
-        assert np.allclose(_yref_1e11, y[-1, :], atol=1e-16, rtol=rtols[reduced])
+        assert np.allclose(_yref_1e11, y[-1, :], atol=_atol, rtol=rtols[reduced])
         assert nfo['success'] == True  # noqa
         assert nfo['nfev'] > 100
         assert nfo['njev'] > 10
