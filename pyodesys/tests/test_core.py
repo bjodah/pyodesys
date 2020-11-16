@@ -354,7 +354,6 @@ def decay_factory(ny):
     return f, j, dfdt
 
 
-@pytest.mark.slow
 @requires('pyodeint', 'scipy')
 def test_par_by_name__multi():
     from scipy.special import binom
