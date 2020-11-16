@@ -21,7 +21,7 @@ if [[ "$DOCKERIMAGE" == ./* ]]; then
     DOCKERIMAGE=$(sudo docker build $DOCKERIMAGE | tee /dev/tty | tail -1 | cut -d' ' -f3)
 fi
 if [[ "$PORT" == "0" ]]; then
-    LOCALCMD="pytest -rs --pyargs pyodesys --slow --veryslow"
+    LOCALCMD="pytest -rs --pyargs pyodesys"
     PORTFWD=""
 else
     LOCALCMD="jupyter notebook --no-browser --port $PORT --ip=* --notebook-dir examples"
