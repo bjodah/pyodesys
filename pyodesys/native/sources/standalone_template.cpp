@@ -26,7 +26,7 @@ int main(int argc, char *argv[]){
         ("return-on-root", po::value<bool>()->default_value(false), "Return on root")
         ("autorestart", po::value<int>()->default_value(0), "Autorestart (autonomous)")
         ("return-on-error", po::value<bool>()->default_value(false), "Return on error")
-        ("with-jtimes", po::value<bool>()->default_value(false), "With jtimes")
+        ("with-jtimes", po::value<int>()->default_value(0), "With jtimes")
         ("get-dx-max-factor", po::value<realtype>()->default_value(1.0), "get_dx_max multiplicative factor")
         ("error-outside-bounds", po::value<bool>()->default_value(false), "Return recoverable error to solver when outside bounds")
         ("max-invariant-violation", po::value<realtype>()->default_value(0.0), "Limit at which to return recoverable error when supported by integrator.")
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]){
     bool return_on_root(vm["return-on-root"].as<bool>());
     int autorestart(vm["autorestart"].as<int>());
     bool return_on_error(vm["return-on-error"].as<bool>());
-    bool with_jtimes(vm["with-jtimes"].as<bool>());
+    bool with_jtimes(vm["with-jtimes"].as<int>());
 
     std::vector<realtype> params;
     const realtype get_dx_max_factor(vm["get-dx-max-factor"].as<realtype>());

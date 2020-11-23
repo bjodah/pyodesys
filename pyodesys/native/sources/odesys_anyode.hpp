@@ -24,25 +24,28 @@ template<typename Real_t=double, typename Index_t=int>
         Real_t get_dx0(Real_t, const Real_t * const) override;
         Real_t get_dx_max(Real_t, const Real_t * const) override;
         AnyODE::Status rhs(Real_t x,
-                           const Real_t * const __restrict__ y,
-                           Real_t * const __restrict__ f) override;
-        AnyODE::Status jtimes(const Real_t * const __restrict__ v,
-                              Real_t * const __restrict__ Jv,
+                           const Real_t * const y,
+                           Real_t * const f) override;
+        AnyODE::Status jtimes(const Real_t * const v,
+                              Real_t * const Jv,
                               Real_t x,
-                              const Real_t * const __restrict__ y,
-                              const Real_t * const __restrict__ fy) override;
+                              const Real_t * const y,
+                              const Real_t * const fy) override;
+        AnyODE::Status jtimes_setup(Real_t t,
+                          const Real_t * const y,
+                          const Real_t * const fy) override;
         AnyODE::Status dense_jac_cmaj(Real_t x,
-                                      const Real_t * const __restrict__ y,
-                                      const Real_t * const __restrict__ fy,
-                                      Real_t * const __restrict__ jac,
+                                      const Real_t * const y,
+                                      const Real_t * const fy,
+                                      Real_t * const jac,
                                       long int ldim,
-                                      Real_t * const __restrict__ dfdt=nullptr) override;
+                                      Real_t * const dfdt=nullptr) override;
         AnyODE::Status dense_jac_rmaj(Real_t x,
-                                      const Real_t * const __restrict__ y,
-                                      const Real_t * const __restrict__ fy,
-                                      Real_t * const __restrict__ jac,
+                                      const Real_t * const y,
+                                      const Real_t * const fy,
+                                      Real_t * const jac,
                                       long int ldim,
-                                      Real_t * const __restrict__ dfdt=nullptr) override;
+                                      Real_t * const dfdt=nullptr) override;
         AnyODE::Status roots(Real_t x, const Real_t * const y, Real_t * const out) override;
     };
 }
