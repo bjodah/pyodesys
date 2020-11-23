@@ -20,7 +20,7 @@ PKG=$(find . -maxdepth 2 -name __init__.py -print0 | xargs -0 -n1 dirname | xarg
 ! grep --include "*.py" "will_be_missing_in='$VERSION'" -R $PKG/  # see deprecation()
 PKG_UPPER=$(echo $PKG | tr '[:lower:]' '[:upper:]')
 MPLBACKEND=Agg ./scripts/run_tests.sh
-env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION python setup.py sdist
+env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION ${PYTHON:-python3} setup.py sdist
 env ${PKG_UPPER}_RELEASE_VERSION=v$VERSION ./scripts/generate_docs.sh
 
 # All went well, add a tag and push it.

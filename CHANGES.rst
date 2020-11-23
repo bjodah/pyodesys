@@ -1,3 +1,7 @@
+v0.14.0
+=======
+- Update AnyODE to new upstream version.
+
 v0.13.1
 =======
 - Allow CFLAGS/LDFLAGS to be passed to cvode backend through PYODESYS_CVODE_{FLAGS,LDFLAGS}
