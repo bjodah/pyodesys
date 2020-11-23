@@ -10,7 +10,6 @@ jobs:
       - run: conda update python
       - run: conda install conda-build
       - run: conda config --add channels conda-forge
-      - run: conda config --add channels bjodah
       - run: conda config --set show_channel_urls true
       - run: conda config --set always_yes yes
       - run: conda build conda-recipe
