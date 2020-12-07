@@ -170,3 +170,46 @@ class Trapezoidal_example_integrator:
             yout.append((ynew + y + euler_fw_dy)/2)
             x_old = x
         return np.array(yout), {'nfev': (len(xout)-1)}
+
+
+class BDF2FVC_example_integrator(EulerBackward_example_integrator):
+
+    @staticmethod
+    def integrate_predefined(rhs, jac, y0, xout, tol_iter=1e-12, iter_max=20, **kwargs):
+        if kwargs:
+            warnings.warn("Ignoring keyword-argumtents: %s" % ', '.join(kwargs.keys()))
+        yout = [y0[:], Trapezoidal_example_integrator.integrate_predefined(
+            rhs, jac, y0, xout[:2], **kwargs
+        )[0][1,:]]
+        ny = len(y0)
+        assert len(yout) == 2 and yout[1].shape == (ny,)
+        x_old = xout[1]
+        h_old = xout[1] - xout[0]
+        f = np.empty(ny)
+        J = np.empty((ny, ny))
+        I = np.eye(ny)
+        for i, x in enumerate(xout[2:], 2):
+            jac(x_old, yout[-1], J)
+            h = x - x_old
+            rho = h/h_old
+            # https://computing.llnl.gov/projects/parallel-time-integration-multigrid/2017_BDF_Paper_v1.pdf
+            # Page 9, Table 2, FVC:
+            beta0 = (rho+1)/(2*rho+1)
+            alpha1 = -(rho+1)**2/(2*rho+1)
+            alpha2 = rho**2/(2*rho+1)
+            gamma = beta0*h
+            lu_piv = lu_factor(gamma*J - I)
+            rhs(x, yout[-1], f)
+            ynew = yout[-1] + beta0*h*f - alpha1*yout[-1] - alpha2*yout[-2]
+            norm_delta_ynew = float('inf')
+            iiter = 0
+            while norm_delta_ynew > tol_iter and iiter < iter_max:
+                rhs(x, ynew, f)
+                delta_ynew = lu_solve(lu_piv, ynew - alpha1*yout[-1] - alpha2*yout[-2] - beta0*h*f)
+                ynew += delta_ynew
+                norm_delta_ynew = np.sqrt(np.sum(np.square(delta_ynew))/ny)
+                iiter += 1
+            yout.append(ynew)
+            x_old = x
+            h_old = h
+        return np.array(yout), {'nfev': (len(xout)-1)}
