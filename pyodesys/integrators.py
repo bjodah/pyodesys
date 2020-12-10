@@ -209,24 +209,24 @@ class BDF2FVC_example_integrator(EulerBackward_example_integrator):
             #  2. loop: y₀ ← y₀ - J⁻¹g (corrector)
 
             lu_piv = lu_factor(I - gamma*J)
-            print(i, t, yout[-1]) # ,f)##DO-NOT-MERGE!!!
+            #print(i, t, yout[-1]) # ,f)
             pred = predictor.integrate_predefined(rhs, jac, yout[-1], tout[i-1:i+1], **kwargs)[0]
             assert len(pred) == 2 and pred[1].shape == (ny,)
             ynew = pred[1]  # predictor
-            print(f"   rho={rho}, a1={alpha1}, a2={alpha2}, gamma={gamma}, ynew={ynew}")##DO-NOT-MERGE!!!
+            #print(f"   rho={rho}, a1={alpha1}, a2={alpha2}, gamma={gamma}, ynew={ynew}")
             norm_delta_ynew = float('inf')
             for iiter in range(iter_max):
                 rhs(t, ynew, f)
-                delta_ynew = lu_solve(lu_piv, ynew + alpha1*yout[-1] + alpha2*yout[-2] + gamma*f)
+                g = ynew + alpha1*yout[-1] + alpha2*yout[-2] - gamma*f
+                delta_ynew = lu_solve(lu_piv, g)
                 ynew -= delta_ynew
                 norm_delta_ynew = np.sqrt(np.sum(np.square(delta_ynew))/ny)
-                print("   %d %s %s" % (iiter, str(norm_delta_ynew), str(delta_ynew)))##DO-NOT-MERGE!!!
+                #print(f"    {iiter:4d} g={g} d={delta_ynew} |d|={norm_delta_ynew}")
                 if norm_delta_ynew < tol_iter:
                     break
             else:
-                print("FAILURE")##DO-NOT-MERGE!!!
+                print("FAILURE")
                 return np.array(yout), dict(success=False)
-
             yout.append(ynew)
             t_old = t
             h_old = h
