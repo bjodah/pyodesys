@@ -176,7 +176,7 @@ class BDF2FVC_example_integrator(EulerBackward_example_integrator):
 
     @staticmethod
     def integrate_predefined(rhs, jac, y0, tout, tol_iter=1e-12, iter_max=20,
-                             predictor=EulerForward_example_integrator,
+                             predictor=None,
                              **kwargs):
         if kwargs:
             warnings.warn("Ignoring keyword-argumtents: %s" % ', '.join(kwargs.keys()))
@@ -210,9 +210,12 @@ class BDF2FVC_example_integrator(EulerBackward_example_integrator):
 
             lu_piv = lu_factor(I - gamma*J)
             #print(i, t, yout[-1]) # ,f)
-            pred = predictor.integrate_predefined(rhs, jac, yout[-1], tout[i-1:i+1], **kwargs)[0]
-            assert len(pred) == 2 and pred[1].shape == (ny,)
-            ynew = pred[1]  # predictor
+            if predictor is None:
+                ynew = yout[-1]
+            else:
+                pred = predictor.integrate_predefined(rhs, jac, yout[-1], tout[i-1:i+1], **kwargs)[0]
+                assert len(pred) == 2 and pred[1].shape == (ny,)
+                ynew = pred[1]  # predictor
             #print(f"   rho={rho}, a1={alpha1}, a2={alpha2}, gamma={gamma}, ynew={ynew}")
             norm_delta_ynew = float('inf')
             for iiter in range(iter_max):
