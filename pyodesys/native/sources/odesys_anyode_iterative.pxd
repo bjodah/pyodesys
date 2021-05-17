@@ -6,7 +6,7 @@ from libcpp.string cimport string
 from libcpp.unordered_map cimport unordered_map
 from libcpp.vector cimport vector
 
-from anyode cimport Info
+from anyode cimport Info, Status
 
 cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
     cdef cppclass OdeSys[Real_t, Index_t]:
