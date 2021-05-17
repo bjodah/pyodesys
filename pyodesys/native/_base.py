@@ -305,6 +305,9 @@ class _NativeSysBase(SymbolicSys):
 
         return super(_NativeSysBase, self).integrate(*args, **kwargs)
 
+    def rhs(self, intern_t, intern_y, intern_p):
+        return self._native.mod.rhs(intern_t, intern_y, intern_p)
+
     def _integrate_native(self, intern_x, intern_y0, intern_p, force_predefined=False,
                           atol=1e-8, rtol=1e-8, nsteps=500, first_step=0.0, **kwargs):
         atol = np.atleast_1d(atol)
