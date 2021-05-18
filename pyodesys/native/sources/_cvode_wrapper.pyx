@@ -75,9 +75,12 @@ def _as_dict(unordered_map[string, int] nfo,
     return dct
 
 
-def rhs(floating t, floating [:] y, floating [:] p):
+def rhs(double t, floating [:] y, floating [:] p):
     cdef:
+    #cnp.ndarray[realtype, ndim=1, mode='c'] t_arr = np.asarray(t, dtype=dtype)
+        cnp.ndarray[realtype, ndim=1, mode='c'] y_arr = np.asarray(y, dtype=dtype)
         cnp.ndarray[realtype, ndim=1, mode='c'] fout = np.zeros(y.size, dtype=dtype)
+        cnp.ndarray[realtype, ndim=1, mode='c'] params_arr = np.asarray(p, dtype=dtype)
         realtype rtol = 1e-9
         vector[realtype] atol_vec
         vector[realtype] special_settings_vec
@@ -85,13 +88,15 @@ def rhs(floating t, floating [:] y, floating [:] p):
         bool error_outside_bounds = True
         realtype max_invariant_violation = 1.0
     atol_vec.resize(y.size, 1.0)
+    #assert t_arr.size == 1
     cdef CvodesOdeSys * odesys = new CvodesOdeSys(
-        <realtype *>(NULL) if params.shape[0] == 0 else &params_arr[0],
-        atol.data(),
+        #<realtype *>(NULL) if p.shape[0] == 0 else
+        <realtype *>params_arr.data,
+        atol_vec,
         rtol,
         get_dx_max_factor, error_outside_bounds,
         max_invariant_violation, special_settings_vec)
-    odesys.rhs(t, &y[0], &fout[0])
+    odesys.rhs(<realtype>t, <realtype*>y_arr.data, &fout[0])
     del odesys
     return fout
 

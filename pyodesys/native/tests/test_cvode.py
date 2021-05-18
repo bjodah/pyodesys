@@ -148,7 +148,7 @@ def test_NativeSys__roots():
         assert result.info['success'] == True  # noqa
         assert np.min(np.abs(result.xout - 1)) < 1e-11
 
-    f_out = oodesys.rhs(0, np.array([2.0]), np.array([]))
+    f_out = odesys.rhs(np.array(0.0, dtype=np.float64), np.array([2.0]), np.array([], dtype=np.float64))
     assert f_out.size == 1 and np.all(f_out == 2.0)
 
 
