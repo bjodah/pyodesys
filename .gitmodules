@@ -1,3 +1,4 @@
 [submodule "external/anyode"]
 	path = external/anyode
 	url = git://github.com/bjodah/anyode
+        branch = master
