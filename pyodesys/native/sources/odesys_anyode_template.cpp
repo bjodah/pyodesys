@@ -166,7 +166,7 @@ namespace odesys_anyode {
                     if (y[i] < m_lower_bounds[i]) {
                         std::cerr << "Lower bound (" << m_lower_bounds[0] << ") for "
                                   << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
-                                  << " exceeded (" << y[i] << ") at x="<< x << "\n";
+                                  << " not fulfilled (" << y[i] << ") at x="<< x << "\n";
                         return AnyODE::Status::recoverable_error;
                     }
                 }
@@ -361,6 +361,7 @@ namespace odesys_anyode {
             }
         }
         const auto result = *std::min_element(std::begin(hvec), std::end(hvec));
+        std::cerr << "get_dx_max: " << result << std::endl; //DO-NOT-MERGE!!!
         if (m_get_dx_max_factor == 0.0)
             return result;
         else if (m_get_dx_max_factor < 0.0)
