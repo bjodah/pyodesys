@@ -308,6 +308,9 @@ class Result(object):
                     new_info[k] = [new_info[k]]
                 new_info[k].append(v)
             else:
-                new_info[k] += v
+                try:
+                    new_info[k] += v
+                except TypeError:
+                    new_info[k] = v
         self.info = new_info
         return self
