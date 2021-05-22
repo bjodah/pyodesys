@@ -100,6 +100,31 @@ def rhs(double t, floating [:] y, floating [:] p):
     del odesys
     return fout
 
+def dense_jac_cmaj(double t, floating [:] y, floating [:] p):
+    cdef:
+    #cnp.ndarray[realtype, ndim=1, mode='c'] t_arr = np.asarray(t, dtype=dtype)
+        cnp.ndarray[realtype, ndim=1, mode='c'] y_arr = np.asarray(y, dtype=dtype)
+        cnp.ndarray[realtype, ndim=2, mode='fortran'] j_out = np.zeros((y.size, y.size), dtype=dtype, order='F')
+        cnp.ndarray[realtype, ndim=1, mode='c'] params_arr = np.asarray(p, dtype=dtype)
+        realtype rtol = 1e-9
+        vector[realtype] atol_vec
+        vector[realtype] special_settings_vec
+        realtype get_dx_max_factor = 1.0
+        bool error_outside_bounds = True
+        realtype max_invariant_violation = 1.0
+    atol_vec.resize(y.size, 1.0)
+    #assert t_arr.size == 1
+    cdef CvodesOdeSys * odesys = new CvodesOdeSys(
+        #<realtype *>(NULL) if p.shape[0] == 0 else
+        <realtype *>params_arr.data,
+        atol_vec,
+        rtol,
+        get_dx_max_factor, error_outside_bounds,
+        max_invariant_violation, special_settings_vec)
+    odesys.dense_jac_cmaj(<realtype>t, <realtype*>y_arr.data, NULL, &j_out[0,0], y.size)
+    del odesys
+    return j_out
+
 def integrate_adaptive(floating [:, ::1] y0,
                        floating [::1] x0,
                        floating [::1] xend,

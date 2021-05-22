@@ -15,4 +15,4 @@ cdef extern from "odesys_anyode.hpp" namespace "odesys_anyode":
         Index_t get_ny() nogil
         Real_t get_dx0(Real_t, const Real_t * const) nogil
         unsigned nfev, njev, njvev
-        Info current_info        
+        Info current_info

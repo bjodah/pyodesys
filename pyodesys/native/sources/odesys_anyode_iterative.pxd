@@ -19,3 +19,8 @@ cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
         bool record_order
         bool record_fpe
         Status rhs(Real_t t, const Real_t * const y, Real_t * const f) except +
+        Status dense_jac_cmaj(Real_t t,
+                              const Real_t * const y,
+                              const Real_t * const fy,
+                              Real_t * const jac,
+                              long int ldim) except +
