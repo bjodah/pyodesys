@@ -233,7 +233,7 @@ class Result(object):
         ax = self._plot(plot_result, **kwargs)
         if title_info:
             ax.set_title(
-                (self.odesys.description or '') +
+                (getattr(self.odesys, 'description', None) or '') +
                 ', '.join(
                     (['%d steps' % self.info['n_steps']] if self.info.get('n_steps', -1) >= 0 else []) +
                     [
