@@ -79,13 +79,16 @@ class _NativeCodeBase(Cpp_Code):
     # `namespace_override` is set in init
     # `namespace_extend` is set in init
 
-    def __init__(self, odesys, *args, **kwargs):
+    def __init__(self, odesys, *args, use_cse=None, **kwargs):
         if Cpp_Code is object:
             raise ModuleNotFoundError("failed to import Cpp_Code from pycodeexport")
         if compile_sources is None:
             raise ModuleNotFoundError("failed to import compile_sources from pycompilation")
         if odesys.nroots > 0 and not self._support_roots:
             raise ValueError("%s does not support nroots > 0" % self.__class__.__name__)
+        if use_cse is None:
+            use_cse = os.getenv('PYODESYS_NATIVE_CSE', '1') == '1'
+        self.use_cse = use_cse
         self.namespace_override = kwargs.pop('namespace_override', {})
         self.namespace_extend = kwargs.pop('namespace_extend', {})
         self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
@@ -170,7 +173,7 @@ class _NativeCodeBase(Cpp_Code):
         def _ccode(expr):
             return self.odesys.be.ccode(expr.xreplace(subsd))
 
-        if os.getenv('PYODESYS_NATIVE_CSE', '1') == '1':
+        if self.use_cse:
             cse_cb = self.odesys.be.cse
         else:
             logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
@@ -284,7 +287,7 @@ class _NativeSysBase(SymbolicSys):
     _NativeCode = None
     _native_name = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, native_code_kw=None, **kwargs):
         namespace_override = kwargs.pop('namespace_override', {})
         namespace_extend = kwargs.pop('namespace_extend', {})
         save_temp = kwargs.pop('save_temp', False)
@@ -294,7 +297,8 @@ class _NativeSysBase(SymbolicSys):
         super(_NativeSysBase, self).__init__(*args, **kwargs)
         self._native = self._NativeCode(self, save_temp=save_temp,
                                         namespace_override=namespace_override,
-                                        namespace_extend=namespace_extend)
+                                        namespace_extend=namespace_extend,
+                                        **(native_code_kw or {}))
 
     def integrate(self, *args, **kwargs):
         integrator = kwargs.pop('integrator', 'native')
