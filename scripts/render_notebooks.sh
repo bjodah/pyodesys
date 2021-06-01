@@ -29,6 +29,9 @@ for ipynb in *.ipynb; do
     if [[ $ipynb == "_bench_native_odesys_multi.ipynb" ]]; then
         continue
     fi
+    if [[ $ipynb == "_const_step_size.ipynb" ]]; then
+        continue
+    fi
     #quiet_unless_fail
     jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=900 "${ipynb}"
     #if [ ${QUIET_EXIT_CODE} -ne 0 ]; then
