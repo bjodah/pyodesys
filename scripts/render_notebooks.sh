@@ -19,6 +19,7 @@ cd examples/
 
 PREC=`python3 -c "from pycvodes import config; print(config.get('SUNDIALS_PRECISION', 'double'))"`
 set -x
+set +e
 for ipynb in *.ipynb; do
     if [[ $ipynb == "_native_standalone.ipynb" ]]; then
         continue  # issue with boost's program options
@@ -32,11 +33,11 @@ for ipynb in *.ipynb; do
     if [[ $ipynb == "_const_step_size.ipynb" ]]; then
         continue
     fi
-    #quiet_unless_fail
-    jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=900 "${ipynb}" \
+    quiet_unless_fail jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=900 "${ipynb}" \
             | grep -v -e "^\[NbConvertApp\] content: {'data':.*'image/png'"
     #if [ ${QUIET_EXIT_CODE} -ne 0 ]; then
     #    exit ${QUIET_EXIT_CODE}
     #fi
 done
+set -e
 #../scripts/render_index.sh *.html
