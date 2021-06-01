@@ -33,7 +33,8 @@ for ipynb in *.ipynb; do
         continue
     fi
     #quiet_unless_fail
-    jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=900 "${ipynb}"
+    jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=900 "${ipynb}" \
+            | grep -v -e "^\[NbConvertApp\] content: {'data':.*'image/png'"
     #if [ ${QUIET_EXIT_CODE} -ne 0 ]; then
     #    exit ${QUIET_EXIT_CODE}
     #fi

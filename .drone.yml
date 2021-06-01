@@ -39,7 +39,7 @@ pipeline:
 
   test-sund-5.4.0-klu:
     group: testing
-    image: bjodah/bjodahimg20dev:2.1.0
+    image: bjodah/bjodahimg20dev:2.1.1
     environment:
       - CC=gcc-10
       - CXX=g++-10
@@ -56,7 +56,7 @@ pipeline:
       
   test-sund-5.4.0-nolapack-noklu-extended:
     group: testing
-    image: bjodah/bjodahimg20dev:2.1.0
+    image: bjodah/bjodahimg20dev:2.1.1
     environment:
       - CC=gcc-10
       - CXX=g++-10
