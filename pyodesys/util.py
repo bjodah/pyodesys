@@ -160,7 +160,7 @@ def _concat(*args):
 
 class _Callback(_Blessed):
 
-    def __init__(self, indep, dep, params, exprs, Lambdify=None):
+    def __init__(self, indep, dep, params, exprs, Lambdify=None, Lambdify_kw=None):
         self.indep, self.dep, self.params = indep, dep, params
         if indep is None:
             self.args = _concat(self.dep, self.params)
@@ -168,7 +168,7 @@ class _Callback(_Blessed):
             self.args = _concat(self.indep, self.dep, self.params)
         self.input_width = len(self.args)
         self.exprs = exprs
-        self.callback = Lambdify(self.args, self.exprs)
+        self.callback = Lambdify(self.args, self.exprs, **(Lambdify_kw or {}))
         self.ny = len(dep)
         self.take_params = len(params)
 

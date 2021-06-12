@@ -232,7 +232,7 @@ class SymbolicSys(ODESys):
                  jtimes=False, first_step_expr=None, roots=None, backend=None, lower_bounds=None,
                  upper_bounds=None, linear_invariants=None, nonlinear_invariants=None,
                  linear_invariant_names=None, nonlinear_invariant_names=None, steady_state_root=False,
-                 init_indep=None, init_dep=None, sparse=False, **kwargs):
+                 init_indep=None, init_dep=None, sparse=False, Lambdify_kw=None, **kwargs):
         self.dep, self.exprs = zip(*dep_exprs.items()) if isinstance(dep_exprs, dict) else zip(*dep_exprs)
         self.indep = indep
         if params is True or params is None:
@@ -248,6 +248,7 @@ class SymbolicSys(ODESys):
         self._dfdx = dfdx
         self.first_step_expr = first_step_expr
         self.be = Backend(backend)
+        self.Lambdify_kw = Lambdify_kw
 
         if steady_state_root:
             if steady_state_root is True:
@@ -541,7 +542,7 @@ class SymbolicSys(ODESys):
         drop_idxs = [ori.params.index(par) for par in par_subs]
         params = _skip(drop_idxs, ori.params, False) + list(new_pars)
         back_substitute = _Callback(ori.indep, ori.dep, params, list(par_subs.values()),
-                                    Lambdify=ori.be.Lambdify)
+                                    Lambdify=ori.be.Lambdify, Lambdify_kw=ori.Lambdify_kw)
 
         def recalc_params(t, y, p):
             rev = back_substitute(t, y, p)
@@ -684,7 +685,8 @@ class SymbolicSys(ODESys):
         return self._dfdx
 
     def _callback_factory(self, exprs):
-        return _Callback(self.indep, self.dep, self.params, exprs, Lambdify=self.be.Lambdify)
+        return _Callback(self.indep, self.dep, self.params, exprs,
+                         Lambdify=self.be.Lambdify, Lambdify_kw=self.Lambdify_kw)
 
     def get_f_ty_callback(self):
         """ Generates a callback for evaluating ``self.exprs``. """
@@ -738,8 +740,8 @@ class SymbolicSys(ODESys):
         if jtimes is False:
             return None
         v, jtimes_exprs = jtimes
-        return _Callback(self.indep, tuple(self.dep) + tuple(v), self.params,
-                         jtimes_exprs, Lambdify=self.be.Lambdify)
+        return _Callback(self.indep, tuple(self.dep) + tuple(v), self.params, jtimes_exprs,
+                         Lambdify=self.be.Lambdify, Lambdify_kw=self.Lambdify_kw)
 
     def get_first_step_callback(self):
         if self.first_step_expr is None:
@@ -1336,7 +1338,8 @@ class PartiallySolvedSystem(SymbolicSys):
 
     @staticmethod
     def _get_analytic_callback(ori_sys, analytic_exprs, new_dep, new_params):
-        return _Callback(ori_sys.indep, new_dep, new_params, analytic_exprs, Lambdify=ori_sys.be.Lambdify)
+        return _Callback(ori_sys.indep, new_dep, new_params, analytic_exprs,
+                         Lambdify=ori_sys.be.Lambdify, Lambdify_kw=ori_sys.Lambdify_kw)
 
     def __getitem__(self, key):
         ori_dep = self.original_dep[self.names.index(key)]
