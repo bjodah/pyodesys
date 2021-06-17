@@ -154,10 +154,14 @@ namespace odesys_anyode {
       %for cse_token, cse_expr in p_rhs['cses']:
         const auto ${cse_token} = ${cse_expr};
       %endfor
-
+      <% import os %>
       %for i, expr in enumerate(p_rhs['exprs']):
         f[${i}] = ${expr};
       %endfor
+    %if os.environ.get("HOST_LOGNAME", "") == "bjorn" and os.environ.get("IN_DOCKER", "0") == "2" and p_rhs['cses']:
+    <%doc>DO-NOT-MERGE!</%doc>
+              std::clog << nfev << ", t=" << x << ", cse11=" << cse11 << ", cse12=" << cse12 << ", cse17=" << cse17 << ", f[1, Fe+3]=" << f[1] << '\n';
+    %endif
         this->nfev++;
       %if p_support_recoverable_error:
         if (m_error_outside_bounds){
