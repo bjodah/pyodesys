@@ -158,8 +158,8 @@ namespace odesys_anyode {
       %for i, expr in enumerate(p_rhs['exprs']):
         f[${i}] = ${expr};
       %endfor
-    %if os.environ.get("HOST_LOGNAME", "") == "bjorn" and os.environ.get("IN_DOCKER", "0") == "2" and p_rhs['cses']:
-    <%doc>DO-NOT-MERGE!</%doc>
+    %if os.environ.get("MY_DEBUG_EMITTING_TOKEN", "") == "kinetg2021fricke" and os.environ.get("IN_DOCKER", "0") == "2" and p_rhs['cses']:
+              <%doc>DO-NOT-MERGE!</%doc>
               std::clog << nfev << ", t=" << x << ", cse11=" << cse11 << ", cse12=" << cse12 << ", cse17=" << cse17 << ", f[1, Fe+3]=" << f[1] << '\n';
     %endif
         this->nfev++;
