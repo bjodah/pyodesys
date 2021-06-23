@@ -6,7 +6,7 @@ import os
 import sys
 
 from ..util import import_
-from ._base import _NativeCodeBase, _NativeSysBase, _compile_kwargs
+from ._base import _NativeCodeBase, _NativeSysBase, get_compile_kwargs
 
 get_include, config, _libs = import_("pycvodes", "get_include", "config", "_libs")
 
@@ -36,7 +36,7 @@ class NativeCvodeCode(_NativeCodeBase):
     _support_roots = True
 
     def __init__(self, *args, **kwargs):
-        self.compile_kwargs = copy.deepcopy(_compile_kwargs)
+        self.compile_kwargs = get_compile_kwargs()
         self.compile_kwargs['define'] = ['PYCVODES_NO_KLU={}'.format("0" if config.get('KLU', True) else "1"),
                                          'PYCVODES_NO_LAPACK={}'.format("0" if config.get('LAPACK', True) else "1"),
                                          'ANYODE_NO_LAPACK={}'.format("0" if config.get('LAPACK', True) else "1")]

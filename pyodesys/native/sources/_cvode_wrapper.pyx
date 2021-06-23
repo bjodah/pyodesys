@@ -125,6 +125,7 @@ def dense_jac_cmaj(double t, floating [:] y, floating [:] p):
     del odesys
     return j_out
 
+
 def integrate_adaptive(floating [:, ::1] y0,
                        floating [::1] x0,
                        floating [::1] xend,

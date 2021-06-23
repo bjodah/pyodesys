@@ -45,6 +45,13 @@ _compile_kwargs = {
     'cplus': True,
 }
 
+def get_compile_kwargs():
+    kw = _compile_kwargs.copy()
+    options = os.environ.get("PYODESYS_OPTIONS")
+    if options:
+        kw['options'] = options.split(',')
+    return kw
+
 _ext_suffix = '.so'  # sysconfig.get_config_var('EXT_SUFFIX')
 _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
 
