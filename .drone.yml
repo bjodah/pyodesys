@@ -17,38 +17,38 @@ pipeline:
     ttl: 90  # liftetime in days
 
   # get-pre-reqs:
-  #   image: bjodah/bjodahimg20dev:2.1.0
+  #   image: bjodah/bjodahimg20dev:21.7.b
   #   commands:
   #     - mkdir ./tmp
   #     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git ./tmp/pycvodes
 
   # test-py2:
-  #   image: bjodah/bjodahimg20dev:2.1.0
+  #   image: bjodah/bjodahimg20dev:21.7.b
   #   environment:
   #     - CC=gcc-10
   #     - CXX=g++-10
   #     - OMP_NUM_THREADS=1
   #     - ANYODE_NUM_THREADS=2
-  #     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_74_p/include
+  #     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
   #     - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   #     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-  #     - SUNDBASE=/opt/sundials-5.4.0-klu-lapack
+  #     - SUNDBASE=/opt/sundials-5.7.0-release
   #   commands:
   #     - apt-get update && apt-get --assume-yes install python2-dev
   #     - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
 
   test-sund-5.4.0-klu:
     group: testing
-    image: bjodah/bjodahimg20dev:2.1.1
+    image: bjodah/bjodahimg20dot:21.7.b
     environment:
       - CC=gcc-10
       - CXX=g++-10
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_74_p/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - SUNDBASE=/opt/sundials-5.4.0-klu-lapack
+      - SUNDBASE=/opt/sundials-5.7.0-release
     commands:
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
@@ -56,13 +56,13 @@ pipeline:
       
   test-sund-5.4.0-nolapack-noklu-extended:
     group: testing
-    image: bjodah/bjodahimg20dev:2.1.1
+    image: bjodah/bjodahimg20dot:21.7.b
     environment:
       - CC=gcc-10
       - CXX=g++-10
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost_1_74_p/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.4.0-noklu-nolapack-extended-int64
