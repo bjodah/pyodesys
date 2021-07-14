@@ -17,16 +17,16 @@ pipeline:
     ttl: 90  # liftetime in days
 
   # get-pre-reqs:
-  #   image: bjodah/bjodahimg20dev:21.7.b
+  #   image: bjodah/bjodahimg20dev:21.7.c
   #   commands:
   #     - mkdir ./tmp
   #     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git ./tmp/pycvodes
 
   # test-py2:
-  #   image: bjodah/bjodahimg20dev:21.7.b
+  #   image: bjodah/bjodahimg20dev:21.7.c
   #   environment:
-  #     - CC=gcc-10
-  #     - CXX=g++-10
+  #     - CC=gcc-11
+  #     - CXX=g++-11
   #     - OMP_NUM_THREADS=1
   #     - ANYODE_NUM_THREADS=2
   #     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
@@ -37,12 +37,12 @@ pipeline:
   #     - apt-get update && apt-get --assume-yes install python2-dev
   #     - bash -c "ulimit -v 2048000; .ci/test_py2.sh pyodesys $SUNDBASE"
 
-  test-sund-5.4.0-klu:
+  test-sund-5.7.0-rel:
     group: testing
-    image: bjodah/bjodahimg20dot:21.7.b
+    image: bjodah/bjodahimg20dot:21.7.c
     environment:
-      - CC=gcc-10
-      - CXX=g++-10
+      - CC=gcc-11
+      - CXX=g++-11
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
       - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
@@ -54,18 +54,18 @@ pipeline:
       - ./scripts/prepare_deploy.sh
       - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
       
-  test-sund-5.4.0-nolapack-noklu-extended:
+  test-sund-5.7.0-extended:
     group: testing
-    image: bjodah/bjodahimg20dot:21.7.b
+    image: bjodah/bjodahimg20dot:21.7.c
     environment:
-      - CC=gcc-10
-      - CXX=g++-10
+      - CC=gcc-11
+      - CXX=g++-11
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
       - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - SUNDBASE=/opt/sundials-5.4.0-noklu-nolapack-extended-int64
+      - SUNDBASE=/opt/sundials-5.7.0-extended
       - PYCVODES_NO_LAPACK=1
       - PYCVODES_NO_KLU=1
     commands:
