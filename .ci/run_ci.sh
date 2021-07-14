@@ -13,7 +13,7 @@ fi
 mkdir -p $HOME/.config/pip/
 echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
 python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
-python3 -m pip install https://github.com/bjodah/sym/archive/Lambdify-cse.tar.gz
+python3 -m pip install https://github.com/bjodah/sym/archive/jun21.tar.gz
 
 # (cd ./tmp/pycvodes;
 SUND_CFLAGS="-isystem $SUNDBASE/include $CFLAGS"
