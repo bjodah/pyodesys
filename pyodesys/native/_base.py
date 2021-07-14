@@ -5,6 +5,7 @@ from datetime import datetime as dt
 from functools import reduce
 import logging
 from operator import add
+import copy
 import os
 import shutil
 import sys
@@ -46,7 +47,7 @@ _compile_kwargs = {
 }
 
 def get_compile_kwargs():
-    kw = _compile_kwargs.copy()
+    kw = copy.deepcopy(_compile_kwargs)
     options = os.environ.get("PYODESYS_OPTIONS")
     if options:
         kw['options'] = options.split(',')
