@@ -18,7 +18,7 @@ python3 -m pip install https://github.com/bjodah/sym/archive/jun21.tar.gz
 # (cd ./tmp/pycvodes;
 SUND_CFLAGS="-isystem $SUNDBASE/include $CFLAGS"
 SUND_LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $LDFLAGS"
-CFLAGS=$SUND_CFLAGS LDFLAGS=$SUND_LDFLAGS python3 -m pip install pycvodes
+CFLAGS="$SUND_CFLAGS" LDFLAGS="$SUND_LDFLAGS" python3 -m pip install pycvodes
 git clean -xfd # -e tmp/
 
 # export CPATH=$SUNDBASE/include

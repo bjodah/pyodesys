@@ -50,6 +50,7 @@ pipeline:
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.7.0-release
     commands:
+      - python3 -m pip install https://github.com/bjodah/pycompilation/archive/master.tar.gz
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
       - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
