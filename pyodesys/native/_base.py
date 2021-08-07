@@ -150,6 +150,7 @@ class _NativeCodeBase(Cpp_Code):
                         shutil.rmtree(tmpdir)
                 if not os.path.exists(_dest):
                     raise OSError("Failed to place prebuilt file at: %s" % _dest)
+        self.compensated_summation = os.envron.get("PYODESYS_COMPENSATED_SUMMATION", "0") == "1"
         super(_NativeCodeBase, self).__init__(*args, logger=logger, **kwargs)
 
     def _ccode(self, expr, subsd):
