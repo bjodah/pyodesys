@@ -11,6 +11,7 @@ import shutil
 import sys
 import tempfile
 
+from sympy.printing.cxx import CXX17CodePrinter
 import numpy as np
 import pkg_resources
 
@@ -46,15 +47,34 @@ _compile_kwargs = {
     'cplus': True,
 }
 
+
+class CXXNeumaier(CXX17CodePrinter):
+    func_template_name = "add_neumaier"
+
+    def func_template_code(self):
+        source_snippet_path = pkg_resources.resource_filename(
+            __name__, 'sources/add_neumaier_rvt.hpp' % self.wrapper_name)
+        with open(source_snippet_path) as ifh:
+            source = ifh.read()
+        return source.replace("add_neumaier_rvt", self.func_template_name)
+
+    def _print_Add(self, expr, *args, **kwargs):
+        if len(expr.args) > 2:
+            return f"{self.func_template_name}({', '.join(map(self._print, expr.args))})"
+        else:
+            return super()._print_Add(expr, *args, **kwargs)
+
+
 def get_compile_kwargs():
     kw = copy.deepcopy(_compile_kwargs)
-    options = os.environ.get("PYODESYS_OPTIONS")
-    if options:
+    if options := os.environ.get("PYODESYS_OPTIONS"):
         kw['options'] = options.split(',')
     return kw
 
+
 _ext_suffix = '.so'  # sysconfig.get_config_var('EXT_SUFFIX')
 _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
+
 
 
 class _NativeCodeBase(Cpp_Code):
@@ -132,6 +152,13 @@ class _NativeCodeBase(Cpp_Code):
                     raise OSError("Failed to place prebuilt file at: %s" % _dest)
         super(_NativeCodeBase, self).__init__(*args, logger=logger, **kwargs)
 
+    def _ccode(self, expr, subsd):
+        expr_x = expr.xreplace(subsd)
+        if self.compensated_summation:
+            return CXXNeumaier().doprint(expr_x)
+        else:
+            return self.odesys.be.ccode(expr_x)
+
     def variables(self):
         ny = self.odesys.ny
         if self.odesys.band is not None:
@@ -177,9 +204,6 @@ class _NativeCodeBase(Cpp_Code):
             while True:
                 yield self.odesys.be.Symbol('m_p_cse[%d]' % idx)
                 idx += 1
-
-        def _ccode(expr):
-            return self.odesys.be.ccode(expr.xreplace(subsd))
 
         if self.use_cse:
             cse_cb = self.odesys.be.cse
@@ -234,6 +258,8 @@ class _NativeCodeBase(Cpp_Code):
                 self.odesys.roots,
                 symbols=self.odesys.be.numbered_symbols('cse'))
 
+        ccode = lambda x: self._ccode(x, subsd)
+
         ns = dict(
             _message_for_rendered=[
                 "-*- mode: read-only -*-",
@@ -242,40 +268,40 @@ class _NativeCodeBase(Cpp_Code):
             ],
             p_odesys=self.odesys,
             p_common={
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in common_cses],
+                'cses': [(symb.name, ccode(expr)) for symb, expr in common_cses],
                 'nsubs': len(common_cse_subs)
             },
             p_rhs={
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in rhs_cses],
-                'exprs': list(map(_ccode, rhs_exprs))
+                'cses': [(symb.name, ccode(expr)) for symb, expr in rhs_cses],
+                'exprs': list(map(ccode, rhs_exprs))
             },
             p_jtimes=None if jtimes is False else{
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in jtimes_cses],
-                'exprs': list(map(_ccode, jtimes_exprs))
+                'cses': [(symb.name, ccode(expr)) for symb, expr in jtimes_cses],
+                'exprs': list(map(ccode, jtimes_exprs))
             },
             p_jac_dense=None if jac is False or nnz >= 0 else {
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
-                'exprs': {(idx//ny, idx % ny): _ccode(expr)
+                'cses': [(symb.name, ccode(expr)) for symb, expr in jac_cses],
+                'exprs': {(idx//ny, idx % ny): ccode(expr)
                           for idx, expr in enumerate(jac_exprs[:ny*ny])},
-                'dfdt_exprs': list(map(_ccode, jac_exprs[ny*ny:]))
+                'dfdt_exprs': list(map(ccode, jac_exprs[ny*ny:]))
             },
             p_jac_sparse=None if jac is False or nnz < 0 else {
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
-                'exprs': list(map(_ccode, jac_exprs[:nj])),
+                'cses': [(symb.name, ccode(expr)) for symb, expr in jac_cses],
+                'exprs': list(map(ccode, jac_exprs[:nj])),
                 'colptrs': self.odesys._colptrs,
                 'rowvals': self.odesys._rowvals
             },
             p_first_step=None if first_step is None else {
                 'cses': first_step_cses,
-                'expr': _ccode(first_step_exprs[0]),
+                'expr': ccode(first_step_exprs[0]),
             },
             p_roots=None if self.odesys.roots is None else {
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in roots_cses],
-                'exprs': list(map(_ccode, roots_exprs))
+                'cses': [(symb.name, ccode(expr)) for symb, expr in roots_cses],
+                'exprs': list(map(ccode, roots_exprs))
             },
             p_invariants=None if all_invar == () else {
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in invar_cses],
-                'exprs': list(map(_ccode, invar_exprs))
+                'cses': [(symb.name, ccode(expr)) for symb, expr in invar_cses],
+                'exprs': list(map(ccode, invar_exprs))
             },
             p_nroots=self.odesys.nroots,
             p_constructor=[],
