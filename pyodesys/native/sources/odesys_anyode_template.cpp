@@ -101,11 +101,11 @@ namespace odesys_anyode {
         m_special_settings(special_settings) {
         m_p.assign(params, params + ${len(p_odesys.params) + p_odesys.ny if p_odesys.append_iv else 0});
         <% idx = 0 %>
-      %for cse_token, cse_expr in p_common['cses']:
-       %if cse_token.startswith('m_p_cse'):
-        ${cse_token} = ${cse_expr}; <% assert cse_token == 'm_p_cse[{0}]'.format(idx); idx += 1 %>
+      %for cse_assign in p_common['cses']:
+       %if cse_assign.lhs.startswith('m_p_cse'):
+        ${cse_assign} <% assert cse_token == 'm_p_cse[{0}]'.format(idx); idx += 1 %>
        %else:
-        const auto ${cse_token} = ${cse_expr};
+        const auto ${cse_assign}
        %endif
       %endfor
         use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${'true' if p_get_dx_max else 'false'} : false;
@@ -113,8 +113,8 @@ namespace odesys_anyode {
         if (m_max_invariant_violation != 0.0){
             ${'' if p_odesys.append_iv else 'throw std::runtime_error("append_iv not set to True")'}
             const realtype * const y = params + ${len(p_odesys.params)};
-          %for cse_token, cse_expr in p_invariants['cses']:
-            const auto ${cse_token} = ${cse_expr};
+          %for cse_assign in p_invariants['cses']:
+            const auto ${cse_assign}
           %endfor
           %for expr in p_invariants['exprs']:
             m_invar0.push_back(${expr});
@@ -151,8 +151,8 @@ namespace odesys_anyode {
         ${p_rhs}
     %else:
         ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
-      %for cse_token, cse_expr in p_rhs['cses']:
-        const auto ${cse_token} = ${cse_expr};
+      %for cse_assign in p_rhs['cses']:
+        const auto ${cse_assign}
       %endfor
       <% import os %>
       %for i, expr in enumerate(p_rhs['exprs']):
@@ -184,8 +184,8 @@ namespace odesys_anyode {
         }
        %if p_invariants is not None:
         if (m_max_invariant_violation != 0.0){
-          %for cse_token, cse_expr in p_invariants['cses']:
-            const auto ${cse_token} = ${cse_expr};
+          %for cse_assign in p_invariants['cses']:
+            const auto ${cse_assign}
           %endfor
           %for idx, invar_expr in enumerate(p_invariants['exprs']):
             if (std::abs(${invar_expr} - m_invar0[${idx}]) > ((m_max_invariant_violation > 0)
@@ -226,8 +226,8 @@ namespace odesys_anyode {
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
         ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
 
-        %for cse_token, cse_expr in p_jtimes['cses']:
-            const auto ${cse_token} = ${cse_expr};
+        %for cse_assign in p_jtimes['cses']:
+            const auto ${cse_assign};
         %endfor
 
         %for i in range(p_odesys.ny):
@@ -262,8 +262,8 @@ namespace odesys_anyode {
         ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
 
-      %for cse_token, cse_expr in p_jac_dense['cses']:
-        const auto ${cse_token} = ${cse_expr};
+      %for cse_assign in p_jac_dense['cses']:
+        const auto ${cse_assign}
       %endfor
 
       %for i_major in range(p_odesys.ny):
@@ -301,8 +301,8 @@ namespace odesys_anyode {
     %elif isinstance(p_first_step, str):
         ${p_first_step}
     %else:
-      %for cse_token, cse_expr in p_first_step['cses']:
-        const realtype ${cse_token} = ${cse_expr};
+      %for cse_assign in p_first_step['cses']:
+        const realtype ${cse_assign}
       %endfor
         ${'' if p_odesys.indep in p_odesys.first_step_expr.free_symbols else 'AnyODE::ignore(x);'}
         ${'' if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else 'AnyODE::ignore(y);'}
@@ -321,8 +321,8 @@ namespace odesys_anyode {
         ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
         ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
-        %for cse_token, cse_expr in p_jac_sparse['cses']:
-            const auto ${cse_token} = ${cse_expr};
+        %for cse_assign in p_jac_sparse['cses']:
+            const auto ${cse_assign}
         %endfor
 
         %for i in range(p_odesys.nnz):
@@ -385,8 +385,8 @@ namespace odesys_anyode {
     %else:
         ${'' if any(p_odesys.indep in expr.free_symbols for expr in p_odesys.roots) else 'AnyODE::ignore(x);'}
 
-      %for cse_token, cse_expr in p_roots['cses']:
-        const auto ${cse_token} = ${cse_expr};
+      %for cse_assign in p_roots['cses']:
+        const auto ${cse_assign}
       %endfor
 
       %for i, expr in enumerate(p_roots['exprs']):

@@ -48,23 +48,6 @@ _compile_kwargs = {
 }
 
 
-class CXXNeumaier(CXX17CodePrinter):
-    func_template_name = "add_neumaier"
-
-    def func_template_code(self):
-        source_snippet_path = pkg_resources.resource_filename(
-            __name__, 'sources/add_neumaier_rvt.hpp' % self.wrapper_name)
-        with open(source_snippet_path) as ifh:
-            source = ifh.read()
-        return source.replace("add_neumaier_rvt", self.func_template_name)
-
-    def _print_Add(self, expr, *args, **kwargs):
-        if len(expr.args) > 2:
-            return f"{self.func_template_name}({', '.join(map(self._print, expr.args))})"
-        else:
-            return super()._print_Add(expr, *args, **kwargs)
-
-
 def get_compile_kwargs():
     kw = copy.deepcopy(_compile_kwargs)
     if options := os.environ.get("PYODESYS_OPTIONS"):
@@ -155,10 +138,7 @@ class _NativeCodeBase(Cpp_Code):
 
     def _ccode(self, expr, subsd):
         expr_x = expr.xreplace(subsd)
-        if self.compensated_summation:
-            return CXXNeumaier().doprint(expr_x)
-        else:
-            return self.odesys.be.ccode(expr_x)
+        return self.odesys.be.ccode(expr_x)
 
     def variables(self):
         ny = self.odesys.ny
@@ -207,7 +187,18 @@ class _NativeCodeBase(Cpp_Code):
                 idx += 1
 
         if self.use_cse:
-            cse_cb = self.odesys.be.cse
+            if self.compensated_summation:
+                def cse_cb(exprs, **kwargs):
+                    from .sympy_interface import _NeumaierTransformer
+                    from sympy import cse
+                    nm = _NeumaierTransformer(*cse(exprs))
+                    return nm.statements, nm.final_exprs
+            else:
+                from sympy.codegen.ast import Assigment
+                from sympy import cse
+                def cse_cb(exprs, **kwargs):
+                    repl, new_exprs = cse(exprs, **kwargs)
+                    return [Assigment(lhs, rhs) for lhs, rhs in repl], new_exprs
         else:
             logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
             cse_cb = lambda exprs, **kwargs: ([], exprs)
@@ -219,13 +210,12 @@ class _NativeCodeBase(Cpp_Code):
         common_cse_subs = {}
         comm_cse_symbs = common_cse_symbols()
 
-        for symb, subexpr in common_cses:
+        for st in common_cses:
             for expr in common_exprs:
-                if symb in expr.free_symbols:
-                    common_cse_subs[symb] = next(comm_cse_symbs)
+                if st.lhs in expr.free_symbols:
+                    common_cse_subs[st.lhs] = next(comm_cse_symbs)
                     break
-        common_cses = [(x.xreplace(common_cse_subs), expr.xreplace(common_cse_subs))
-                       for x, expr in common_cses]
+        common_cses = [st.xreplace(common_cse_subs) for st in common_cses]
         common_exprs = [expr.xreplace(common_cse_subs) for expr in common_exprs]
 
         rhs_cses, rhs_exprs = cse_cb(
