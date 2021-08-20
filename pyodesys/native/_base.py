@@ -18,6 +18,8 @@ import pkg_resources
 from ..symbolic import SymbolicSys
 from .. import __version__
 
+from .groupwise import GroupwiseCSE
+
 try:
     import appdirs
 except ImportError:
@@ -133,8 +135,8 @@ class _NativeCodeBase(Cpp_Code):
                         shutil.rmtree(tmpdir)
                 if not os.path.exists(_dest):
                     raise OSError("Failed to place prebuilt file at: %s" % _dest)
-        self.compensated_summation = os.environ.get("PYODESYS_COMPENSATED_SUMMATION", "0") == "1"
-        super(_NativeCodeBase, self).__init__(*args, logger=logger, **kwargs)
+        self.compensated_summation = kwargs.pop("compensated_summation", os.environ.get("PYODESYS_COMPENSATED_SUMMATION", "0") == "1")
+        super().__init__(*args, logger=logger, **kwargs)
 
     def _ccode(self, expr, subsd):
         expr_x = expr.xreplace(subsd)
@@ -149,14 +151,17 @@ class _NativeCodeBase(Cpp_Code):
         ninvar = len(all_invar)
         jac = self.odesys.get_jac()
         nnz = self.odesys.nnz
-        all_exprs = self.odesys.exprs + all_invar
+        all_exprs = dict(
+            rhs=self.odesys.exprs,
+            invar=all_invar
+        )
         if jac is not False and nnz < 0:
             jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
-            all_exprs += tuple(jac_dfdx)
+            all_exprs["jac_dfdx"] = jac_dfdx
             nj = len(jac_dfdx)
         elif jac is not False and nnz >= 0:
             jac_dfdx = list(reduce(add, jac.tolist()))
-            all_exprs += tuple(jac_dfdx)
+            all_exprs["jac_dfdx"] = jac_dfdx
             nj = len(jac_dfdx)
         else:
             nj = 0
@@ -164,79 +169,14 @@ class _NativeCodeBase(Cpp_Code):
         jtimes = self.odesys.get_jtimes()
         if jtimes is not False:
             v, jtimes_exprs = jtimes
-            all_exprs += tuple(jtimes_exprs)
-            njtimes = len(jtimes_exprs)
+            all_exprs["jtimes"] = jtimes_exprs
         else:
             v = ()
             jtimes_exprs = ()
-            njtimes = 0
 
-        subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for
-                 idx, k in enumerate(self.odesys.dep)}
-        subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
         if jtimes is not False:
             subsd.update({k: self.odesys.be.Symbol('v[%d]' % idx) for
                          idx, k in enumerate(v)})
-        subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
-                      idx, k in enumerate(self.odesys.params)})
-
-        def common_cse_symbols():
-            idx = 0
-            while True:
-                yield self.odesys.be.Symbol('m_p_cse[%d]' % idx)
-                idx += 1
-
-        if self.use_cse:
-            if self.compensated_summation:
-                def cse_cb(exprs, **kwargs):
-                    from .sympy_interface import _NeumaierTransformer
-                    from sympy import cse
-                    nm = _NeumaierTransformer(*cse(exprs))
-                    return nm.statements, nm.final_exprs
-            else:
-                from sympy.codegen.ast import Assigment
-                from sympy import cse
-                def cse_cb(exprs, **kwargs):
-                    repl, new_exprs = cse(exprs, **kwargs)
-                    return [Assigment(lhs, rhs) for lhs, rhs in repl], new_exprs
-        else:
-            logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
-            cse_cb = lambda exprs, **kwargs: ([], exprs)
-
-        common_cses, common_exprs = cse_cb(
-            all_exprs, symbols=self.odesys.be.numbered_symbols('cse_temporary'),
-            ignore=(self.odesys.indep,) + self.odesys.dep + v)
-
-        common_cse_subs = {}
-        comm_cse_symbs = common_cse_symbols()
-
-        for st in common_cses:
-            for expr in common_exprs:
-                if st.lhs in expr.free_symbols:
-                    common_cse_subs[st.lhs] = next(comm_cse_symbs)
-                    break
-        common_cses = [st.xreplace(common_cse_subs) for st in common_cses]
-        common_exprs = [expr.xreplace(common_cse_subs) for expr in common_exprs]
-
-        rhs_cses, rhs_exprs = cse_cb(
-            common_exprs[:ny],
-            symbols=self.odesys.be.numbered_symbols('cse'))
-
-        if all_invar:
-            invar_cses, invar_exprs = cse_cb(
-                common_exprs[ny:(ny + ninvar)],
-                symbols=self.odesys.be.numbered_symbols('cse')
-            )
-
-        if jac is not False:
-            jac_cses, jac_exprs = cse_cb(
-                common_exprs[(ny + ninvar):(ny + ninvar + nj)],
-                symbols=self.odesys.be.numbered_symbols('cse'))
-
-        if jtimes is not False:
-            jtimes_cses, jtimes_exprs = cse_cb(
-                common_exprs[(ny + ninvar + nj):(ny + ninvar + nj + njtimes)],
-                symbols=self.odesys.be.numbered_symbols('cse'))
 
         first_step = self.odesys.first_step_expr
         if first_step is not None:
@@ -249,7 +189,40 @@ class _NativeCodeBase(Cpp_Code):
                 self.odesys.roots,
                 symbols=self.odesys.be.numbered_symbols('cse'))
 
-        ccode = lambda x: self._ccode(x, subsd)
+
+        subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for
+                 idx, k in enumerate(self.odesys.dep)}
+        subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
+
+        subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
+                      idx, k in enumerate(self.odesys.params)})
+
+        if self.use_cse:
+            if self.compensated_summation:
+                from .compensated import _NeumaierTransformer as Transformer
+            else:
+                from .core import NullTransformer as Transformer
+            gw = GroupwiseCSE(
+                all_exprs,
+                common_cse_template="m_cse[{}]",
+                common_ignore=(self.odesys.indep,) + self.odesys.dep + v,
+                to_code=lambda x: ccode(x, math_macros={}),
+                subsd=subsd,
+                Transformer=Transformer
+            )
+            def _block(k, assign_to=lambda i: _r("out[%d]" % i)):
+                return CodeBlock(*(gw.assignment(k, declare=lambda s: '[' not in s.name) + [
+                    Assignment(assign_to(i), e) for i, e in enumerate(gw.exprs(k))
+                ]))
+
+            src = {k: gw.render(_block(k)) for k in gw.keys}
+        else:
+            logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
+            def _block(exprs, assign_to=lambda i: _r("out[%d]" % i)):
+                return CodeBlock(*[
+                    Assignment(assign_to(i), e) for i, e in enumerate(exprs)
+                ]).xreplace(subsd)
+            src = {k: self.odesys.be.ccode(_block(exprs)) for k, exprs in all_exprs.items()}
 
         ns = dict(
             _message_for_rendered=[
@@ -257,42 +230,34 @@ class _NativeCodeBase(Cpp_Code):
                 "This file was generated using pyodesys-%s at %s" % (
                     __version__, dt.now().isoformat())
             ],
-            p_odesys=self.odesys,
             p_common={
-                'cses': [(symb.name, ccode(expr)) for symb, expr in common_cses],
-                'nsubs': len(common_cse_subs)
-            },
+                'assign': src["common"]
+            }
+            p_odesys=self.odesys,
+            p_src=src,
             p_rhs={
-                'cses': [(symb.name, ccode(expr)) for symb, expr in rhs_cses],
-                'exprs': list(map(ccode, rhs_exprs))
+                'assign': src["rhs"]
             },
             p_jtimes=None if jtimes is False else{
-                'cses': [(symb.name, ccode(expr)) for symb, expr in jtimes_cses],
-                'exprs': list(map(ccode, jtimes_exprs))
+                'assign': src["jtimes"]
             },
             p_jac_dense=None if jac is False or nnz >= 0 else {
-                'cses': [(symb.name, ccode(expr)) for symb, expr in jac_cses],
-                'exprs': {(idx//ny, idx % ny): ccode(expr)
-                          for idx, expr in enumerate(jac_exprs[:ny*ny])},
-                'dfdt_exprs': list(map(ccode, jac_exprs[ny*ny:]))
+                'assign': src["jac_dfdt"]
             },
             p_jac_sparse=None if jac is False or nnz < 0 else {
-                'cses': [(symb.name, ccode(expr)) for symb, expr in jac_cses],
-                'exprs': list(map(ccode, jac_exprs[:nj])),
+                'assign': src["jac_dfdt"]
                 'colptrs': self.odesys._colptrs,
                 'rowvals': self.odesys._rowvals
             },
             p_first_step=None if first_step is None else {
-                'cses': first_step_cses,
-                'expr': ccode(first_step_exprs[0]),
+                'assign': src["first_step"]
             },
             p_roots=None if self.odesys.roots is None else {
-                'cses': [(symb.name, ccode(expr)) for symb, expr in roots_cses],
-                'exprs': list(map(ccode, roots_exprs))
+                'assign': src["roots"]
             },
             p_invariants=None if all_invar == () else {
-                'cses': [(symb.name, ccode(expr)) for symb, expr in invar_cses],
-                'exprs': list(map(ccode, invar_exprs))
+                'assign': src["invariants"]
+                'n_invar': len(all_invar)
             },
             p_nroots=self.odesys.nroots,
             p_constructor=[],
