@@ -96,15 +96,15 @@ namespace odesys_anyode {
                                         realtype get_dx_max_factor,
                                         bool error_outside_bounds,
                                         realtype max_invariant_violation,
-                                        std::vector<realtype> special_settings) :
-        m_cse(${p_common["nsubs"]}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor),
-        m_error_outside_bounds(error_outside_bounds),
-        m_max_invariant_violation(max_invariant_violation),
-        m_special_settings(special_settings),
-        m_invar(${0 if p_invariants is None else p_invariants["n_invar"]}),
-        m_invar0(${0 if p_invariants is None else p_invariants["n_invar"]})
+                                        std::vector<realtype> special_settings)
+        : m_cse(${p_common["nsubs"]}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor)
+        , m_p(params, params + ${len(p_odesys.params) + p_odesys.ny if p_odesys.append_iv else 0})
+        , m_error_outside_bounds(error_outside_bounds)
+        , m_max_invariant_violation(max_invariant_violation)
+        , m_special_settings(special_settings)
+        , m_invar(${0 if p_invariants is None else p_invariants["n_invar"]})
+        , m_invar0(${0 if p_invariants is None else p_invariants["n_invar"]})
     {
-        m_p.assign(params, params + ${len(p_odesys.params) + p_odesys.ny if p_odesys.append_iv else 0});
         ${src["common"]}
         use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${"true" if p_get_dx_max else "false"} : false;
       %if p_invariants is not None and p_support_recoverable_error:
@@ -175,17 +175,14 @@ namespace odesys_anyode {
        %if p_invariants is not None:
         if (m_max_invariant_violation != 0.0){
             ${p_invariants["assign"]}
-          %for cse_assign in p_invariants["cses"]:
-            ${cse_assign};
-          %endfor
-          %for idx, invar_expr in enumerate(p_invariants["exprs"]):
-            if (std::abs(${invar_expr} - m_invar0[${idx}]) > ((m_max_invariant_violation > 0)
+            for (int idx=0; idx<${p_invariants["n_invar"]}; ++idx) {
+                if (std::abs(m_invar[idx] - m_invar0[idx]) > ((m_max_invariant_violation > 0)
                                                               ? m_max_invariant_violation
-                                                              : std::abs(m_max_invariant_violation*m_invar0[${idx}]) /*- m_max_invariant_violation*/)) {
-                std::cerr << "Invariant (${idx}) violation at x=" << x << "\n";
-                return AnyODE::Status::recoverable_error;
+                                                              : std::abs(m_max_invariant_violation*m_invar0[idx]) /*- m_max_invariant_violation*/)) {
+                    std::cerr << "Invariant (" << idx << ") violation at x=" << x << "\n";
+                    return AnyODE::Status::recoverable_error;
+                }
             }
-          %endfor
         }
        %endif
       %endif
@@ -205,26 +202,19 @@ namespace odesys_anyode {
     }
 
     AnyODE::Status OdeSys<realtype, indextype>::jtimes(
-                                  const realtype * const ANYODE_RESTRICT v,
-                                  realtype * const ANYODE_RESTRICT Jv,
-                                  realtype x,
-                                  const realtype * const ANYODE_RESTRICT y,
-                                  const realtype * const ANYODE_RESTRICT fy) {
+        const realtype * const ANYODE_RESTRICT v,
+        realtype * const ANYODE_RESTRICT out,
+        realtype x,
+        const realtype * const ANYODE_RESTRICT y,
+        const realtype * const ANYODE_RESTRICT fy)
+    {
     %if p_jtimes is not None:
     %if isinstance(p_jtimes, str):
         ${p_jtimes}
     %else:
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
-
-        %for cse_assign in p_jtimes["cses"]:
-            ${cse_assign};
-        %endfor
-
-        %for i in range(p_odesys.ny):
-            <% curr_expr = p_jtimes["exprs"][i] %>
-            Jv[${i}] = ${curr_expr};
-        %endfor
+        ${p_jtimes["assign"]}
     %endif
         this->njvev++;
         return AnyODE::Status::success;
@@ -253,6 +243,7 @@ namespace odesys_anyode {
         ${"AnyODE::ignore(y);" if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ""}
 
+        ${p_jac_dense["assign"]}
       %for cse_assign in p_jac_dense["cses"]:
         ${cse_assign};
       %endfor

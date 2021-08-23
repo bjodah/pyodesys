@@ -210,18 +210,28 @@ class _NativeCodeBase(Cpp_Code):
                 subsd=subsd,
                 Transformer=Transformer
             )
-            def _block(k, assign_to=lambda i: _r("out[%d]" % i)):
-                return CodeBlock(*(gw.assignment(k, declare=lambda s: '[' not in s.name) + [
-                    Assignment(assign_to(i), e) for i, e in enumerate(gw.exprs(k))
-                ]))
 
-            src = {k: gw.render(_block(k)) for k in gw.keys}
+            def _cses(k, assign_to=lambda i: _r("out[%d]" % i)):
+                return CodeBlock(*gw.assignment(k, declare=lambda s: '[' not in s.name))
+            cses = {k: gw.render(_cses(k)) for k in gw.keys}
+            class Assigner:
+                def __init__(self, k):
+                    self.k = k
+                def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
+                    return self.gw.render(Assignment(assign_to(i), gw.exprs(self.k)[i])) + ";"
+            assignments = {k: Assigner(k) for k in gw.keys}
         else:
             logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
-            def _block(exprs, assign_to=lambda i: _r("out[%d]" % i)):
+            def _block(exprs):
                 return CodeBlock(*[
-                    Assignment(assign_to(i), e) for i, e in enumerate(exprs)
+                    
                 ]).xreplace(subsd)
+            class Assigner:
+                def __init__(self, k):
+                    self.k = k
+                def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
+                    return self.odesys.be.ccode(Assignment(assign_to(i), all_exprs[self.k][i]) for i, e in enumerate(exprs)) + ';'
+                                          de
             src = {k: self.odesys.be.ccode(_block(exprs)) for k, exprs in all_exprs.items()}
 
         ns = dict(
