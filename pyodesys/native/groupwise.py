@@ -30,7 +30,7 @@ class GroupwiseCSE:
     """Eliminate common sub-expressions from groups of expressions."""
 
     def __init__(self, groups, *,
-                 common_cse_template,
+                 common_cse_template="common_cse{0}",
                  common_ignore=(),
                  to_code=lambda arg: ccode(arg, math_macros={}),
                  subsd=None,
@@ -38,6 +38,7 @@ class GroupwiseCSE:
                  type_=float64,
                  pre_process=pre_process,
                  post_process=post_process,
+                 kw_cse=None
                  ):
         """
         Parameters
@@ -53,11 +54,12 @@ class GroupwiseCSE:
         self._keys, _values = zip(*groups.items())
         self._spans = np.cumsum([0]+list(map(len, _values)))
         self._common_cse_template = common_cse_template
-        self._grp, self._common = self._get_all_cses(
-            map(pre_process, reduce(add, _values)),
+        self._per_g_tformrs, self._comm_tformr = self._get_all_cses(
+            map(pre_process, reduce(add, map(list, _values))),
             common_ignore=common_ignore,
             post_process=post_process,
-            Transformer=Transformer
+            Transformer=Transformer,
+            kw_cse=kw_cse or {},
         )
 
     @property
@@ -71,13 +73,13 @@ class GroupwiseCSE:
 
     def _common_cse(self, all_exprs, **kwargs):
         repls, reds = cse(all_exprs, **kwargs)
-        def comm_symbols():
-            idx = 0
-            while True:
-                yield Symbol(self._common_cse_template.format(idx), real=True)
-                idx += 1
-
-        cse_symbols = comm_symbols()
+        # def comm_symbols():
+        #     idx = 0
+        #     while True:
+        #         yield Symbol(self._common_cse_template.format(idx), real=True)
+        #         idx += 1
+        #cse_symbols = comm_symbols()
+        cse_symbols = numbered_symbols("cse_t")  # local temporaries
         comm_subs = {}
         for lhs, rhs in repls:
             for expr in reds:
@@ -90,10 +92,10 @@ class GroupwiseCSE:
         )
 
     def _get_all_cses(self, all_exprs, *, common_ignore, post_process,
-                      Transformer):
+                      Transformer, kw_cse):
         repls, reds = self._common_cse(
             all_exprs, ignore=common_ignore,
-            symbols=numbered_symbols('cse_temporary'))
+            symbols=numbered_symbols('cse_temporary'), **kw_cse)
         comm_tformer = Transformer(repls, reds, ignore=common_ignore)
 
         assert(len(comm_tformer.final_exprs) == len(reds))
@@ -101,12 +103,13 @@ class GroupwiseCSE:
 
         remap = comm_tformer.remapping_for_arrayification(template=self._common_cse_template)
         comm_tformer.apply_remapping(remap)
+        self.n_remapped = len(remap)
 
         grp = {}
         for i, k in enumerate(self._keys):
             g_repls, g_exprs = cse(
                 comm_tformer.final_exprs[slice(*self._spans[i:i+2])],
-                symbols=numbered_symbols("cse")
+                symbols=numbered_symbols("cse"), **kw_cse
             )
             g_tformer = Transformer(g_repls, g_exprs, parent=comm_tformer)
             grp[k] = g_tformer
@@ -127,17 +130,17 @@ class GroupwiseCSE:
     def common_statements(self, declare=False):
         """Initialize the common sub-expressions among the groups."""
         if declare:
-            return self._common.statements_with_declarations(pred=declare, type_=self._type)
+            return self._comm_tformr.statements_with_declarations(pred=declare, type_=self._type)
         else:
-            return self._common.statements
+            return self._comm_tformr.statements
 
-    def assignments(self, key, declare=False):
+    def statements(self, gk, declare=False):
         """Initialize the group specific sub-expressions."""
         if declare:
-            return self._grp[key].statements_with_declarations(pred=declare, type_=self._type)
+            return self._per_g_tformrs[gk].statements_with_declarations(pred=declare, type_=self._type)
         else:
-            return self._grp[key].statements
+            return self._per_g_tformrs[gk].statements
 
-    def exprs(self, key):
+    def exprs(self, gk):
         """Retrieve the resulting expressions of the group named ``key``."""
-        return self._grp[key].final_exprs
+        return self._per_g_tformrs[gk].final_exprs

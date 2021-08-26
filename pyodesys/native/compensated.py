@@ -6,19 +6,25 @@ Example usage:
 $ python3 compensated_cse.py demo1 | clang-format --style=Google | batcat -pl C
 
 """
-import pprint
 from collections import defaultdict
 from functools import reduce
 from operator import add
 from sympy import (
-    Abs, Add, Basic, cse, exp, Expr, numbered_symbols, Piecewise, pi,
-    postorder_traversal, preorder_traversal, pycode, Symbol, Tuple
+    Abs, Add, And, Eq, Expr, Lt, Ne, numbered_symbols, Piecewise,
+    postorder_traversal, Symbol, Tuple
 )
 from sympy.codegen import Assignment, aug_assign, CodeBlock
-from sympy.codegen.ast import Token, Variable, float64, value_const
+from sympy.codegen.ast import AssignmentBase, Token, While, break_
 
 from .core import NullTransformer
 from .util import OrderedAdd
+
+
+def If(cond, body):
+    return While(cond, CodeBlock(
+        *body,
+        break_
+    ))
 
 class _NeumaierAdd(Token, Expr):
     """Represents KBN compensated summation."""
@@ -30,7 +36,7 @@ class _NeumaierAdd(Token, Expr):
         terms = ", ".join(map(printer._print, self.terms))
         return f"NA({terms} /*{str(self.accum)[:-1]}*/)"
 
-    def to_statements(self, existing, expanded):
+    def to_statements(self, existing, expanded, do_swap=False):
         """Transform into statements."""
         neum, ordinary = [], []
         for term in self.terms:
@@ -42,14 +48,12 @@ class _NeumaierAdd(Token, Expr):
         if neum:
             st.append(Assignment(self.accum, sum(na.accum for na in neum)))
             st.append(Assignment(self.carry, sum(na.carry for na in neum)))
-            for na in neum:
-                expanded.add(na)
         else:
             st.append(Assignment(self.accum, ordinary.pop(0)))
             st.append(Assignment(self.carry, 0))
 
         for elem in ordinary:
-            st.extend(_NeumaierAdd._impl_add(self.accum, self.carry, elem, self.temp))
+            st.extend(_NeumaierAdd._impl_add(self.accum, self.carry, elem, self.temp, do_swap))
         expanded.add(self)
         return st
 
@@ -58,16 +62,27 @@ class _NeumaierAdd(Token, Expr):
         return self._impl_finalize(self.accum, self.carry)
 
     @staticmethod
-    def _impl_add(accum, carry, elem, temp):
+    def _impl_add(accum, carry, elem, temp, do_swap=False):
         """Perform Kahan-Babuska-Neumaier addition."""
         big_temp = OrderedAdd(OrderedAdd(accum, -temp), elem)
         big_elem = OrderedAdd(OrderedAdd(elem, -temp), accum)
-        pw = Piecewise((big_temp, Abs(temp) > Abs(elem)), (big_elem, True))
-        return [
+        abs_elem = Abs(elem)
+        pw = Piecewise((big_temp, Abs(temp) > abs_elem), (big_elem, True))
+        statements = [
             Assignment(temp, accum + elem),
             aug_assign(carry, '+', pw),
             Assignment(accum, temp)
         ]
+        if do_swap:
+            return [
+                If(And(Eq(carry, 0), Ne(accum, 0), Lt(Abs(accum), abs_elem)), [
+                        Assignment(temp, accum),
+                        Assignment(accum, carry),
+                        Assignment(carry, temp)
+                ])
+            ] + statements
+        else:
+            return statements
 
     @staticmethod
     def _impl_finalize(accum, carry):
@@ -79,12 +94,13 @@ class _NeumaierTransformer(NullTransformer):
 
     Parameters
     ----------
-    up_to: int, [0-100]
+    up_to_debug: int, [0-100]
         Code is guaranteed to compile at levels 0 (no passes, no compensation)
         and 100 (all passes).
     """
 
-    def __init__(self, repl, red, *, tmp_pfx="t", neu_pfx="n", up_to=100, limit=3, parent=None, ignore=None):
+    def __init__(self, repl, red, *, tmp_pfx="t", neu_pfx="n", up_to_debug=100,
+                 limit=3, parent=None, ignore=None, do_swap=False):
         self.repl = repl
         self.red = red
         self.limit = limit
@@ -106,23 +122,20 @@ class _NeumaierTransformer(NullTransformer):
             num, *_ = rest.split("_")
             if len(_) == 0:
                 continue
-            if int(num) <= up_to:
+            if int(num) <= up_to_debug:
                 self.passes.append(getattr(self, p))
 
+        self.do_swap = do_swap
         self.statements, self.final_exprs = self._pipeline()
 
     def remapping_for_arrayification(self, template="m_glob[{0}]"):
         remapping = {}
         i = 0
         for st in self.statements:
-            if st.lhs in remapping:
+            if st.lhs in remapping or st.lhs in self._all_tempv:
                 continue
-            if st.lhs in self._all_accum or st.lhs in self._all_carry:
-                remapping[st.lhs] = Symbol(template.format(i), real=True)
-            elif st.lhs in self._all_tempv:
-                pass
-            else:
-                remapping[st.lhs] = Symbol(template.format(i), real=True)
+            #if st.lhs in self._all_accum or st.lhs in self._all_carry:
+            remapping[st.lhs] = Symbol(template.format(i), real=True)
             i = i + 1
         return remapping
 
@@ -141,18 +154,31 @@ class _NeumaierTransformer(NullTransformer):
     def _is_Neu(x):
         return isinstance(x, _NeumaierAdd)
 
+    def _single_pass(self, statements, pass_):
+        new_stmts = []
+        for st in statements:
+            if isinstance(st, AssignmentBase):
+                new_rhs = pass_(st.lhs, st.rhs, statements=new_stmts)
+                if st.lhs not in self.created:
+                    new_stmts.append(st.__class__(st.lhs, new_rhs))
+            elif hasattr(st, "body"):
+                assert isinstance(st.body, CodeBlock)
+                new_body = CodeBlock(*self._single_pass(st.body.args, pass_))
+                new_args = (new_body if attr == 'body' else getattr(st, attr)
+                            for attr in st.__slots__)
+                new_stmts.append(st.__class__(*new_args))
+            else:
+                new_stmts.append(st)  # no-op (e.g. BreakToken instance)
+        return new_stmts
+
     def _pipeline(self):
         statements = [Assignment(*lr) for lr in self.repl]
         final_exprs = self.red
         for pass_ in self.passes:
-            new_stmts, new_exprs = [], []
-            for st in statements:
-                new_rhs = pass_(st.lhs, st.rhs, statements=new_stmts)
-                if st.lhs not in self.created:  # not Neumaier, (aug)assign:
-                    new_stmts.append(st.__class__(st.lhs, new_rhs))
+            statements = self._single_pass(statements, pass_)
+            new_exprs = []
             for expr in final_exprs:
-                new_exprs.append(pass_(None, expr, statements=new_stmts))
-            statements = new_stmts
+                new_exprs.append(pass_(None, expr, statements=statements))
             final_exprs = new_exprs
         return statements, final_exprs
 
@@ -190,12 +216,18 @@ class _NeumaierTransformer(NullTransformer):
         assert False
 
     def _pass_50_to_stmnts(self, lhs, rhs, *, statements):
-        for arg in postorder_traversal(rhs):
-            if arg in self.created:
-                for t in list(self.created[arg].terms)+[arg]:
-                    if t in self.created:
-                        if arg not in self.expanded:
-                            statements.extend(self.created[t].to_statements(self.created, self.expanded))
+        for neu in map(self.created.get, postorder_traversal(rhs)):
+            if neu is None:
+                continue
+            for t_neu in map(self.created.get, neu.terms):
+                if t_neu is None:
+                    continue
+                if t_neu not in self.expanded:
+                    statements.extend(t_neu.to_statements(
+                        self.created, self.expanded, self.do_swap))
+            if neu not in self.expanded:
+                statements.extend(neu.to_statements(
+                    self.created, self.expanded, self.do_swap))
         return rhs
 
     def _pass_60_xrepl(self, lhs, rhs, *, statements):
@@ -225,12 +257,3 @@ class _NeumaierTransformer(NullTransformer):
 
     def _pass_90_fin(self, lhs, rhs, *, statements):
         return rhs.replace(lambda x: self._is_Neu(x), lambda x: x.finalize())
-
-
-def _compensated_code(case, **kwargs):
-    repl, red = cse(case.exprs)
-    nm = _NeumaierTransformer(repl, red, **kwargs)
-    statements = nm.statements_with_declarations()
-    for i, new_expr in enumerate(nm.final_exprs):
-        statements.append(Assignment(Symbol("out[%d]" % i), new_expr))
-    return CodeBlock(*statements)

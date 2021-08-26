@@ -97,15 +97,18 @@ namespace odesys_anyode {
                                         bool error_outside_bounds,
                                         realtype max_invariant_violation,
                                         std::vector<realtype> special_settings)
-        : m_cse(${p_common["nsubs"]}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor)
-        , m_p(params, params + ${len(p_odesys.params) + p_odesys.ny if p_odesys.append_iv else 0})
+        : m_p(params, params + ${len(p_odesys.params) + p_odesys.ny if p_odesys.append_iv else 0})
+        , m_cse(${p_common["n_cses"]})
+        , m_atol(atol)
+        , m_invar(${0 if p_invariants is None else p_invariants["n_invar"]})
+        , m_invar0(${0 if p_invariants is None else p_invariants["n_invar"]})
+        , m_rtol(rtol)
+        , m_get_dx_max_factor(get_dx_max_factor)
         , m_error_outside_bounds(error_outside_bounds)
         , m_max_invariant_violation(max_invariant_violation)
         , m_special_settings(special_settings)
-        , m_invar(${0 if p_invariants is None else p_invariants["n_invar"]})
-        , m_invar0(${0 if p_invariants is None else p_invariants["n_invar"]})
     {
-        ${src["common"]}
+        ${p_common["cses"]}
         use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${"true" if p_get_dx_max else "false"} : false;
       %if p_invariants is not None and p_support_recoverable_error:
         if (m_max_invariant_violation != 0.0){
@@ -113,8 +116,8 @@ namespace odesys_anyode {
             const realtype * const y = params + ${len(p_odesys.params)};
             m_invar0.resize(${p_invariants["n_invar"]});
             m_invar0.resize(${p_invariants["n_invar"]});
-            realtype * const out = m_invar0.data();
-            ${p_invariants["assign"]}
+            //realtype * const out = m_invar0.data();
+            ${p_invariants["assign"].all(assign_to=lambda i: "m_invar0[%d]" % i)}
         }
       %endif
         ${"\n    ".join(p_constructor)}
@@ -147,7 +150,7 @@ namespace odesys_anyode {
         ${p_rhs}
     %else:
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
-        ${p_rhs["assign"]
+        ${p_rhs["assign"].all()}
         this->nfev++;
       %if p_support_recoverable_error:
         if (m_error_outside_bounds){
@@ -172,9 +175,9 @@ namespace odesys_anyode {
                 }
             }
         }
-       %if p_invariants is not None:
+        %if p_invariants is not None:
         if (m_max_invariant_violation != 0.0){
-            ${p_invariants["assign"]}
+            ${p_invariants["assign"].all(assign_to=lambda i: "m_invar[%d]" % i)}}
             for (int idx=0; idx<${p_invariants["n_invar"]}; ++idx) {
                 if (std::abs(m_invar[idx] - m_invar0[idx]) > ((m_max_invariant_violation > 0)
                                                               ? m_max_invariant_violation
@@ -184,7 +187,7 @@ namespace odesys_anyode {
                 }
             }
         }
-       %endif
+        %endif
       %endif
       %if getattr(p_odesys, "_nonnegative", False) and p_support_recoverable_error:
         for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
@@ -214,12 +217,12 @@ namespace odesys_anyode {
     %else:
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
-        ${p_jtimes["assign"]}
+        ${p_jtimes["assign"].all()}
     %endif
         this->njvev++;
         return AnyODE::Status::success;
     %else:
-        AnyODE::ignore(v); AnyODE::ignore(Jv); AnyODE::ignore(x);
+        AnyODE::ignore(v); AnyODE::ignore(out); AnyODE::ignore(x);
         AnyODE::ignore(y); AnyODE::ignore(fy);
         return AnyODE::Status::unrecoverable_error;
     %endif
@@ -243,24 +246,26 @@ namespace odesys_anyode {
         ${"AnyODE::ignore(y);" if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ""}
 
-        ${p_jac_dense["assign"]}
-      %for cse_assign in p_jac_dense["cses"]:
-        ${cse_assign};
-      %endfor
+        ${p_jac_dense["cses"]}
 
       %for i_major in range(p_odesys.ny):
        %for i_minor in range(p_odesys.ny):
-    <%
-          curr_expr = p_jac_dense["exprs"][i_minor, i_major] if order == "cmaj" else p_jac_dense["exprs"][i_major, i_minor]
-          if curr_expr == "0" and p_jacobian_set_to_zero_by_solver:
-              continue
-    %>    jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
-       %endfor
 
+
+    <%
+        if order == "cmaj":
+            i = i_minor*p_odesys.ny + i_major
+        else:
+            i = i_major*p_odesys.ny + i_minor
+        if p_jac_dense["assign"].expr_is_zero(i) and p_jacobian_set_to_zero_by_solver:
+            continue
+    %>
+          ${p_jac_dense["assign"](i, assign_to=lambda _: "jac[ldim*%d + %d]" % (i_major, i_minor))}
+       %endfor
       %endfor
         if (dfdt){
-          %for idx, expr in enumerate(p_jac_dense["dfdt_exprs"]):
-            dfdt[${idx}] = ${expr};
+          %for idx in range(p_odesys.ny**2, p_jac_dense["assign"].n):
+            ${p_jac_dense["assign"](i, assign_to=lambda _: "dfdt[%d]" % (idx - p_odesys.ny**2))}
           %endfor
         }
         this->njev++;
@@ -303,7 +308,7 @@ namespace odesys_anyode {
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
         ${"AnyODE::ignore(y);" if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ""}
-        ${p_jac_sparse["assign"]}
+        ${p_jac_sparse["assign"].all()}
 
         %for i in range(p_odesys.nnz):
           rowvals[${i}] = ${p_jac_sparse["rowvals"][i]};
@@ -316,7 +321,7 @@ namespace odesys_anyode {
         return AnyODE::Status::success;
     %else:
         AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(fy);
-         AnyODE::ignore(data); AnyODE::ignore(colptrs); AnyODE::ignore(rowvals);
+         AnyODE::ignore(out); AnyODE::ignore(colptrs); AnyODE::ignore(rowvals);
         return AnyODE::Status::unrecoverable_error;
     %endif
     }
@@ -360,14 +365,8 @@ namespace odesys_anyode {
         ${p_roots}
     %else:
         ${"" if any(p_odesys.indep in expr.free_symbols for expr in p_odesys.roots) else "AnyODE::ignore(x);"}
-
-      %for cse_assign in p_roots["cses"]:
-        ${cse_assign};
-      %endfor
-
-      %for i, expr in enumerate(p_roots["exprs"]):
-        out[${i}] = ${expr};
-      %endfor
+        ${p_roots["cses"]}
+        ${p_roots["assign"].all()}
         this->nrev++;
         return AnyODE::Status::success;
     %endif

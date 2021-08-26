@@ -11,7 +11,8 @@ import shutil
 import sys
 import tempfile
 
-from sympy.printing.cxx import CXX17CodePrinter
+import sympy
+from sympy.codegen.ast import CodeBlock, Assignment
 import numpy as np
 import pkg_resources
 
@@ -60,6 +61,45 @@ def get_compile_kwargs():
 _ext_suffix = '.so'  # sysconfig.get_config_var('EXT_SUFFIX')
 _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
 
+
+class _AssignerBase:
+    def all(self, **kwargs):
+        return "\n".join(self(i, **kwargs) for i in range(self.n))
+
+
+def _r(s):
+    if isinstance(s, sympy.Symbol):
+        return s
+    else:
+        return sympy.Symbol(s, real=True)
+
+
+class _AssignerGW(_AssignerBase):
+    def __init__(self, k, gw):
+        self.k = k
+        self.gw = gw
+        self.n = len(gw.exprs(k))
+
+    def expr_is_zero(self, i):
+        return self.gw.exprs(self.k)[i] == 0
+
+    def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
+        return self.gw.render(Assignment(_r(assign_to(i)), self.gw.exprs(self.k)[i])) + ";"
+
+
+class _AssignerPlain(_AssignerBase):
+    def __init__(self, k, all_exprs):
+        self.k = k
+        self.all_exrs = all_exprs
+        self.n = len(all_exprs[k])
+
+    def expr_is_zero(self, i):
+        return self.all_exprs[i] == 0
+
+    def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
+        return self.odesys.be.ccode(
+            Assignment(_r(assign_to(i)), self.all_exprs[self.k][i])
+        ) + ';'
 
 
 class _NativeCodeBase(Cpp_Code):
@@ -157,11 +197,11 @@ class _NativeCodeBase(Cpp_Code):
         )
         if jac is not False and nnz < 0:
             jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
-            all_exprs["jac_dfdx"] = jac_dfdx
+            all_exprs["jac_dfdt"] = jac_dfdx
             nj = len(jac_dfdx)
         elif jac is not False and nnz >= 0:
             jac_dfdx = list(reduce(add, jac.tolist()))
-            all_exprs["jac_dfdx"] = jac_dfdx
+            all_exprs["jac_dfdt"] = jac_dfdx
             nj = len(jac_dfdx)
         else:
             nj = 0
@@ -206,33 +246,27 @@ class _NativeCodeBase(Cpp_Code):
                 all_exprs,
                 common_cse_template="m_cse[{}]",
                 common_ignore=(self.odesys.indep,) + self.odesys.dep + v,
-                to_code=lambda x: ccode(x, math_macros={}),
+                to_code=lambda x: self.odesys.be.ccode(x, math_macros={}),
                 subsd=subsd,
                 Transformer=Transformer
             )
 
+            def not_arr(s):
+                return '[' not in s.name
+
             def _cses(k, assign_to=lambda i: _r("out[%d]" % i)):
-                return CodeBlock(*gw.assignment(k, declare=lambda s: '[' not in s.name))
+                return CodeBlock(*gw.statements(k, declare=not_arr))
             cses = {k: gw.render(_cses(k)) for k in gw.keys}
-            class Assigner:
-                def __init__(self, k):
-                    self.k = k
-                def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
-                    return self.gw.render(Assignment(assign_to(i), gw.exprs(self.k)[i])) + ";"
-            assignments = {k: Assigner(k) for k in gw.keys}
+            n_common_cses = gw.n_remapped
+            common_cses = gw.render(CodeBlock(*gw.common_statements(declare=not_arr)))
+
+            assigners = {k: _AssignerGW(k, gw) for k in gw.keys}
         else:
             logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
-            def _block(exprs):
-                return CodeBlock(*[
-                    
-                ]).xreplace(subsd)
-            class Assigner:
-                def __init__(self, k):
-                    self.k = k
-                def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
-                    return self.odesys.be.ccode(Assignment(assign_to(i), all_exprs[self.k][i]) for i, e in enumerate(exprs)) + ';'
-                                          de
-            src = {k: self.odesys.be.ccode(_block(exprs)) for k, exprs in all_exprs.items()}
+            n_common_cses=0
+            common_cses=""
+
+            assigners = {k: _AssignerPlain(k, all_exprs) for k in all_exprsself}
 
         ns = dict(
             _message_for_rendered=[
@@ -241,32 +275,39 @@ class _NativeCodeBase(Cpp_Code):
                     __version__, dt.now().isoformat())
             ],
             p_common={
-                'assign': src["common"]
-            }
+                'cses': common_cses,
+                'n_cses': n_common_cses
+            },
             p_odesys=self.odesys,
-            p_src=src,
             p_rhs={
-                'assign': src["rhs"]
+                'cses': cses["rhs"],
+                'assign': assigners["rhs"]
             },
             p_jtimes=None if jtimes is False else{
-                'assign': src["jtimes"]
+                'cses': cses["jtimes"],
+                'assign': assigners["jtimes"]
             },
             p_jac_dense=None if jac is False or nnz >= 0 else {
-                'assign': src["jac_dfdt"]
+                'cses': cses["jac_dfdt"],
+                'assign': assigners["jac_dfdt"]
             },
             p_jac_sparse=None if jac is False or nnz < 0 else {
-                'assign': src["jac_dfdt"]
+                'cses': cses["jac_dfdt"],
+                'assign': assigners["jac_dfdt"],
                 'colptrs': self.odesys._colptrs,
                 'rowvals': self.odesys._rowvals
             },
             p_first_step=None if first_step is None else {
-                'assign': src["first_step"]
+                'cses': cses["first_step"],
+                'assign': assigners["first_step"]
             },
             p_roots=None if self.odesys.roots is None else {
-                'assign': src["roots"]
+                'cses': cses["roots"],
+                'assign': assigners["roots"]
             },
             p_invariants=None if all_invar == () else {
-                'assign': src["invariants"]
+                'cses': cses["invariants"],
+                'assign': assigners["invariants"],
                 'n_invar': len(all_invar)
             },
             p_nroots=self.odesys.nroots,
