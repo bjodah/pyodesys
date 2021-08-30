@@ -17,7 +17,7 @@ from sympy.codegen import Assignment, aug_assign, CodeBlock
 from sympy.codegen.ast import AssignmentBase, Token, While, break_
 
 from .core import NullTransformer
-from .util import OrderedAdd
+from .ordered_add import ordered_add
 
 
 def If(cond, body):
@@ -64,8 +64,8 @@ class _NeumaierAdd(Token, Expr):
     @staticmethod
     def _impl_add(accum, carry, elem, temp, do_swap=False):
         """Perform Kahan-Babuska-Neumaier addition."""
-        big_temp = OrderedAdd(OrderedAdd(accum, -temp), elem)
-        big_elem = OrderedAdd(OrderedAdd(elem, -temp), accum)
+        big_temp = ordered_add(ordered_add(accum, -temp), elem)
+        big_elem = ordered_add(ordered_add(elem, -temp), accum)
         abs_elem = Abs(elem)
         pw = Piecewise((big_temp, Abs(temp) > abs_elem), (big_elem, True))
         statements = [
@@ -176,10 +176,7 @@ class _NeumaierTransformer(NullTransformer):
         final_exprs = self.red
         for pass_ in self.passes:
             statements = self._single_pass(statements, pass_)
-            new_exprs = []
-            for expr in final_exprs:
-                new_exprs.append(pass_(None, expr, statements=statements))
-            final_exprs = new_exprs
+            final_exprs = [pass_(None, e, statements=statements) for e in final_exprs]
         return statements, final_exprs
 
     def _pass_05_analysis(self, lhs, rhs, *, statements):
@@ -199,7 +196,8 @@ class _NeumaierTransformer(NullTransformer):
 
         while True:
             for _add in filter(lambda x: x.is_Add, postorder_traversal(new_rhs)):
-                score = self._analysis.get(lhs, 0) + reduce(add, [self._analysis.get(k, 1) for k in _add.args])
+                score = self._analysis.get(lhs, 0) + reduce(add, [
+                    self._analysis.get(k, 1) for k in _add.args])
                 if score >= self.limit or any(self._is_Neu(arg) for arg in _add.args):
                     na = self._mk_Neu(_add.args, lhs)
                     if _add is rhs and lhs is not None:
@@ -234,7 +232,7 @@ class _NeumaierTransformer(NullTransformer):
         return rhs.xreplace(self.created)
 
     def _group(self, x):
-        all_accum, all_carry = [], []
+        all_accum, all_carry, rest = [], [], []
         for term in x.args:
             if term in self.created:
                 all_accum.append(self.created[term].accum)
@@ -244,16 +242,26 @@ class _NeumaierTransformer(NullTransformer):
             elif term in self._all_carry:
                 all_carry.append(term)
             else:
-                all_accum.append(term)
-        if all_accum and all_carry:
-            return OrderedAdd(OrderedAdd(*all_accum), OrderedAdd(*all_carry))
-        else:
-            return OrderedAdd(*(all_accum+all_carry))
+                rest.append(term)
+        result = []
+        if all_accum:
+            result.append(ordered_add(*all_accum))
+        if all_carry:
+            result.append(ordered_add(*all_carry))
+        if rest:
+            result += rest
+        result = reduce(add, result)
+        return result
+
+    def _has(self, term):
+        return term in self.created or term in self._all_accum or term in self._all_carry
 
     def _pass_95_group(self, lhs, rhs, *, statements):
-        return rhs.replace(lambda s: s.is_Add and any(
-            t in self.created or t in self._all_accum or t in self._all_carry for t in s.args
-        ), self._group)
+        new_rhs = rhs.replace(
+            lambda s: s.is_Add and any(self._has(t) for t in s.args),
+            self._group
+        )
+        return new_rhs
 
     def _pass_90_fin(self, lhs, rhs, *, statements):
         return rhs.replace(lambda x: self._is_Neu(x), lambda x: x.finalize())

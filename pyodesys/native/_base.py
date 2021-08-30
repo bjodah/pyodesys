@@ -19,7 +19,7 @@ import pkg_resources
 from ..symbolic import SymbolicSys
 from .. import __version__
 
-from .groupwise import GroupwiseCSE
+from .symcse.groupwise import GroupwiseCSE
 
 try:
     import appdirs
@@ -241,12 +241,12 @@ class _NativeCodeBase(Cpp_Code):
             if self.compensated_summation:
                 from .compensated import _NeumaierTransformer as Transformer
             else:
-                from .core import NullTransformer as Transformer
+                from .symcse.core import NullTransformer as Transformer
             gw = GroupwiseCSE(
                 all_exprs,
                 common_cse_template="m_cse[{}]",
                 common_ignore=(self.odesys.indep,) + self.odesys.dep + v,
-                to_code=lambda x: self.odesys.be.ccode(x, math_macros={}),
+#                to_code=lambda x: self.odesys.be.ccode(x, math_macros={}),
                 subsd=subsd,
                 Transformer=Transformer
             )

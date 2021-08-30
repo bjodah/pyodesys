@@ -150,6 +150,7 @@ namespace odesys_anyode {
         ${p_rhs}
     %else:
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
+        ${p_rhs["cses"]}
         ${p_rhs["assign"].all()}
         this->nfev++;
       %if p_support_recoverable_error:
@@ -177,6 +178,7 @@ namespace odesys_anyode {
         }
         %if p_invariants is not None:
         if (m_max_invariant_violation != 0.0){
+            ${p_invariants["cses"]}
             ${p_invariants["assign"].all(assign_to=lambda i: "m_invar[%d]" % i)}}
             for (int idx=0; idx<${p_invariants["n_invar"]}; ++idx) {
                 if (std::abs(m_invar[idx] - m_invar0[idx]) > ((m_max_invariant_violation > 0)
@@ -217,6 +219,7 @@ namespace odesys_anyode {
     %else:
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
+        ${p_jtimes["cses"]}
         ${p_jtimes["assign"].all()}
     %endif
         this->njvev++;
@@ -288,9 +291,7 @@ namespace odesys_anyode {
     %elif isinstance(p_first_step, str):
         ${p_first_step}
     %else:
-      %for cse_assign in p_first_step["cses"]:
-        const realtype ${cse_assign};
-      %endfor
+        ${p_first_step["cses"]}
         ${"" if p_odesys.indep in p_odesys.first_step_expr.free_symbols else "AnyODE::ignore(x);"}
         ${"" if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else "AnyODE::ignore(y);"}
         return ${p_first_step["expr"]};
@@ -308,6 +309,7 @@ namespace odesys_anyode {
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
         ${"AnyODE::ignore(y);" if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ""}
+        ${p_jac_sparse["cses"]}
         ${p_jac_sparse["assign"].all()}
 
         %for i in range(p_odesys.nnz):
