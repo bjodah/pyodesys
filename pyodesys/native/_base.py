@@ -43,7 +43,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 _compile_kwargs = {
-    'options': ['warn', 'pic', 'fast', 'openmp'],
+    'options': ['warn', 'pic', 'debug', 'openmp'],  # DO-NOT-MERGE!!! debug/fast
     'std': 'c++11',
     'include_dirs': [np.get_include(), pkg_resources.resource_filename(__name__, 'sources')],
     'libraries': [],
@@ -84,7 +84,7 @@ class _AssignerGW(_AssignerBase):
         return self.gw.exprs(self.k)[i] == 0
 
     def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
-        return self.gw.render(Assignment(_r(assign_to(i)), self.gw.exprs(self.k)[i])) + ";"
+        return self.gw.render(Assignment(_r(assign_to(i)), self.gw.exprs(self.k)[i]))
 
 
 class _AssignerPlain(_AssignerBase):
@@ -103,7 +103,7 @@ class _AssignerPlain(_AssignerBase):
 
 
 class _NativeCodeBase(Cpp_Code):
-    """ Base class for generated code.
+    """Base class for generated code.
 
     Note kwargs ``namespace_override`` which allows the user to customize
     the variables used when rendering the template.
@@ -214,39 +214,35 @@ class _NativeCodeBase(Cpp_Code):
             v = ()
             jtimes_exprs = ()
 
-        if jtimes is not False:
-            subsd.update({k: self.odesys.be.Symbol('v[%d]' % idx) for
-                         idx, k in enumerate(v)})
-
         first_step = self.odesys.first_step_expr
         if first_step is not None:
-            first_step_cses, first_step_exprs = cse_cb(
-                [first_step],
-                symbols=self.odesys.be.numbered_symbols('cse'))
+            all_exprs["first_step"] = [first_step]
 
         if self.odesys.roots is not None:
-            roots_cses, roots_exprs = cse_cb(
-                self.odesys.roots,
-                symbols=self.odesys.be.numbered_symbols('cse'))
-
+            all_exprs["roots"] = self.odesys.roots
 
         subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for
                  idx, k in enumerate(self.odesys.dep)}
-        subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
+        if self.odesys.indep is not None:
+            subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
 
         subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
                       idx, k in enumerate(self.odesys.params)})
 
+        if jtimes is not False:
+            subsd.update({k: self.odesys.be.Symbol('v[%d]' % idx) for
+                         idx, k in enumerate(v)})
+
         if self.use_cse:
             if self.compensated_summation:
-                from .compensated import _NeumaierTransformer as Transformer
+                from .symcse.compensated import _NeumaierTransformer as Transformer
             else:
                 from .symcse.core import NullTransformer as Transformer
+            ignore = (() if self.odesys.indep is None else (self.odesys.indep,)) + self.odesys.dep + v
             gw = GroupwiseCSE(
                 all_exprs,
                 common_cse_template="m_cse[{}]",
-                common_ignore=(self.odesys.indep,) + self.odesys.dep + v,
-#                to_code=lambda x: self.odesys.be.ccode(x, math_macros={}),
+                common_ignore=ignore,
                 subsd=subsd,
                 Transformer=Transformer
             )
@@ -306,8 +302,8 @@ class _NativeCodeBase(Cpp_Code):
                 'assign': assigners["roots"]
             },
             p_invariants=None if all_invar == () else {
-                'cses': cses["invariants"],
-                'assign': assigners["invariants"],
+                'cses': cses["invar"],
+                'assign': assigners["invar"],
                 'n_invar': len(all_invar)
             },
             p_nroots=self.odesys.nroots,

@@ -49,7 +49,7 @@ class GroupwiseCSE:
         if code_printer is None:
             code_printer = CPrinter()
         self._code_printer = code_printer
-        self._subsd = subsd or {}
+        self._subsd = {sympy.Symbol(k.name, real=True): v for k, v in (subsd or {}).items()}
         self._type = type_
         self._keys, _values = zip(*groups.items())
         self._spans = np.cumsum([0]+list(map(len, _values)))
@@ -58,6 +58,7 @@ class GroupwiseCSE:
         self.backend = backend
         _all_values = reduce(add, map(list, _values))
         _all_exprs = list(map(pre_process, _all_values))
+        _all_exprs = [e.replace(lambda s: s.is_Symbol, lambda s: sympy.Symbol(s.name, real=True)) for e in _all_exprs]
         for e in _all_exprs:
             for fs in e.free_symbols:
                 if not fs.is_real:

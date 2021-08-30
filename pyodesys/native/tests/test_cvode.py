@@ -241,8 +241,9 @@ def test_sparse_jac_native_cvode(nu=0.01, k=1.0, m=1.0, x0=1.0, atol=1.0e-12, rt
 
 
 @requires('pycvodes', 'sympy')
-def test_render_native_cse_regression():
-    _test_render_native_code_cse(NativeSys)
+@pytest.mark.parametrize('compensated', [False, True])
+def test_render_native_cse_regression(compensated):
+    _test_render_native_code_cse(NativeSys, compensated=compensated)
 
 
 @requires('sym', 'pycvodes')

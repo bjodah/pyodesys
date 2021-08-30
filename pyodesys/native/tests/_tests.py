@@ -340,7 +340,7 @@ def _test_return_on_error_success(NativeSys):
     assert np.allclose(result.yout[:nreached, :], ref, rtol=1e-8, atol=1e-8)
 
 
-def _test_render_native_code_cse(NativeSys):
+def _test_render_native_code_cse(NativeSys, compensated):
     # regression test taken from chempy
     from pyodesys.symbolic import SymbolicSys
     from sympy import symbols, log, exp
@@ -419,7 +419,11 @@ def _test_render_native_code_cse(NativeSys):
     ref = _solve(symbolic, **kw)
     assert ref.info['success']
 
-    native = NativeSys.from_other(symbolic)  # <-- regression test, optional: save_temp=True
+    native = NativeSys.from_other(
+        symbolic,
+        compensated_summation=compensated,
+        #save_temp=True,
+    )  # regression test:
     sol = _solve(native, **kw)
     assert sol.info['success']
 

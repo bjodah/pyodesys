@@ -42,6 +42,12 @@ class _UnevaluatedExprPrinterMixin:
     def _print_UnevaluatedExpr(self, arg):
         return "(%s)" % super()._print_UnevaluatedExpr(arg)
 
+    def _print_Integer(self, arg):
+        if abs(arg) > 2**53:
+            return self._print(sympy.Float(arg))
+        else:
+            return super()._print_Integer(arg)
+
 
 class CXXPrinter(_UnevaluatedExprPrinterMixin, CXX17CodePrinter):
     """Patched C++-printer (https://github.com/sympy/sympy/issues/21955)."""
@@ -62,6 +68,8 @@ def _cse_symengine(exprs, *, se2sympy, ignore=(), symbols=None, **kwargs):
     repl = [(se2sympy(lhs), se2sympy(rhs)) for lhs, rhs in repl]
     red = [se2sympy(e) for e in red]
     if ignore:
+        ignore = [se2sympy(sympy2symengine(ig)) for ig in ignore]
+
         def has_ig(e):
             return any(e.has(ig) for ig in ignore)
 
@@ -116,9 +124,7 @@ def _cse_symengine(exprs, *, se2sympy, ignore=(), symbols=None, **kwargs):
             updated.append((remap[lhs], rhs.xreplace(remap)))
         repl = updated
         red = [e.xreplace(remap) for e in red]
-
     return repl, red
-
 
 
 class Backend:

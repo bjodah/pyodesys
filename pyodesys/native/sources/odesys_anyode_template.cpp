@@ -3,6 +3,9 @@
 <%doc>
 This is file is a mako template for a C++ source file defining the ODE system.
 </%doc>
+<%!
+import sympy
+%>
 // User provided system description: ${p_odesys.description}
 // Names of dependent variables: ${p_odesys.names}
 // Names of parameters: ${p_odesys.param_names}
@@ -145,13 +148,13 @@ namespace odesys_anyode {
 
     AnyODE::Status OdeSys<realtype, indextype>::rhs(realtype x,
                                const realtype * const ANYODE_RESTRICT y,
-                               realtype * const ANYODE_RESTRICT out) {
+                               realtype * const ANYODE_RESTRICT f) {
     %if isinstance(p_rhs, str):
         ${p_rhs}
     %else:
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
         ${p_rhs["cses"]}
-        ${p_rhs["assign"].all()}
+        ${p_rhs["assign"].all(assign_to=lambda i: sympy.Symbol("f[%d]" % i))}
         this->nfev++;
       %if p_support_recoverable_error:
         if (m_error_outside_bounds){
@@ -179,7 +182,7 @@ namespace odesys_anyode {
         %if p_invariants is not None:
         if (m_max_invariant_violation != 0.0){
             ${p_invariants["cses"]}
-            ${p_invariants["assign"].all(assign_to=lambda i: "m_invar[%d]" % i)}}
+            ${p_invariants["assign"].all(assign_to=lambda i: "m_invar[%d]" % i)}
             for (int idx=0; idx<${p_invariants["n_invar"]}; ++idx) {
                 if (std::abs(m_invar[idx] - m_invar0[idx]) > ((m_max_invariant_violation > 0)
                                                               ? m_max_invariant_violation
@@ -294,7 +297,8 @@ namespace odesys_anyode {
         ${p_first_step["cses"]}
         ${"" if p_odesys.indep in p_odesys.first_step_expr.free_symbols else "AnyODE::ignore(x);"}
         ${"" if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else "AnyODE::ignore(y);"}
-        return ${p_first_step["expr"]};
+        const auto ${p_first_step["assign"](0, assign_to=lambda _: "result")}
+        return result;
     %endif
     }
 
