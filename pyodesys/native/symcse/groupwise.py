@@ -59,6 +59,7 @@ class GroupwiseCSE:
         _all_values = reduce(add, map(list, _values))
         _all_exprs = list(map(pre_process, _all_values))
         _all_exprs = [e.replace(lambda s: s.is_Symbol, lambda s: sympy.Symbol(s.name, real=True)) for e in _all_exprs]
+        common_ignore = [sympy.Symbol(ig.name, real=True) for ig in common_ignore]
         for e in _all_exprs:
             for fs in e.free_symbols:
                 if not fs.is_real:
@@ -68,7 +69,7 @@ class GroupwiseCSE:
                     raise NotImplementedError("Only use explicitly real valued symbols.")
         repls, reds = self._common_cse(
             _all_exprs, ignore=common_ignore,
-            symbols=numbered_symbols('cse_temporary', real=True)
+            symbols=numbered_symbols('cse_comm_locl', real=True)
         )
         self._comm_tformr = Transformer(repls, reds, ignore=common_ignore)
         remap = self._comm_tformr.remapping_for_arrayification(template=common_cse_template)
@@ -93,12 +94,6 @@ class GroupwiseCSE:
 
     def _common_cse(self, all_exprs, **kwargs):
         repls, reds = self.backend.cse(all_exprs, **kwargs)
-        # def comm_symbols():
-        #     idx = 0
-        #     while True:
-        #         yield Symbol(self._common_cse_template.format(idx), real=True)
-        #         idx += 1
-        #cse_symbols = comm_symbols()
         cse_symbols = numbered_symbols("cse_t", real=True)  # local temporaries
         comm_subs = {}
         for lhs, rhs in repls:

@@ -141,9 +141,9 @@ class _NeumaierTransformer(NullTransformer):
 
     def _mk_Neu(self, terms, lhs):
         pfx = str(next(self._tmp_var)) if lhs is None else str(lhs)
-        accum = Symbol(pfx+'a')
-        carry = Symbol(pfx+'c')
-        tempv = Symbol(pfx+'t')
+        accum = Symbol(pfx+'a', real=True)
+        carry = Symbol(pfx+'c', real=True)
+        tempv = Symbol(pfx+'t', real=True)
         na = _NeumaierAdd(terms, accum, carry, tempv)
         self._all_accum[accum] = na
         self._all_carry[carry] = na
@@ -217,7 +217,7 @@ class _NeumaierTransformer(NullTransformer):
         for neu in map(self.created.get, postorder_traversal(rhs)):
             if neu is None:
                 continue
-            for t_neu in map(self.created.get, neu.terms):
+            for t_neu in map(self.created.get, postorder_traversal(neu.terms)):
                 if t_neu is None:
                     continue
                 if t_neu not in self.expanded:

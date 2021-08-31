@@ -38,6 +38,13 @@ def idty(x):
     return x
 
 
+class UnevaluatedRealPropagatingExpr(sympy.UnevaluatedExpr):
+    """Propagate .is_real, but nothings else from wrapped expression."""
+
+    def _eval_is_real(self):
+        return self.args[0].is_real
+
+
 class _UnevaluatedExprPrinterMixin:
     def _print_UnevaluatedExpr(self, arg):
         return "(%s)" % super()._print_UnevaluatedExpr(arg)
@@ -47,6 +54,17 @@ class _UnevaluatedExprPrinterMixin:
             return self._print(sympy.Float(arg))
         else:
             return super()._print_Integer(arg)
+
+    @staticmethod
+    def _replace_re(arg):
+        if isinstance(arg, sympy.UnevaluatedExpr) and arg.args[0].is_real:
+            return UnevaluatedRealPropagatingExpr(arg.args[0])
+        else:
+            return sympy.re(arg)
+
+    def doprint(self, x):
+        result = super().doprint(x.replace(sympy.re, self._replace_re))
+        return result
 
 
 class CXXPrinter(_UnevaluatedExprPrinterMixin, CXX17CodePrinter):

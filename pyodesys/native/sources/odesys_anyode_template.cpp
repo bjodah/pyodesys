@@ -19,6 +19,9 @@ import sympy
 #include ${inc}
 %endfor
 
+// sympy wraps real around symbols which actually are real:
+#define re(x) (x)
+
 namespace {  // anonymous namespace for user-defined helper functions
     std::vector<std::string> p_odesys_names ${"" if p_odesys.names is None else '= {"%s"}' % '", "'.join(p_odesys.names)};
 %if p_anon is not None:

@@ -178,9 +178,9 @@ class _NativeCodeBase(Cpp_Code):
         self.compensated_summation = kwargs.pop("compensated_summation", os.environ.get("PYODESYS_COMPENSATED_SUMMATION", "0") == "1")
         super().__init__(*args, logger=logger, **kwargs)
 
-    def _ccode(self, expr, subsd):
-        expr_x = expr.xreplace(subsd)
-        return self.odesys.be.ccode(expr_x)
+    # def _ccode(self, expr, subsd):
+    #     expr_x = expr.xreplace(subsd)
+    #     return self.odesys.be.ccode(expr_x)
 
     def variables(self):
         ny = self.odesys.ny
@@ -347,7 +347,7 @@ class _NativeSysBase(SymbolicSys):
         else:
             kwargs['integrator'] = 'native'
 
-        return super(_NativeSysBase, self).integrate(*args, **kwargs)
+        return super().integrate(*args, **kwargs)
 
     def rhs(self, intern_t, intern_y, intern_p):
         return self._native.mod.rhs(intern_t, intern_y, intern_p)
