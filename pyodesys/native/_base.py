@@ -244,7 +244,8 @@ class _NativeCodeBase(Cpp_Code):
                 common_cse_template="m_cse[{}]",
                 common_ignore=ignore,
                 subsd=subsd,
-                Transformer=Transformer
+                Transformer=Transformer,
+                pre_process=None
             )
 
             def not_arr(s):

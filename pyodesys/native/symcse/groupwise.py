@@ -57,7 +57,7 @@ class GroupwiseCSE:
             backend = Backend()
         self.backend = backend
         _all_values = reduce(add, map(list, _values))
-        _all_exprs = list(map(pre_process, _all_values))
+        _all_exprs = list(map(pre_process, _all_values) if pre_process else _all_values)
         _all_exprs = [e.replace(lambda s: s.is_Symbol, lambda s: sympy.Symbol(s.name, real=True)) for e in _all_exprs]
         common_ignore = [sympy.Symbol(ig.name, real=True) for ig in common_ignore]
         for e in _all_exprs:
