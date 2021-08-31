@@ -74,8 +74,9 @@ def test_chained_multi_native(reduced):
 
 
 @requires('pygslodeiv2')
-def test_Decay_nonnegative():
-    _test_Decay_nonnegative(NativeSys)
+@pytest.mark.parametrize('use_cse', [False, True])
+def test_Decay_nonnegative(use_cse):
+    _test_Decay_nonnegative(NativeSys, use_cse=use_cse)
 
 
 @requires('pygslodeiv2')

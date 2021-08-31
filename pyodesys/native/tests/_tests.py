@@ -95,8 +95,11 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
 
-def _test_Decay_nonnegative(NativeSys):
-    odesys = NativeSys.from_other(_get_decay3(lower_bounds=[0]*3))
+def _test_Decay_nonnegative(NativeSys, use_cse):
+    odesys = NativeSys.from_other(
+        _get_decay3(lower_bounds=[0]*3),
+        native_code_kw=dict(compensated_summation=compensated),
+    )
     y0, k = [3., 2., 1.], [3.5, 2.5, 0]
     xout, yout, info = odesys.integrate([1e-10, 1], y0, k, integrator='native')
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
@@ -421,7 +424,7 @@ def _test_render_native_code_cse(NativeSys, compensated):
 
     native = NativeSys.from_other(
         symbolic,
-        compensated_summation=compensated,
+        native_code_kw=dict(compensated_summation=compensated),
         #save_temp=True,
     )  # regression test:
     sol = _solve(native, **kw)

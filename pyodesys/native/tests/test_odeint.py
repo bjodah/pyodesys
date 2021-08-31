@@ -63,8 +63,9 @@ def test_PartiallySolved_symmetric_native_multi():
 
 
 @requires('pyodeint')
+@pytest.mark.parametrize('use_cse', [False, True])
 def test_Decay_nonnegative():
-    _test_Decay_nonnegative(NativeSys)
+    _test_Decay_nonnegative(NativeSys, use_cse=use_cse)
 
 
 @requires('pyodeint')
