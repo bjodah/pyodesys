@@ -262,8 +262,7 @@ class _NativeCodeBase(Cpp_Code):
             logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
             n_common_cses=0
             common_cses=""
-
-            assigners = {k: _AssignerPlain(k, all_exprs) for k in all_exprsself}
+            assigners = {k: _AssignerPlain(k, all_exprs) for k in all_exprs}
 
         ns = dict(
             _message_for_rendered=[

@@ -123,6 +123,7 @@ namespace odesys_anyode {
             m_invar0.resize(${p_invariants["n_invar"]});
             m_invar0.resize(${p_invariants["n_invar"]});
             //realtype * const out = m_invar0.data();
+            ${p_invariants["cses"]}
             ${p_invariants["assign"].all(assign_to=lambda i: "m_invar0[%d]" % i)}
         }
       %endif

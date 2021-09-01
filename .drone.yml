@@ -17,19 +17,19 @@ pipeline:
     ttl: 90  # liftetime in days
 
   # get-pre-reqs:
-  #   image: bjodah/bjodahimg20dev:21.7.c
+  #   image: bjodah/bjodahimg20dev:21.8.a
   #   commands:
   #     - mkdir ./tmp
   #     - git clone --recurse-submodules https://github.com/bjodah/pycvodes.git ./tmp/pycvodes
 
   # test-py2:
-  #   image: bjodah/bjodahimg20dev:21.7.c
+  #   image: bjodah/bjodahimg20dev:21.8.a
   #   environment:
   #     - CC=gcc-11
   #     - CXX=g++-11
   #     - OMP_NUM_THREADS=1
   #     - ANYODE_NUM_THREADS=2
-  #     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
+  #     - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.77.0/include
   #     - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   #     - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
   #     - SUNDBASE=/opt/sundials-5.7.0-release
@@ -39,13 +39,13 @@ pipeline:
 
   test-sund-5.7.0-rel:
     group: testing
-    image: bjodah/bjodahimg20dot:21.7.c
+    image: bjodah/bjodahimg20dot:21.8.a
     environment:
       - CC=gcc-11
       - CXX=g++-11
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.77.0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.7.0-release
@@ -57,13 +57,13 @@ pipeline:
       
   test-sund-5.7.0-extended:
     group: testing
-    image: bjodah/bjodahimg20dot:21.7.c
+    image: bjodah/bjodahimg20dot:21.8.a
     environment:
       - CC=gcc-11
       - CXX=g++-11
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.76.0/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.77.0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.7.0-extended
