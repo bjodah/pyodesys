@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+from itertools import product
 from pyodesys.util import requires
 import pytest
 
@@ -63,9 +64,9 @@ def test_PartiallySolved_symmetric_native_multi():
 
 
 @requires('pyodeint')
-@pytest.mark.parametrize('use_cse', [False, True])
-def test_Decay_nonnegative(use_cse):
-    _test_Decay_nonnegative(NativeSys, use_cse=use_cse)
+@pytest.mark.parametrize('use_cse,compensated', product([False, True], [False, True]))
+def test_Decay_nonnegative(use_cse, compensated):
+    _test_Decay_nonnegative(NativeSys, use_cse=use_cse, compensated=compensated)
 
 
 @requires('pyodeint')

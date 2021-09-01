@@ -18,7 +18,9 @@ sp = import_('sympy')
 
 
 def _test_NativeSys(NativeSys, **kwargs):
-    native = NativeSys.from_callback(vdp_f, 2, 1)
+    native = NativeSys.from_callback(
+        vdp_f, 2, 1#, native_code_kw=dict(save_temp=True)
+    )
     assert native.ny == 2
     assert len(native.params) == 1
     xout, yout, info = native.integrate([0, 1, 2], [1, 0], params=[2.0], **kwargs)
@@ -95,10 +97,10 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
     assert np.allclose(yout, ref, rtol=rtol*forgive, atol=atol*forgive)
 
 
-def _test_Decay_nonnegative(NativeSys, use_cse):
+def _test_Decay_nonnegative(NativeSys, use_cse, compensated):
     odesys = NativeSys.from_other(
         _get_decay3(lower_bounds=[0]*3),
-        native_code_kw=dict(compensated_summation=compensated),
+        native_code_kw=dict(use_cse=use_cse, compensated_summation=compensated),
     )
     y0, k = [3., 2., 1.], [3.5, 2.5, 0]
     xout, yout, info = odesys.integrate([1e-10, 1], y0, k, integrator='native')
@@ -245,10 +247,15 @@ def _test_NativeSys__first_step_cb(NativeSys, forgive=20):
 
 def _test_NativeSys__first_step_cb_source_code(NativeSys, log10myconst, should_succeed, forgive=20, **kwargs):
     dec3 = _get_decay3()
-    odesys = NativeSys.from_other(dec3, namespace_override={
-        'p_first_step': 'return good_const()*y[0];',
-        'p_anon': 'double good_const(){ return std::pow(10, %.5g); }' % log10myconst
-    }, namespace_extend={'p_includes': ['<cmath>']})
+    odesys = NativeSys.from_other(
+        dec3,
+        namespace_override={
+            'p_first_step': 'AnyODE::ignore(x); return good_const()*y[0];',
+            'p_anon': 'double good_const(){ return std::pow(10, %.5g); }' % log10myconst
+        },
+        namespace_extend={'p_includes': ['<cmath>']},
+        native_code_kw=dict(save_temp=True),
+    )
     y0, k = [.7, 0, 0], [1e23, 2, 3.]
     xout, yout, info = odesys.integrate(5, y0, k, integrator='native', **kwargs)
     ref = np.array(bateman_full(y0, k, xout - xout[0], exp=np.exp)).T
@@ -424,8 +431,10 @@ def _test_render_native_code_cse(NativeSys, compensated):
 
     native = NativeSys.from_other(
         symbolic,
-        native_code_kw=dict(compensated_summation=compensated),
-        #save_temp=True,
+        native_code_kw=dict(
+            #save_temp=True,
+            compensated_summation=compensated
+        ),
     )  # regression test:
     sol = _solve(native, **kw)
     assert sol.info['success']

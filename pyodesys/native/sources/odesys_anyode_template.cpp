@@ -275,7 +275,7 @@ namespace odesys_anyode {
       %endfor
         if (dfdt){
           %for idx in range(p_odesys.ny**2, p_jac_dense["assign"].n):
-            ${p_jac_dense["assign"](i, assign_to=lambda _: "dfdt[%d]" % (idx - p_odesys.ny**2))}
+            ${p_jac_dense["assign"](idx, assign_to=lambda _: "dfdt[%d]" % (idx - p_odesys.ny**2))}
           %endfor
         }
         this->njev++;

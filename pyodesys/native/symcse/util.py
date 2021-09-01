@@ -120,7 +120,7 @@ def _cse_symengine(exprs, *, se2sympy, ignore=(), symbols=None, **kwargs):
                         candidates.append(prod(good))
             if candidates:
                 part = sorted(candidates, key=sympy.count_ops)[-1]
-                if part.count_ops() == 0:
+                if part.count_ops() == 0 or len(part.free_symbols) == 0:
                     reintro[lhs] = rem
                 else:
                     for k, v in keep.items():

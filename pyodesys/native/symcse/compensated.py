@@ -217,12 +217,7 @@ class _NeumaierTransformer(NullTransformer):
         for neu in map(self.created.get, postorder_traversal(rhs)):
             if neu is None:
                 continue
-            for t_neu in map(self.created.get, postorder_traversal(neu.terms)):
-                if t_neu is None:
-                    continue
-                if t_neu not in self.expanded:
-                    statements.extend(t_neu.to_statements(
-                        self.created, self.expanded, self.do_swap))
+            self._pass_50_to_stmnts(lhs, neu.terms, statements=statements)
             if neu not in self.expanded:
                 statements.extend(neu.to_statements(
                     self.created, self.expanded, self.do_swap))

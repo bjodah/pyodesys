@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+from collections import defaultdict
 from datetime import datetime as dt
 from functools import reduce
 import logging
@@ -88,18 +89,18 @@ class _AssignerGW(_AssignerBase):
 
 
 class _AssignerPlain(_AssignerBase):
-    def __init__(self, k, all_exprs):
+    def __init__(self, k, all_exprs, *, subsd):
         self.k = k
-        self.all_exrs = all_exprs
+        self.all_exprs = {k: [e.xreplace(subsd) for e in v] for k, v in all_exprs.items()}
         self.n = len(all_exprs[k])
 
     def expr_is_zero(self, i):
-        return self.all_exprs[i] == 0
+        return self.all_exprs[self.k][i] == 0
 
     def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
-        return self.odesys.be.ccode(
+        return sympy.ccode(
             Assignment(_r(assign_to(i)), self.all_exprs[self.k][i])
-        ) + ';'
+        )
 
 
 class _NativeCodeBase(Cpp_Code):
@@ -261,8 +262,9 @@ class _NativeCodeBase(Cpp_Code):
         else:
             logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
             n_common_cses=0
+            cses = defaultdict(lambda: "// use_cse==False")
             common_cses=""
-            assigners = {k: _AssignerPlain(k, all_exprs) for k in all_exprs}
+            assigners = {k: _AssignerPlain(k, all_exprs, subsd=subsd) for k in all_exprs}
 
         ns = dict(
             _message_for_rendered=[
@@ -327,13 +329,12 @@ class _NativeSysBase(SymbolicSys):
     def __init__(self, *args, native_code_kw=None, **kwargs):
         namespace_override = kwargs.pop('namespace_override', {})
         namespace_extend = kwargs.pop('namespace_extend', {})
-        save_temp = kwargs.pop('save_temp', False)
         if 'init_indep' not in kwargs:  # we need to trigger append_iv for when invariants are used
             kwargs['init_indep'] = True
             kwargs['init_dep'] = True
         super(_NativeSysBase, self).__init__(*args, **kwargs)
         self._native = self._NativeCode(
-            self, save_temp=save_temp,
+            self,
             namespace_override=namespace_override,
             namespace_extend=namespace_extend,
             **(native_code_kw or {}))
