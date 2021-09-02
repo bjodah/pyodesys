@@ -16,8 +16,10 @@ expand_up_to_3 = create_expand_pow_optimization(3)
 
 
 def pre_process(expr):
-    """Simplify, expand & factor."""
-    return expr.simplify(rational=True).expand().factor()
+    """Simplify, expand & factor.
+
+    Example: expr.simplify(rational=True).expand().factor() """
+    return expr.factor()
 
 
 def post_process(expr):
@@ -35,8 +37,8 @@ class GroupwiseCSE:
                  subsd=None,
                  Transformer=NullTransformer,
                  type_=float64,
-                 pre_process=pre_process,
-                 post_process=post_process,
+                 pre_process=None,
+                 post_process=None,
                  backend=None,
                  transformer_kw=None
                  ):
@@ -74,6 +76,9 @@ class GroupwiseCSE:
             _all_exprs, ignore=common_ignore,
             symbols=numbered_symbols('cse_comm_locl', real=True)
         )
+        if post_process:
+            repls = [(s, post_process(e)) for s, e in repls]
+            reds = [post_process(e) for e in reds]
         self._comm_tformr = Transformer(repls, reds, ignore=common_ignore, **transformer_kw)
         remap = self._comm_tformr.remapping_for_arrayification(template=common_cse_template)
         self._comm_tformr.apply_remapping(remap)
@@ -82,7 +87,9 @@ class GroupwiseCSE:
         assert(len(self._comm_tformr.final_exprs) == len(reds))
         del reds
         self._per_g_tformrs = self._get_g_tformrs(
-            self._comm_tformr, Transformer=Transformer, transformer_kw=transformer_kw)
+            self._comm_tformr, Transformer=Transformer,
+            transformer_kw=transformer_kw,
+            post_process=post_process)
 
 
     @property
@@ -110,12 +117,15 @@ class GroupwiseCSE:
             [r.xreplace(comm_subs) for r in reds]
         )
 
-    def _get_g_tformrs(self, comm_tformr, *, Transformer, transformer_kw):
+    def _get_g_tformrs(self, comm_tformr, *, Transformer, transformer_kw, post_process):
         per_g = {}
         for i, k in enumerate(self._keys):
             g_repls, g_exprs = self.backend.cse(
                 comm_tformr.final_exprs[slice(*self._spans[i:i+2])],
                 symbols=numbered_symbols("cse", real=True))
+            if post_process:
+                g_repls = [(s, post_process(e)) for s, e in g_repls]
+                g_exprs = [post_process(e) for e in g_exprs]
             g_tformr = Transformer(g_repls, g_exprs, parent=comm_tformr, **transformer_kw)
             per_g[k] = g_tformr
 

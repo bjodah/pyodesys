@@ -36,7 +36,7 @@ class _NeumaierAdd(Token, Expr):
         terms = ", ".join(map(printer._print, self.terms))
         return f"NA({terms} /*{str(self.accum)[:-1]}*/)"
 
-    def to_statements(self, existing, expanded, do_swap=False):
+    def to_statements(self, existing, expanded, *, transients, do_swap=False):
         """Transform into statements."""
         neum, ordinary = [], []
         for term in self.terms:
@@ -53,6 +53,10 @@ class _NeumaierAdd(Token, Expr):
             st.append(Assignment(self.carry, 0))
 
         for elem in ordinary:
+            if elem.count_ops():
+                tr = next(transients)
+                st.append(Assignment(tr, elem))
+                elem = tr
             st.extend(_NeumaierAdd._impl_add(self.accum, self.carry, elem, self.temp, do_swap))
         expanded.add(self)
         return st
@@ -220,7 +224,8 @@ class _NeumaierTransformer(NullTransformer):
             self._pass_50_to_stmnts(lhs, neu.terms, statements=statements)
             if neu not in self.expanded:
                 statements.extend(neu.to_statements(
-                    self.created, self.expanded, self.do_swap))
+                    self.created, self.expanded, do_swap=self.do_swap,
+                    transients=self._tmp_var))
         return rhs
 
     def _pass_60_xrepl(self, lhs, rhs, *, statements):

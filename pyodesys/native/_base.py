@@ -63,9 +63,6 @@ _ext_suffix = '.so'  # sysconfig.get_config_var('EXT_SUFFIX')
 _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
 
 
-class _AssignerBase:
-    def all(self, **kwargs):
-        return "\n".join(self(i, **kwargs) for i in range(self.n))
 
 
 def _r(s):
@@ -75,11 +72,14 @@ def _r(s):
         return sympy.Symbol(s, real=True)
 
 
-class _AssignerGW(_AssignerBase):
+class _AssignerGW:
     def __init__(self, k, gw):
         self.k = k
         self.gw = gw
         self.n = len(gw.exprs(k))
+
+    def all(self, **kwargs):
+        return "\n".join(self(i, **kwargs) for i in range(self.n))
 
     def expr_is_zero(self, i):
         return self.gw.exprs(self.k)[i] == 0
@@ -87,35 +87,6 @@ class _AssignerGW(_AssignerBase):
     def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
         return self.gw.render(Assignment(_r(assign_to(i)), self.gw.exprs(self.k)[i]))
 
-
-class _AssignerPlain(_AssignerBase):
-    def __init__(self, k, all_exprs, *, subsd):
-        self.k = k
-        self.all_exprs = {k: [e.xreplace(subsd) for e in v] for k, v in all_exprs.items()}
-        self.n = len(all_exprs[k])
-
-    def expr_is_zero(self, i):
-        return self.all_exprs[self.k][i] == 0
-
-    def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
-        return sympy.ccode(
-            Assignment(_r(assign_to(i)), self.all_exprs[self.k][i])
-        )
-
-def _init_use_cse(use_cse):
-    if use_cse is None:
-        use_cse = os.getenv('PYODESYS_NATIVE_CSE', '1') == '1'
-        if not use_cse:
-            logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
-    if use_cse is False:
-        use_cse = {}
-    else:
-        if isinstance(use_cse, dict):
-            if 'pre_process' not in use_cse:
-                use_cse['pre_process'] = None
-        else:
-            use_cse = dict(pre_process=None)
-    return use_cse
 
 class _NativeCodeBase(Cpp_Code):
     """Base class for generated code.
@@ -147,18 +118,21 @@ class _NativeCodeBase(Cpp_Code):
     # `namespace_override` is set in init
     # `namespace_extend` is set in init
 
-    def __init__(self, odesys, *args, use_cse=None, **kwargs):
+    def __init__(self, odesys, *args, groupwise_kw=None, **kwargs):
+        self.groupwise_kw = groupwise_kw
         if Cpp_Code is object:
             raise ModuleNotFoundError("failed to import Cpp_Code from pycodeexport")
         if compile_sources is None:
             raise ModuleNotFoundError("failed to import compile_sources from pycompilation")
         if odesys.nroots > 0 and not self._support_roots:
             raise ValueError("%s does not support nroots > 0" % self.__class__.__name__)
-        self.use_cse = _init_use_cse(use_cse)
 
         self.namespace_override = kwargs.pop('namespace_override', {})
         self.namespace_extend = kwargs.pop('namespace_extend', {})
-        self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
+        self.tempdir_basename = '_pycodeexport_pyodesys_%s_%s' % (
+            self.__class__.__name__,
+            ''.join(filter(lambda x: str.isalnum(x) or x in '_-', str(odesys.description).replace(' ', '_')))
+        )
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
         self.so_file = '%s%s' % (self.wrapper_name, '.so')
         _wrapper_src = pkg_resources.resource_filename(
@@ -189,7 +163,7 @@ class _NativeCodeBase(Cpp_Code):
                         shutil.rmtree(tmpdir)
                 if not os.path.exists(_dest):
                     raise OSError("Failed to place prebuilt file at: %s" % _dest)
-        self.compensated_summation = kwargs.pop("compensated_summation", os.environ.get("PYODESYS_COMPENSATED_SUMMATION", "0") == "1")
+        #self.compensated_summation = kwargs.pop("compensated_summation", os.environ.get("PYODESYS_COMPENSATED_SUMMATION", "0") == "1")
         super().__init__(*args, logger=logger, **kwargs)
 
     # def _ccode(self, expr, subsd):
@@ -247,42 +221,26 @@ class _NativeCodeBase(Cpp_Code):
             subsd.update({k: self.odesys.be.Symbol('v[%d]' % idx) for
                          idx, k in enumerate(v)})
 
-        if self.use_cse:
-            if self.compensated_summation:
-                from .symcse.compensated import _NeumaierTransformer as Transformer
-                if isinstance(self.compensated_summation, dict):
-                    transformer_kw = self.compensated_summation
-                else:
-                    transformer_kw = None
-            else:
-                from .symcse.core import NullTransformer as Transformer
-                transformer_kw = None
-            ignore = (() if self.odesys.indep is None else (self.odesys.indep,)) + self.odesys.dep + v
-            gw = GroupwiseCSE(
-                all_exprs,
-                common_cse_template="m_cse[{}]",
-                common_ignore=ignore,
-                subsd=subsd,
-                Transformer=Transformer,
-                transformer_kw=transformer_kw,
-                **self.use_cse
-            )
+        ignore = (() if self.odesys.indep is None else (self.odesys.indep,)) + self.odesys.dep + v
+        gw = GroupwiseCSE(
+            all_exprs,
+            common_cse_template="m_cse[{}]",
+            common_ignore=ignore,
+            subsd=subsd,
+            # Transformer=Transformer,
+            # transformer_kw=transformer_kw,
+            **self.groupwise_kw #use_cse
+        )
 
-            def not_arr(s):
-                return '[' not in s.name
+        def not_arr(s):
+            return '[' not in s.name
 
-            def _cses(k, assign_to=lambda i: _r("out[%d]" % i)):
-                return CodeBlock(*gw.statements(k, declare=not_arr))
-            cses = {k: gw.render(_cses(k)) for k in gw.keys}
-            n_common_cses = gw.n_remapped
-            common_cses = gw.render(CodeBlock(*gw.common_statements(declare=not_arr)))
-
-            assigners = {k: _AssignerGW(k, gw) for k in gw.keys}
-        else:
-            n_common_cses=0
-            cses = defaultdict(lambda: "// use_cse==False")
-            common_cses=""
-            assigners = {k: _AssignerPlain(k, all_exprs, subsd=subsd) for k in all_exprs}
+        def _cses(k, assign_to=lambda i: _r("out[%d]" % i)):
+            return CodeBlock(*gw.statements(k, declare=not_arr))
+        cses = {k: gw.render(_cses(k)) for k in gw.keys}
+        n_common_cses = gw.n_remapped
+        common_cses = gw.render(CodeBlock(*gw.common_statements(declare=not_arr)))
+        assigners = {k: _AssignerGW(k, gw) for k in gw.keys}
 
         ns = dict(
             _message_for_rendered=[
@@ -329,7 +287,7 @@ class _NativeCodeBase(Cpp_Code):
             p_nroots=self.odesys.nroots,
             p_constructor=[],
             p_get_dx_max=False,
-            p_info_comment_codegen=f"{self.use_cse=}, {self.compensated_summation=}"
+            p_info_comment_codegen=f"{self.groupwise_kw=}"
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)
