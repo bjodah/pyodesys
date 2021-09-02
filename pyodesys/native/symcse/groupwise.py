@@ -38,6 +38,7 @@ class GroupwiseCSE:
                  pre_process=pre_process,
                  post_process=post_process,
                  backend=None,
+                 transformer_kw=None
                  ):
         """
         Parameters
@@ -48,6 +49,8 @@ class GroupwiseCSE:
         """
         if code_printer is None:
             code_printer = CPrinter()
+        if transformer_kw is None:
+            transformer_kw = {}
         self._code_printer = code_printer
         self._subsd = {sympy.Symbol(k.name, real=True): v for k, v in (subsd or {}).items()}
         self._type = type_
@@ -71,14 +74,15 @@ class GroupwiseCSE:
             _all_exprs, ignore=common_ignore,
             symbols=numbered_symbols('cse_comm_locl', real=True)
         )
-        self._comm_tformr = Transformer(repls, reds, ignore=common_ignore)
+        self._comm_tformr = Transformer(repls, reds, ignore=common_ignore, **transformer_kw)
         remap = self._comm_tformr.remapping_for_arrayification(template=common_cse_template)
         self._comm_tformr.apply_remapping(remap)
         self.n_remapped = len(remap)
 
         assert(len(self._comm_tformr.final_exprs) == len(reds))
         del reds
-        self._per_g_tformrs = self._get_g_tformrs(self._comm_tformr, Transformer=Transformer)
+        self._per_g_tformrs = self._get_g_tformrs(
+            self._comm_tformr, Transformer=Transformer, transformer_kw=transformer_kw)
 
 
     @property
@@ -106,13 +110,13 @@ class GroupwiseCSE:
             [r.xreplace(comm_subs) for r in reds]
         )
 
-    def _get_g_tformrs(self, comm_tformr, Transformer):
+    def _get_g_tformrs(self, comm_tformr, *, Transformer, transformer_kw):
         per_g = {}
         for i, k in enumerate(self._keys):
             g_repls, g_exprs = self.backend.cse(
                 comm_tformr.final_exprs[slice(*self._spans[i:i+2])],
                 symbols=numbered_symbols("cse", real=True))
-            g_tformr = Transformer(g_repls, g_exprs, parent=comm_tformr)
+            g_tformr = Transformer(g_repls, g_exprs, parent=comm_tformr, **transformer_kw)
             per_g[k] = g_tformr
 
         return per_g

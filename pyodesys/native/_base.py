@@ -102,6 +102,20 @@ class _AssignerPlain(_AssignerBase):
             Assignment(_r(assign_to(i)), self.all_exprs[self.k][i])
         )
 
+def _init_use_cse(use_cse):
+    if use_cse is None:
+        use_cse = os.getenv('PYODESYS_NATIVE_CSE', '1') == '1'
+        if not use_cse:
+            logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
+    if use_cse is False:
+        use_cse = {}
+    else:
+        if isinstance(use_cse, dict):
+            if 'pre_process' not in use_cse:
+                use_cse['pre_process'] = None
+        else:
+            use_cse = dict(pre_process=None)
+    return use_cse
 
 class _NativeCodeBase(Cpp_Code):
     """Base class for generated code.
@@ -140,9 +154,8 @@ class _NativeCodeBase(Cpp_Code):
             raise ModuleNotFoundError("failed to import compile_sources from pycompilation")
         if odesys.nroots > 0 and not self._support_roots:
             raise ValueError("%s does not support nroots > 0" % self.__class__.__name__)
-        if use_cse is None:
-            use_cse = os.getenv('PYODESYS_NATIVE_CSE', '1') == '1'
-        self.use_cse = use_cse
+        self.use_cse = _init_use_cse(use_cse)
+
         self.namespace_override = kwargs.pop('namespace_override', {})
         self.namespace_extend = kwargs.pop('namespace_extend', {})
         self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
@@ -237,8 +250,13 @@ class _NativeCodeBase(Cpp_Code):
         if self.use_cse:
             if self.compensated_summation:
                 from .symcse.compensated import _NeumaierTransformer as Transformer
+                if isinstance(self.compensated_summation, dict):
+                    transformer_kw = self.compensated_summation
+                else:
+                    transformer_kw = None
             else:
                 from .symcse.core import NullTransformer as Transformer
+                transformer_kw = None
             ignore = (() if self.odesys.indep is None else (self.odesys.indep,)) + self.odesys.dep + v
             gw = GroupwiseCSE(
                 all_exprs,
@@ -246,7 +264,8 @@ class _NativeCodeBase(Cpp_Code):
                 common_ignore=ignore,
                 subsd=subsd,
                 Transformer=Transformer,
-                pre_process=None
+                transformer_kw=transformer_kw,
+                **self.use_cse
             )
 
             def not_arr(s):
@@ -260,7 +279,6 @@ class _NativeCodeBase(Cpp_Code):
 
             assigners = {k: _AssignerGW(k, gw) for k in gw.keys}
         else:
-            logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
             n_common_cses=0
             cses = defaultdict(lambda: "// use_cse==False")
             common_cses=""
@@ -310,7 +328,8 @@ class _NativeCodeBase(Cpp_Code):
             },
             p_nroots=self.odesys.nroots,
             p_constructor=[],
-            p_get_dx_max=False
+            p_get_dx_max=False,
+            p_info_comment_codegen=f"{self.use_cse=}, {self.compensated_summation=}"
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)

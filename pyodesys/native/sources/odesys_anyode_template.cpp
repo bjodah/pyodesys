@@ -9,6 +9,7 @@ import sympy
 // User provided system description: ${p_odesys.description}
 // Names of dependent variables: ${p_odesys.names}
 // Names of parameters: ${p_odesys.param_names}
+// Code-generation details: ${p_info_comment_codegen}
 
 #include <algorithm>
 #include <iostream>
@@ -121,7 +122,6 @@ namespace odesys_anyode {
             ${"" if p_odesys.append_iv else 'throw std::runtime_error("append_iv not set to True")'}
             const realtype * const y = params + ${len(p_odesys.params)};
             m_invar0.resize(${p_invariants["n_invar"]});
-            m_invar0.resize(${p_invariants["n_invar"]});
             //realtype * const out = m_invar0.data();
             ${p_invariants["cses"]}
             ${p_invariants["assign"].all(assign_to=lambda i: "m_invar0[%d]" % i)}
@@ -191,7 +191,7 @@ namespace odesys_anyode {
                 if (std::abs(m_invar[idx] - m_invar0[idx]) > ((m_max_invariant_violation > 0)
                                                               ? m_max_invariant_violation
                                                               : std::abs(m_max_invariant_violation*m_invar0[idx]) /*- m_max_invariant_violation*/)) {
-                    std::cerr << "Invariant (" << idx << ") violation at x=" << x << "\n";
+                    std::clog << "Invariant (" << idx << ") violation at x=" << x << "\n";
                     return AnyODE::Status::recoverable_error;
                 }
             }

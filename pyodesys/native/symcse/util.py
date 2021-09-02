@@ -134,6 +134,8 @@ def _cse_symengine(exprs, *, se2sympy, ignore=(), symbols=None, **kwargs):
                 reintro[lhs] = rem
         repl = list(keep.items())
         red = [e.xreplace(reintro) for e in red]
+    recreated = [e.subs(reversed(repl)) for e in red]
+    assert recreated == exprs
     if symbols is not None:
         remap = {}
         updated = []
@@ -164,7 +166,7 @@ class Backend:
             elif _req_backend == "sympy":
                 use_symengine = False
             elif _req_backend == "":
-                use_symengine = se is not None
+                use_symengine = False  # se is not None
             else:
                 raise ValueError("Unknown SYMCXSE_BACKEND: %s" % _req_backend)
         if use_symengine and se is None:
@@ -248,6 +250,11 @@ class Backend:
             return se.Lambdify(args, exprs)
         else:
             return sympy.lambdify(args, exprs)
+
+class BackendWithDisabledCSE(Backend):
+
+    def cse(self, exprs, **kwargs):
+        return [], exprs
 
 
 def ccode(arg, **kwargs):
