@@ -36,7 +36,7 @@ class NativeCvodeCode(_NativeCodeBase):
     _support_roots = True
 
     def __init__(self, *args, **kwargs):
-        self.compile_kwargs = get_compile_kwargs()
+        self.compile_kwargs = get_compile_kwargs(kwargs)
         self.compile_kwargs['define'] = ['PYCVODES_NO_KLU={}'.format("0" if config.get('KLU', True) else "1"),
                                          'PYCVODES_NO_LAPACK={}'.format("0" if config.get('LAPACK', True) else "1"),
                                          'ANYODE_NO_LAPACK={}'.format("0" if config.get('LAPACK', True) else "1")]

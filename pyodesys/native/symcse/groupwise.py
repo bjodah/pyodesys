@@ -54,7 +54,6 @@ class GroupwiseCSE:
         if transformer_kw is None:
             transformer_kw = {}
         self._code_printer = code_printer
-        self._subsd = {sympy.Symbol(k.name, real=True): v for k, v in (subsd or {}).items()}
         self._type = type_
         self._keys, _values = zip(*groups.items())
         self._spans = np.cumsum([0]+list(map(len, _values)))
@@ -82,6 +81,8 @@ class GroupwiseCSE:
         self._comm_tformr = Transformer(repls, reds, ignore=common_ignore, **transformer_kw)
         remap = self._comm_tformr.remapping_for_arrayification(template=common_cse_template)
         self._comm_tformr.apply_remapping(remap)
+        _subsd = {sympy.Symbol(k.name, real=True): v for k, v in (subsd or {}).items()}
+        self._comm_tformr.apply_remapping(_subsd)
         self.n_remapped = len(remap)
 
         assert(len(self._comm_tformr.final_exprs) == len(reds))
@@ -89,7 +90,9 @@ class GroupwiseCSE:
         self._per_g_tformrs = self._get_g_tformrs(
             self._comm_tformr, Transformer=Transformer,
             transformer_kw=transformer_kw,
-            post_process=post_process)
+            post_process=post_process,
+            subsd=_subsd
+        )
 
 
     @property
@@ -99,9 +102,7 @@ class GroupwiseCSE:
 
     def render(self, x):
         """Generate a code string."""
-        x2 = x.xreplace(self._subsd)
-        assert not any(x2.has(k) for k in self._subsd)
-        return self._code_printer.doprint(x.xreplace(self._subsd))
+        return self._code_printer.doprint(x)
 
     def _common_cse(self, all_exprs, **kwargs):
         repls, reds = self.backend.cse(all_exprs, **kwargs)
@@ -117,7 +118,7 @@ class GroupwiseCSE:
             [r.xreplace(comm_subs) for r in reds]
         )
 
-    def _get_g_tformrs(self, comm_tformr, *, Transformer, transformer_kw, post_process):
+    def _get_g_tformrs(self, comm_tformr, *, Transformer, transformer_kw, post_process, subsd):
         per_g = {}
         for i, k in enumerate(self._keys):
             g_repls, g_exprs = self.backend.cse(
@@ -127,6 +128,7 @@ class GroupwiseCSE:
                 g_repls = [(s, post_process(e)) for s, e in g_repls]
                 g_exprs = [post_process(e) for e in g_exprs]
             g_tformr = Transformer(g_repls, g_exprs, parent=comm_tformr, **transformer_kw)
+            g_tformr.apply_remapping(subsd)
             per_g[k] = g_tformr
 
         return per_g

@@ -5,6 +5,7 @@ from functools import reduce
 from operator import mul, add
 
 import sympy
+from sympy.codegen.ast import float80
 from sympy.printing.c import C99CodePrinter
 from sympy.printing.cxx import CXX17CodePrinter
 from sympy.printing.pycode import PythonCodePrinter
@@ -253,19 +254,32 @@ class Backend:
         else:
             return sympy.lambdify(args, exprs)
 
+
 class BackendWithDisabledCSE(Backend):
 
     def cse(self, exprs, **kwargs):
         return [], exprs
 
 
+default_settings = dict(
+    math_macros={},
+    type_mappings={float80: "long double"}
+)
+
+
 def ccode(arg, **kwargs):
-    p = CPrinter(settings=(kwargs or dict(math_macros={})))
+    for k, v in default_settings.items():
+        if k not in kwargs:
+            kwargs[k] = v
+    p = CPrinter(settings=kwargs)
     return p.doprint(arg)
 
 
 def cxxcode(arg, **kwargs):
-    p = CXXPrinter(settings=(kwargs or dict(math_macros={})))
+    for k, v in default_settings.items():
+        if k not in kwargs:
+            kwargs[k] = v
+    p = CXXPrinter(settings=kwargs)
     return p.doprint(arg)
 
 

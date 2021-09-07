@@ -52,8 +52,15 @@ _compile_kwargs = {
 }
 
 
-def get_compile_kwargs():
+def get_compile_kwargs(kwargs):
     kw = copy.deepcopy(_compile_kwargs)
+    for k in "define include_dirs libraries flags ldflags".split():
+        if k in kwargs:
+            if k in kw:
+                kw[k].extend(kwargs.pop(k))
+            else:
+                kw[k] = kwargs.pop(k)
+
     if options := os.environ.get("PYODESYS_OPTIONS"):
         kw['options'] = options.split(',')
     return kw
@@ -73,10 +80,11 @@ def _r(s):
 
 
 class _AssignerGW:
-    def __init__(self, k, gw):
+    def __init__(self, k, gw, wrap_out=lambda x: x):
         self.k = k
         self.gw = gw
         self.n = len(gw.exprs(k))
+        self.wrap_out = wrap_out
 
     def all(self, **kwargs):
         return "\n".join(self(i, **kwargs) for i in range(self.n))
@@ -85,7 +93,8 @@ class _AssignerGW:
         return self.gw.exprs(self.k)[i] == 0
 
     def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
-        return self.gw.render(Assignment(_r(assign_to(i)), self.gw.exprs(self.k)[i]))
+        out = self.wrap_out(self.gw.exprs(self.k)[i])
+        return self.gw.render(Assignment(_r(assign_to(i)), out))
 
 
 class _NativeCodeBase(Cpp_Code):
@@ -118,8 +127,9 @@ class _NativeCodeBase(Cpp_Code):
     # `namespace_override` is set in init
     # `namespace_extend` is set in init
 
-    def __init__(self, odesys, *args, groupwise_kw=None, **kwargs):
+    def __init__(self, odesys, *args, groupwise_kw=None, assigner_kw=None, **kwargs):
         self.groupwise_kw = groupwise_kw
+        self.assigner_kw = assigner_kw or {}
         if Cpp_Code is object:
             raise ModuleNotFoundError("failed to import Cpp_Code from pycodeexport")
         if compile_sources is None:
@@ -235,12 +245,12 @@ class _NativeCodeBase(Cpp_Code):
         def not_arr(s):
             return '[' not in s.name
 
-        def _cses(k, assign_to=lambda i: _r("out[%d]" % i)):
+        def _cses(k):
             return CodeBlock(*gw.statements(k, declare=not_arr))
         cses = {k: gw.render(_cses(k)) for k in gw.keys}
         n_common_cses = gw.n_remapped
         common_cses = gw.render(CodeBlock(*gw.common_statements(declare=not_arr)))
-        assigners = {k: _AssignerGW(k, gw) for k in gw.keys}
+        assigners = {k: _AssignerGW(k, gw, **self.assigner_kw) for k in gw.keys}
 
         ns = dict(
             _message_for_rendered=[
@@ -304,16 +314,12 @@ class _NativeSysBase(SymbolicSys):
     _native_name = None
 
     def __init__(self, *args, native_code_kw=None, **kwargs):
-        namespace_override = kwargs.pop('namespace_override', {})
-        namespace_extend = kwargs.pop('namespace_extend', {})
         if 'init_indep' not in kwargs:  # we need to trigger append_iv for when invariants are used
             kwargs['init_indep'] = True
             kwargs['init_dep'] = True
         super(_NativeSysBase, self).__init__(*args, **kwargs)
         self._native = self._NativeCode(
             self,
-            namespace_override=namespace_override,
-            namespace_extend=namespace_extend,
             **(native_code_kw or {}))
 
     def integrate(self, *args, **kwargs):

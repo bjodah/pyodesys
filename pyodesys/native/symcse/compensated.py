@@ -8,9 +8,9 @@ $ python3 compensated_cse.py demo1 | clang-format --style=Google | batcat -pl C
 """
 from collections import defaultdict
 from functools import reduce
-from operator import add
+from operator import add, mul
 from sympy import (
-    Abs, Add, And, Eq, Expr, Lt, Ne, numbered_symbols, Piecewise,
+    Abs, Add, And, Eq, Expr, Lt, Mul, Ne, numbered_symbols, Piecewise,
     postorder_traversal, Symbol, Tuple
 )
 from sympy.codegen import Assignment, aug_assign, CodeBlock
@@ -40,24 +40,56 @@ class _NeumaierAdd(Token, Expr):
         """Transform into statements."""
         neum, ordinary = [], []
         for term in self.terms:
-            if term in existing:
-                neum.append(existing[term])
+            ex, other = [], []
+            for factor in term.as_ordered_factors():
+                if factor in existing:
+                    ex.append(factor)
+                else:
+                    other.append(factor)
+            if len(ex) == 1:  # TODO: handle >1
+                neum.append((reduce(mul, other) if other else 1, existing[ex[0]]))
             else:
                 ordinary.append(term)
         st = []
         if neum:
-            st.append(Assignment(self.accum, sum(na.accum for na in neum)))
-            st.append(Assignment(self.carry, sum(na.carry for na in neum)))
+            if True:
+                st.append(Assignment(self.accum, neum[0][0]*neum[0][1].accum))
+                ordinary.extend([oth*na.accum for oth, na in neum[1:]])
+            else:
+                st.append(Assignment(self.accum, sum(oth*na.accum for oth, na in neum)))
+
+            st.append(Assignment(self.carry, sum(oth*na.carry for oth, na in neum)))
         else:
             st.append(Assignment(self.accum, ordinary.pop(0)))
             st.append(Assignment(self.carry, 0))
 
         for elem in ordinary:
-            if elem.count_ops():
+            nops = elem.count_ops()
+            if nops == 1 and isinstance(elem, Mul):
+                nops = max(nops, (-elem).count_ops())
+            if nops:
+                # for fs in elem.free_symbols:
+                #     if fs not in existing:
+                #         continue
+                #     ex = existing[fs]
+                #     if ex not in expanded:
+                #         continue
+                #     e = elem.subs(fs, ex.accum + ex.carry)
+                #     _accu, _pure_carry = [], []
+                #     for term in e.as_ordered_terms():
+                #         if ex.carry in term and ex.accum not in term:
+                #             _pure_carry.append(term)
+                #         else:
+                #             _accum.append(term)
+                #     if _pure_carry:
+                #         ...
+                #     ea = elem.subs(fs, ex.accum)
+                #     ec = elem.sbus(fs, ex.carry)
                 tr = next(transients)
                 st.append(Assignment(tr, elem))
                 elem = tr
-            st.extend(_NeumaierAdd._impl_add(self.accum, self.carry, elem, self.temp, do_swap))
+            st.extend(_NeumaierAdd._impl_add(
+                self.accum, self.carry, elem, self.temp, do_swap))
         expanded.add(self)
         return st
 
