@@ -13,7 +13,7 @@ import sys
 import tempfile
 
 import sympy
-from sympy.codegen.ast import CodeBlock, Assignment
+from sympy.codegen.ast import CodeBlock, Assignment, float64
 import numpy as np
 import pkg_resources
 
@@ -127,8 +127,10 @@ class _NativeCodeBase(Cpp_Code):
     # `namespace_override` is set in init
     # `namespace_extend` is set in init
 
-    def __init__(self, odesys, *args, groupwise_kw=None, assigner_kw=None, **kwargs):
+    def __init__(self, odesys, *args, groupwise_kw=None, assigner_kw=None,
+                 types=None, **kwargs):
         self.groupwise_kw = groupwise_kw
+        self.types = types
         self.assigner_kw = assigner_kw or {}
         if Cpp_Code is object:
             raise ModuleNotFoundError("failed to import Cpp_Code from pycodeexport")
@@ -173,7 +175,8 @@ class _NativeCodeBase(Cpp_Code):
                         shutil.rmtree(tmpdir)
                 if not os.path.exists(_dest):
                     raise OSError("Failed to place prebuilt file at: %s" % _dest)
-        #self.compensated_summation = kwargs.pop("compensated_summation", os.environ.get("PYODESYS_COMPENSATED_SUMMATION", "0") == "1")
+        self.compensated_summation = kwargs.pop("compensated_summation", os.environ.get(
+            "PYODESYS_COMPENSATED_SUMMATION", "0") == "1")
         super().__init__(*args, logger=logger, **kwargs)
 
     # def _ccode(self, expr, subsd):
@@ -244,12 +247,12 @@ class _NativeCodeBase(Cpp_Code):
 
         def not_arr(s):
             return '[' not in s.name
-
+        types = self.types or defaultdict(lambda: (lambda lhs, rhs: (float64, rhs)))
         def _cses(k):
-            return CodeBlock(*gw.statements(k, declare=not_arr))
+            return CodeBlock(*gw.statements(k, declare=not_arr, type_=types[k]))
         cses = {k: gw.render(_cses(k)) for k in gw.keys}
         n_common_cses = gw.n_remapped
-        common_cses = gw.render(CodeBlock(*gw.common_statements(declare=not_arr)))
+        common_cses = gw.render(CodeBlock(*gw.common_statements(declare=not_arr, type_=types[None])))
         assigners = {k: _AssignerGW(k, gw, **self.assigner_kw) for k in gw.keys}
 
         ns = dict(
@@ -297,7 +300,8 @@ class _NativeCodeBase(Cpp_Code):
             p_nroots=self.odesys.nroots,
             p_constructor=[],
             p_get_dx_max=False,
-            p_info_comment_codegen=f"{self.groupwise_kw=}"
+            p_info_comment_codegen=f"{self.groupwise_kw=}",
+            p_compensated_summation=self.compensated_summation
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)

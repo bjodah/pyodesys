@@ -5,7 +5,7 @@ from functools import reduce
 from operator import mul, add
 
 import sympy
-from sympy.codegen.ast import float80
+from sympy.codegen.ast import float80, String, Token
 from sympy.printing.c import C99CodePrinter
 from sympy.printing.cxx import CXX17CodePrinter
 from sympy.printing.pycode import PythonCodePrinter
@@ -45,16 +45,23 @@ class UnevaluatedRealPropagatingExpr(sympy.UnevaluatedExpr):
     def _eval_is_real(self):
         return self.args[0].is_real
 
+class OperatorDot(Token):
+    __slots__ = ('lhs', 'rhs')
+    #_construct_lhs = String
+    #_construct_rhs = String
 
 class _UnevaluatedExprPrinterMixin:
     def _print_UnevaluatedExpr(self, arg):
         return "(%s)" % super()._print_UnevaluatedExpr(arg)
 
     def _print_Integer(self, arg):
-        if abs(arg) > 2**53:
+        if abs(arg) > 2 ** 53:
             return self._print(sympy.Float(arg))
         else:
             return super()._print_Integer(arg)
+
+    def _print_OperatorDot(self, arg):
+        return self._print(arg.lhs) + '.' + self._print(arg.rhs)
 
     @staticmethod
     def _replace_re(arg):
@@ -178,24 +185,27 @@ class Backend:
         self.kw_cse = kw_cse
         self.assume_real = assume_real
 
-
     def Symbol(self, name):
         if self.use_symengine:
-            return se.Symbol(name)  # https://github.com/symengine/symengine.py/issues/286
+            return se.Symbol(
+                name
+            )  # https://github.com/symengine/symengine.py/issues/286
         else:
             return sympy.Symbol(name, real=self.assume_real)
 
     def sympy2se(self, x):
-        if hasattr(x, '_sympy_'):
+        if hasattr(x, "_sympy_"):
             return x  # looks like that's already a SymEngine object
         return sympy2symengine(x, raise_error=True)
 
     def se2sympy(self, x):
-        if not hasattr(x, '_sympy_'):
+        if not hasattr(x, "_sympy_"):
             assert isinstance(x, sympy.Basic)
             return x  # looks like that's already a SymPy object
         tmp = x._sympy_()
-        return tmp.xreplace({s: sympy.Symbol(s.name, real=self.assume_real) for s in tmp.free_symbols})
+        return tmp.xreplace(
+            {s: sympy.Symbol(s.name, real=self.assume_real) for s in tmp.free_symbols}
+        )
 
     def cse(self, exprs, **kwargs):
         """Perform common sub-expression elimination."""
@@ -256,15 +266,11 @@ class Backend:
 
 
 class BackendWithDisabledCSE(Backend):
-
     def cse(self, exprs, **kwargs):
         return [], exprs
 
 
-default_settings = dict(
-    math_macros={},
-    type_mappings={float80: "long double"}
-)
+default_settings = dict(math_macros={}, type_mappings={float80: "long double"})
 
 
 def ccode(arg, **kwargs):

@@ -10,8 +10,19 @@ from collections import defaultdict
 from functools import reduce
 from operator import add, mul
 from sympy import (
-    Abs, Add, And, Eq, Expr, Lt, Mul, Ne, numbered_symbols, Piecewise,
-    postorder_traversal, Symbol, Tuple
+    Abs,
+    Add,
+    And,
+    Eq,
+    Expr,
+    Lt,
+    Mul,
+    Ne,
+    numbered_symbols,
+    Piecewise,
+    postorder_traversal,
+    Symbol,
+    Tuple,
 )
 from sympy.codegen import Assignment, aug_assign, CodeBlock
 from sympy.codegen.ast import AssignmentBase, Token, While, break_
@@ -21,15 +32,13 @@ from .ordered_add import ordered_add
 
 
 def If(cond, body):
-    return While(cond, CodeBlock(
-        *body,
-        break_
-    ))
+    return While(cond, CodeBlock(*body, break_))
+
 
 class _NeumaierAdd(Token, Expr):
     """Represents KBN compensated summation."""
 
-    __slots__ = ('terms', 'accum', 'carry', 'temp')
+    __slots__ = ("terms", "accum", "carry", "temp")
     _construct_terms = staticmethod(lambda args: Tuple(*args))
 
     def _ccode(self, printer):
@@ -53,12 +62,14 @@ class _NeumaierAdd(Token, Expr):
         st = []
         if neum:
             if True:
-                st.append(Assignment(self.accum, neum[0][0]*neum[0][1].accum))
-                ordinary.extend([oth*na.accum for oth, na in neum[1:]])
+                st.append(Assignment(self.accum, neum[0][0] * neum[0][1].accum))
+                ordinary.extend([oth * na.accum for oth, na in neum[1:]])
             else:
-                st.append(Assignment(self.accum, sum(oth*na.accum for oth, na in neum)))
+                st.append(
+                    Assignment(self.accum, sum(oth * na.accum for oth, na in neum))
+                )
 
-            st.append(Assignment(self.carry, sum(oth*na.carry for oth, na in neum)))
+            st.append(Assignment(self.carry, sum(oth * na.carry for oth, na in neum)))
         else:
             st.append(Assignment(self.accum, ordinary.pop(0)))
             st.append(Assignment(self.carry, 0))
@@ -88,8 +99,9 @@ class _NeumaierAdd(Token, Expr):
                 tr = next(transients)
                 st.append(Assignment(tr, elem))
                 elem = tr
-            st.extend(_NeumaierAdd._impl_add(
-                self.accum, self.carry, elem, self.temp, do_swap))
+            st.extend(
+                _NeumaierAdd._impl_add(self.accum, self.carry, elem, self.temp, do_swap)
+            )
         expanded.add(self)
         return st
 
@@ -106,16 +118,19 @@ class _NeumaierAdd(Token, Expr):
         pw = Piecewise((big_temp, Abs(temp) > abs_elem), (big_elem, True))
         statements = [
             Assignment(temp, accum + elem),
-            aug_assign(carry, '+', pw),
-            Assignment(accum, temp)
+            aug_assign(carry, "+", pw),
+            Assignment(accum, temp),
         ]
         if do_swap:
             return [
-                If(And(Eq(carry, 0), Ne(accum, 0), Lt(Abs(accum), abs_elem)), [
+                If(
+                    And(Eq(carry, 0), Ne(accum, 0), Lt(Abs(accum), abs_elem)),
+                    [
                         Assignment(temp, accum),
                         Assignment(accum, carry),
-                        Assignment(carry, temp)
-                ])
+                        Assignment(carry, temp),
+                    ],
+                )
             ] + statements
         else:
             return statements
@@ -125,7 +140,7 @@ class _NeumaierAdd(Token, Expr):
         return Add(accum, carry)
 
 
-class _NeumaierTransformer(NullTransformer):
+class NeumaierTransformer(NullTransformer):
     """Transform Add instances in CSEs to use compensated sum.
 
     Parameters
@@ -135,8 +150,20 @@ class _NeumaierTransformer(NullTransformer):
         and 100 (all passes).
     """
 
-    def __init__(self, repl, red, *, tmp_pfx="t", neu_pfx="n", up_to_debug=100,
-                 limit=3, parent=None, ignore=None, do_swap=False):
+    def __init__(
+        self,
+        repl,
+        red,
+        *,
+        tmp_pfx="t",
+        trs_pfx="r",
+        neu_pfx="n",
+        up_to_debug=100,
+        limit=3,
+        parent=None,
+        ignore=None,
+        do_swap=False,
+    ):
         self.repl = repl
         self.red = red
         self.limit = limit
@@ -150,9 +177,10 @@ class _NeumaierTransformer(NullTransformer):
         self.expanded = set()
         self._analysis = defaultdict(int)
         self._tmp_var = numbered_symbols(tmp_pfx)
+        self._trs_var = numbered_symbols(trs_pfx)
         self._neu_var = numbered_symbols(neu_pfx)
         self.passes = []
-        for p in filter(lambda n: n.startswith('_pass_'), dir(self)):
+        for p in filter(lambda n: n.startswith("_pass_"), dir(self)):
             null, rest = p.split("_pass_")
             assert null == ""
             num, *_ = rest.split("_")
@@ -170,16 +198,16 @@ class _NeumaierTransformer(NullTransformer):
         for st in self.statements:
             if st.lhs in remapping or st.lhs in self._all_tempv:
                 continue
-            #if st.lhs in self._all_accum or st.lhs in self._all_carry:
+            # if st.lhs in self._all_accum or st.lhs in self._all_carry:
             remapping[st.lhs] = Symbol(template.format(i), real=True)
             i = i + 1
         return remapping
 
     def _mk_Neu(self, terms, lhs):
         pfx = str(next(self._tmp_var)) if lhs is None else str(lhs)
-        accum = Symbol(pfx+'a', real=True)
-        carry = Symbol(pfx+'c', real=True)
-        tempv = Symbol(pfx+'t', real=True)
+        accum = Symbol(pfx + "a", real=True)
+        carry = Symbol(pfx + "c", real=True)
+        tempv = Symbol(pfx + "t", real=True)
         na = _NeumaierAdd(terms, accum, carry, tempv)
         self._all_accum[accum] = na
         self._all_carry[carry] = na
@@ -200,8 +228,10 @@ class _NeumaierTransformer(NullTransformer):
             elif hasattr(st, "body"):
                 assert isinstance(st.body, CodeBlock)
                 new_body = CodeBlock(*self._single_pass(st.body.args, pass_))
-                new_args = (new_body if attr == 'body' else getattr(st, attr)
-                            for attr in st.__slots__)
+                new_args = (
+                    new_body if attr == "body" else getattr(st, attr)
+                    for attr in st.__slots__
+                )
                 new_stmts.append(st.__class__(*new_args))
             else:
                 new_stmts.append(st)  # no-op (e.g. BreakToken instance)
@@ -232,8 +262,9 @@ class _NeumaierTransformer(NullTransformer):
 
         while True:
             for _add in filter(lambda x: x.is_Add, postorder_traversal(new_rhs)):
-                score = self._analysis.get(lhs, 0) + reduce(add, [
-                    self._analysis.get(k, 1) for k in _add.args])
+                score = self._analysis.get(lhs, 0) + reduce(
+                    add, [self._analysis.get(k, 1) for k in _add.args]
+                )
                 if score >= self.limit or any(self._is_Neu(arg) for arg in _add.args):
                     na = self._mk_Neu(_add.args, lhs)
                     if _add is rhs and lhs is not None:
@@ -255,9 +286,14 @@ class _NeumaierTransformer(NullTransformer):
                 continue
             self._pass_50_to_stmnts(lhs, neu.terms, statements=statements)
             if neu not in self.expanded:
-                statements.extend(neu.to_statements(
-                    self.created, self.expanded, do_swap=self.do_swap,
-                    transients=self._tmp_var))
+                statements.extend(
+                    neu.to_statements(
+                        self.created,
+                        self.expanded,
+                        do_swap=self.do_swap,
+                        transients=self._trs_var,
+                    )
+                )
         return rhs
 
     def _pass_60_xrepl(self, lhs, rhs, *, statements):
@@ -286,12 +322,13 @@ class _NeumaierTransformer(NullTransformer):
         return result
 
     def _has(self, term):
-        return term in self.created or term in self._all_accum or term in self._all_carry
+        return (
+            term in self.created or term in self._all_accum or term in self._all_carry
+        )
 
     def _pass_95_group(self, lhs, rhs, *, statements):
         new_rhs = rhs.replace(
-            lambda s: s.is_Add and any(self._has(t) for t in s.args),
-            self._group
+            lambda s: s.is_Add and any(self._has(t) for t in s.args), self._group
         )
         return new_rhs
 

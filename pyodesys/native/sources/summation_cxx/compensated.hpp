@@ -48,6 +48,7 @@ namespace /* anonymous */ {
         T& SMMTNCXX_RESTRICT carry,
         const T& SMMTNCXX_RESTRICT elem)
     {
+        // cppcheck-suppress redundantAssignment
         SMMTNCXX_NEUMAIER_ADD(acm, carry, elem, T, tmp, true);
     }
 }

@@ -49,6 +49,27 @@ public:
         }
         return ta.template to<T>();
     }
+
+private:
+    template <typename U, typename... Us>
+    static constexpr void from_(Accumulator<T, scheme>& acu, U arg, Us... args)
+    {
+        acu += arg;
+        if constexpr (sizeof...(args) > 0) {
+            from_(acu, args...);
+        }
+    }
+
+public:
+    template <typename U, typename... Us>
+    static constexpr Accumulator<T, scheme> from(U arg, Us... args)
+    {
+        Accumulator<T, scheme> acu { arg };
+        if constexpr (sizeof...(args) > 0) {
+            Accumulator<T, scheme>::from_(acu, args...);
+        }
+        return acu;
+    }
 };
 template <typename T>
 using AccumulatorKahan = Accumulator<T, Compensation::KAHAN>;

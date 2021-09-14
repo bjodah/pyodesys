@@ -20,6 +20,10 @@ import sympy
 #include ${inc}
 %endfor
 
+%if p_compensated_summation:
+#include "summation_cxx/ranged.hpp"
+%endif
+
 // sympy wraps real around symbols which actually are real:
 #define re(x) (x)
 
@@ -152,7 +156,12 @@ namespace odesys_anyode {
 
     AnyODE::Status OdeSys<realtype, indextype>::rhs(realtype x,
                                const realtype * const ANYODE_RESTRICT y,
-                               realtype * const ANYODE_RESTRICT f) {
+                               realtype * const ANYODE_RESTRICT out) {
+    %if p_compensated_summation:
+        summation_cxx::RangedAccumulatorNeumaier<realtype> f(out);
+    %else:
+        realtype * const f = out;
+    %endif
     %if isinstance(p_rhs, str):
         ${p_rhs}
     %else:
