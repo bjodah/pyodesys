@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 _compile_kwargs = {
     'options': ['warn', 'pic', 'debug', 'openmp'],  # DO-NOT-MERGE!!! debug/fast
-    'std': 'c++11',
+    'std': 'c++17',
     'include_dirs': [np.get_include(), pkg_resources.resource_filename(__name__, 'sources')],
     'libraries': [],
     'cplus': True,
@@ -127,11 +127,11 @@ class _NativeCodeBase(Cpp_Code):
     # `namespace_override` is set in init
     # `namespace_extend` is set in init
 
-    def __init__(self, odesys, *args, groupwise_kw=None, assigner_kw=None,
+    def __init__(self, odesys, *args, groupwise_kw=None, assigner_kws=None,
                  types=None, **kwargs):
         self.groupwise_kw = groupwise_kw
         self.types = types
-        self.assigner_kw = assigner_kw or {}
+        self.assigner_kws = assigner_kws or defaultdict(dict)
         if Cpp_Code is object:
             raise ModuleNotFoundError("failed to import Cpp_Code from pycodeexport")
         if compile_sources is None:
@@ -184,12 +184,10 @@ class _NativeCodeBase(Cpp_Code):
     #     return self.odesys.be.ccode(expr_x)
 
     def variables(self):
-        ny = self.odesys.ny
         if self.odesys.band is not None:
             raise NotImplementedError("Banded jacobian not yet implemented.")
 
         all_invar = tuple(self.odesys.all_invariants())
-        ninvar = len(all_invar)
         jac = self.odesys.get_jac()
         nnz = self.odesys.nnz
         all_exprs = dict(
@@ -199,13 +197,9 @@ class _NativeCodeBase(Cpp_Code):
         if jac is not False and nnz < 0:
             jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
             all_exprs["jac_dfdt"] = jac_dfdx
-            nj = len(jac_dfdx)
         elif jac is not False and nnz >= 0:
             jac_dfdx = list(reduce(add, jac.tolist()))
             all_exprs["jac_dfdt"] = jac_dfdx
-            nj = len(jac_dfdx)
-        else:
-            nj = 0
 
         jtimes = self.odesys.get_jtimes()
         if jtimes is not False:
@@ -253,7 +247,7 @@ class _NativeCodeBase(Cpp_Code):
         cses = {k: gw.render(_cses(k)) for k in gw.keys}
         n_common_cses = gw.n_remapped
         common_cses = gw.render(CodeBlock(*gw.common_statements(declare=not_arr, type_=types[None])))
-        assigners = {k: _AssignerGW(k, gw, **self.assigner_kw) for k in gw.keys}
+        assigners = {k: _AssignerGW(k, gw, **self.assigner_kws[k]) for k in gw.keys}
 
         ns = dict(
             _message_for_rendered=[
