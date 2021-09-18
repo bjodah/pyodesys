@@ -1,3 +1,7 @@
+v0.14.1
+=======
+- Relax version requirement for notebook (to enable use in colab)
+
 v0.14.0
 =======
 - Update AnyODE to new upstream version.
