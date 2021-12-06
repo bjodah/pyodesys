@@ -236,7 +236,7 @@ class _NativeCodeBase(Cpp_Code):
             subsd=subsd,
             # Transformer=Transformer,
             # transformer_kw=transformer_kw,
-            **self.groupwise_kw #use_cse
+            **(self.groupwise_kw or {}) #use_cse
         )
 
         def not_arr(s):
