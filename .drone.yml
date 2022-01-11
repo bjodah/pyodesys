@@ -3,7 +3,7 @@ clone:
      image: plugins/git
      recursive: true
      submodule_override:
-       external/anyode: git://github.com/bjodah/anyode.git
+       external/anyode: https://github.com/bjodah/anyode.git
 
 pipeline:
   restore-cache:
