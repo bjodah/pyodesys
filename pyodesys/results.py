@@ -178,7 +178,7 @@ class Result(object):
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
 
-    def _plot(self, cb, x=None, y=None, legend=None, **kwargs):
+    def _plot(self, cb, x=None, y=None, legend=None, sort_legend=False, **kwargs):
         if x is None:
             x = self.xout
         if y is None:
@@ -198,9 +198,26 @@ class Result(object):
         if legend is None:
             if (kwargs.get('latex_names') or None) is not None or (kwargs['names'] or None) is not None:
                 legend = True
-        return cb(x, y, legend=legend, **kwargs)
+        ax = cb(x, y, legend=legend, **kwargs)
+        if sort_legend:
+            handles, labels = ax.get_legend_handles_labels()
+            # sort both labels and handles by labels
+            # if kwargs.get('names', None) is None:
+            #     sel = slice(None)
+            # else:
+            #     sel = [n in kwargs['names'] for n in self.odesys.names]
+            reorder = np.argsort(y[-1, kwargs.get('indices', slice(None))])[::-1]
+            if isinstance(legend, dict):
+                legend_kw = legend
+            elif not legend:
+                return ax
+            else:
+                legend_kw = dict()
+            ax.legend([handles[i] for i in reorder], [labels[i] for i in reorder], **legend_kw)
+        return ax
 
-    def plot(self, info_vlines_kw=None, between=None, deriv=False, title_info=0, **kwargs):
+    def plot(self, info_vlines_kw=None, between=None, deriv=False, title_info=0,
+             **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
         Parameters
@@ -216,6 +233,7 @@ class Result(object):
         \\*\\*kwargs:
             See :func:`pyodesys.plotting.plot_result`
         """
+
         if between is not None:
             if 'x' in kwargs or 'y' in kwargs:
                 raise ValueError("x/y & between given.")
@@ -230,7 +248,9 @@ class Result(object):
             if 'y' in kwargs:
                 raise ValueError("Cannot give both deriv=True and y.")
             kwargs['y'] = self.odesys.f_cb(*self._internals())
+
         ax = self._plot(plot_result, **kwargs)
+
         if title_info:
             ax.set_title(
                 (getattr(self.odesys, 'description', None) or '') +

@@ -123,9 +123,10 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
             clr = plot_kwargs_cb(idx)['c']
             ax.fill_between(x, _y[:, idx] - yerr[:, idx], _y[:, idx] + yerr[:, idx], facecolor=clr, alpha=.3)
 
-    if isinstance(yscale, str) and 'linthreshy' in yscale:
+    if isinstance(yscale, str) and 'linthresh' in yscale:
+        yscale = yscale.replace('linthreshy', 'linthresh')
         arg, kw = yscale.split(';')
-        thresh = eval('dict(%s)' % kw)['linthreshy']
+        thresh = eval('dict(%s)' % kw)['linthresh']
         ax.axhline(thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)
         ax.axhline(-thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)
 
