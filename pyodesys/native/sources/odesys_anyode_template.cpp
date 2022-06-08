@@ -158,7 +158,8 @@ namespace odesys_anyode {
                                const realtype * const ANYODE_RESTRICT y,
                                realtype * const ANYODE_RESTRICT out) {
     %if p_compensated_summation:
-        summation_cxx::RangedAccumulatorNeumaier<realtype> f(out);
+        summation_cxx::RangedAccumulatorNeumaier<realtype> f(${p_odesys.ny});
+        f.init(out);
     %else:
         realtype * const f = out;
     %endif
@@ -168,6 +169,10 @@ namespace odesys_anyode {
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
         ${p_rhs["cses"]}
         ${p_rhs["assign"].all(assign_to=lambda i: sympy.Symbol("f[%d]" % i))}
+    %if p_compensated_summation:
+        f.commit();
+    %endif
+
         this->nfev++;
       %if p_support_recoverable_error:
         if (m_error_outside_bounds){

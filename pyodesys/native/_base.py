@@ -228,15 +228,15 @@ class _NativeCodeBase(Cpp_Code):
             subsd.update({k: self.odesys.be.Symbol('v[%d]' % idx) for
                          idx, k in enumerate(v)})
 
-        ignore = (() if self.odesys.indep is None else (self.odesys.indep,)) + self.odesys.dep + v
+        common_ignore = (() if self.odesys.indep is None else (self.odesys.indep,)) + self.odesys.dep + v
         gw = GroupwiseCSE(
             all_exprs,
             common_cse_template="m_cse[{}]",
-            common_ignore=ignore,
+            common_ignore=common_ignore,
             subsd=subsd,
             # Transformer=Transformer,
             # transformer_kw=transformer_kw,
-            **(self.groupwise_kw or {}) #use_cse
+            **(self.groupwise_kw or {})
         )
 
         def not_arr(s):

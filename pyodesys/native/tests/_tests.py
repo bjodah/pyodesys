@@ -13,6 +13,7 @@ from pyodesys.tests.test_core import (
 )
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
 from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3
+from pyodesys.native.symcse.util import BackendWithDisabledCSE
 
 sp = import_('sympy')
 
@@ -100,7 +101,7 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
 def _test_Decay_nonnegative(NativeSys, use_cse, compensated):
     odesys = NativeSys.from_other(
         _get_decay3(lower_bounds=[0]*3),
-        native_code_kw=dict(use_cse=use_cse, compensated_summation=compensated),
+        native_code_kw=dict(groupwise_kw=None if use_cse else {'backend': BackendWithDisabledCSE()}, compensated_summation=compensated),
     )
     y0, k = [3., 2., 1.], [3.5, 2.5, 0]
     xout, yout, info = odesys.integrate([1e-10, 1], y0, k, integrator='native')
@@ -249,12 +250,14 @@ def _test_NativeSys__first_step_cb_source_code(NativeSys, log10myconst, should_s
     dec3 = _get_decay3()
     odesys = NativeSys.from_other(
         dec3,
-        namespace_override={
+        native_code_kw=dict(
+            save_temp=True,
+            namespace_override={
             'p_first_step': 'AnyODE::ignore(x); return good_const()*y[0];',
             'p_anon': 'double good_const(){ return std::pow(10, %.5g); }' % log10myconst
         },
-        namespace_extend={'p_includes': ['<cmath>']},
-        native_code_kw=dict(save_temp=True),
+        namespace_extend={'p_includes': ['<cmath>']}
+        ),
     )
     y0, k = [.7, 0, 0], [1e23, 2, 3.]
     xout, yout, info = odesys.integrate(5, y0, k, integrator='native', **kwargs)
@@ -285,9 +288,9 @@ def _test_NativeSys__roots(NativeSys):
 
 def _test_NativeSys__get_dx_max_source_code(NativeSys, forgive=20, **kwargs):
     dec3 = _get_decay3()
-    odesys = NativeSys.from_other(dec3, namespace_override={
+    odesys = NativeSys.from_other(dec3, native_code_kw=dict(namespace_override={
         'p_get_dx_max': """AnyODE::ignore(y); return (1.0e-4 * x + 1.0e-3);""",
-    })
+    }))
     y0, k = [.7, 0, 0], [7., 2, 3.]
     xout, yout, info = odesys.integrate(1, y0, k, integrator='native',
                                         get_dx_max_factor=1.0, **kwargs)
@@ -331,7 +334,8 @@ def _test_NativeSys__dep_by_name__single_varied(NativeSys):
 def _test_return_on_error_success(NativeSys):
     k, y0 = [4, 3], (5, 4, 2)
 
-    native = NativeSys.from_callback(decay_rhs, len(k)+1, len(k), namespace_override={
+    native = NativeSys.from_callback(decay_rhs, len(k)+1, len(k), native_code_kw=dict(
+        namespace_override={
         'p_rhs': """
         f[0] = -m_p[0]*y[0];
         f[1] = m_p[0]*y[0] - m_p[1]*y[1];
@@ -340,7 +344,7 @@ def _test_return_on_error_success(NativeSys):
         this->nfev++;
         return AnyODE::Status::success;
 """
-    })
+        }))
     xout = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
     result = native.integrate(xout, y0, k, atol=1e-11, rtol=1e-11, return_on_error=True, dx_max=.05)
     nreached = result.info['nreached']

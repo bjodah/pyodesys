@@ -13,10 +13,10 @@ enum class Compensation { NONE,
 
 namespace /* anonymous */ {
     template <typename T>
-    SMMTNCXX_PREFER_INLINE void accum_kahan_destructive(
-        T& SMMTNCXX_RESTRICT accu,
-        T& SMMTNCXX_RESTRICT carry,
-        T& SMMTNCXX_RESTRICT elem)
+    SXX_PREFER_INLINE void accum_kahan_destructive(
+        T& SXX_RESTRICT accu,
+        T& SXX_RESTRICT carry,
+        T& SXX_RESTRICT elem)
     {
         elem -= carry;
         const T tmp = accu + elem;
@@ -24,32 +24,32 @@ namespace /* anonymous */ {
         accu = tmp;
     }
     template <typename T>
-    SMMTNCXX_PREFER_INLINE void accum_kahan(
-        T& SMMTNCXX_RESTRICT accu,
-        T& SMMTNCXX_RESTRICT carry,
-        const T& SMMTNCXX_RESTRICT elem)
+    SXX_PREFER_INLINE void accum_kahan(
+        T& SXX_RESTRICT accu,
+        T& SXX_RESTRICT carry,
+        const T& SXX_RESTRICT elem)
     {
         T y = elem;
         accum_kahan_destructive(accu, carry, y);
     }
 
     template <typename T>
-    SMMTNCXX_PREFER_INLINE void accum_neumaier(
-        T& SMMTNCXX_RESTRICT acm,
-        T& SMMTNCXX_RESTRICT carry,
-        const T& SMMTNCXX_RESTRICT elem)
+    SXX_PREFER_INLINE void accum_neumaier(
+        T& SXX_RESTRICT acm,
+        T& SXX_RESTRICT carry,
+        const T& SXX_RESTRICT elem)
     {
-        SMMTNCXX_NEUMAIER_ADD(acm, carry, elem, T, tmp, false);
+        SXX_NEUMAIER_ADD(acm, carry, elem, T, tmp, false);
     }
 
     template <typename T>
-    SMMTNCXX_PREFER_INLINE void accum_neumaier_swap(
-        T& SMMTNCXX_RESTRICT acm,
-        T& SMMTNCXX_RESTRICT carry,
-        const T& SMMTNCXX_RESTRICT elem)
+    SXX_PREFER_INLINE void accum_neumaier_swap(
+        T& SXX_RESTRICT acm,
+        T& SXX_RESTRICT carry,
+        const T& SXX_RESTRICT elem)
     {
         // cppcheck-suppress redundantAssignment
-        SMMTNCXX_NEUMAIER_ADD(acm, carry, elem, T, tmp, true);
+        SXX_NEUMAIER_ADD(acm, carry, elem, T, tmp, true);
     }
 }
 }

@@ -58,10 +58,12 @@ struct Operators {
         return self;
     }
 
-    void operator=(const T& arg)
+    Derived& operator=(const T arg)
     {
+        Derived& self = *(static_cast<Derived *>(this));
         ACCUM() = arg;
         CARRY() = 0;
+        return self;
     }
     void operator/=(const T& arg)
     {
@@ -73,15 +75,19 @@ struct Operators {
         ACCUM() *= arg;
         CARRY() *= arg;
     }
-    void operator+=(const accumulator_type& other)
+    Derived& operator+=(const accumulator_type& other)
     {
-        *this += other.accum();
-        CARRY() += other.carry();
+        Derived& self = *(static_cast<Derived*>(this));
+        self += other.accum();
+        self /*CARRY()*/ += other.carry();
+        return self;
     }
-    void operator-=(const accumulator_type& other)
+    Derived& operator-=(const accumulator_type& other)
     {
-        *this -= other.accum();
-        CARRY() -= other.carry();
+        Derived& self = *(static_cast<Derived*>(this));
+        self -= other.accum();
+        self /*CARRY()*/ -= other.carry();
+        return self;
     }
     accumulator_type operator*(const T& arg) const
     {
@@ -99,11 +105,15 @@ struct Operators {
     }
     accumulator_type operator+(const accumulator_type& other) const
     {
-        return accumulator_type(ACCUM(const) + other.accum(), CARRY(const) + other.carry());
+        Derived cpy = *(static_cast<const Derived*>(this));
+        cpy += other;
+        return cpy;
     }
     accumulator_type operator-(const accumulator_type& other) const
     {
-        return accumulator_type(ACCUM(const) - other.accum(), CARRY(const) - other.carry());
+        Derived cpy = *(static_cast<const Derived*>(this));
+        cpy -= other;
+        return cpy;
     }
     accumulator_type operator+() const
     {
@@ -114,26 +124,26 @@ struct Operators {
         return accumulator_type(-ACCUM(const), -CARRY(const));
     }
 };
-#define SMMTNCXX_COMMUTATIVE_OP(OP)                                           \
+#define SXX_COMMUTATIVE_OP(OP)                                           \
     template <typename Derived>                                               \
     typename Derived::accumulator_type operator OP(                           \
         const typename Derived::underlying_type& arg_a, const Derived& arg_b) \
     {                                                                         \
         return arg_b OP arg_a; /* multiplication is commutative */            \
     }
-SMMTNCXX_COMMUTATIVE_OP(*)
-SMMTNCXX_COMMUTATIVE_OP(+)
-#define SMMTNCXX_PROMOTING_OP(OP)                                              \
+SXX_COMMUTATIVE_OP(*)
+SXX_COMMUTATIVE_OP(+)
+#define SXX_PROMOTING_OP(OP)                                              \
     template <typename Derived>                                                \
     typename Derived::accumulator_type operator OP(                            \
         const typename Derived::underlying_type& arg_a, const Derived& arg_b)  \
     {                                                                          \
         return Derived { arg_a } OP arg_b; /* multiplication is commutative */ \
     }
-SMMTNCXX_PROMOTING_OP(-)
+SXX_PROMOTING_OP(-)
 
-#undef SMMTNCXX_COMMUTATIVE_OP
-#undef SMMTNCXX_PROMOTING_OP
+#undef SXX_COMMUTATIVE_OP
+#undef SXX_PROMOTING_OP
 #undef ACCUM
 #undef CARRY
 

@@ -10,7 +10,7 @@ def ordered_add(*args):
     elif (len(args)) == 1:
         return args[0]
     a, b, *rest = args
-    ue = UnevaluatedRealPropagatingExpr(a+b)
+    ue = UnevaluatedRealPropagatingExpr(a + b)
     if len(rest) == 0:
         return ue
     else:
