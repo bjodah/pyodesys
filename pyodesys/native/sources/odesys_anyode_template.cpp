@@ -181,7 +181,7 @@ namespace odesys_anyode {
                     if (y[i] < m_lower_bounds[i]) {
                         std::cerr << "Lower bound (" << m_lower_bounds[0] << ") for "
                                   << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
-                                  << " exceeded (" << y[i] << ") at x="<< x << "\n";
+                                  << " violated (" << y[i] << ") at x="<< x << "\n";
                         return AnyODE::Status::recoverable_error;
                     }
                 }
@@ -191,7 +191,7 @@ namespace odesys_anyode {
                     if (y[i] > m_upper_bounds[i]) {
                         std::cerr << "Upper bound (" << m_upper_bounds[0] << ") for "
                                   << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
-                                  << " exceeded (" << y[i] << ") at x="<< x << "\n";
+                                  << " violates (" << y[i] << ") at x="<< x << "\n";
                         return AnyODE::Status::recoverable_error;
                     }
                 }
