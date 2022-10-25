@@ -5,7 +5,7 @@
 # distutils: extra_link_args = -fopenmp
 # cython: language_level=3str
 
-from collections import Iterable
+from collections.abc import Iterable
 
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool
