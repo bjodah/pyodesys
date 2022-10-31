@@ -38,7 +38,7 @@ def If(cond, body):
 class _NeumaierAdd(Token, Expr):
     """Represents KBN compensated summation."""
 
-    __slots__ = ("terms", "accum", "carry", "temp")
+    _fields = __slots__ = ("terms", "accum", "carry", "temp")
     _construct_terms = staticmethod(lambda args: Tuple(*args))
 
     def _ccode(self, printer):

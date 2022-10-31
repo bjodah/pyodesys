@@ -60,6 +60,9 @@ def get_compile_kwargs(kwargs):
                 kw[k].extend(kwargs.pop(k))
             else:
                 kw[k] = kwargs.pop(k)
+        else:
+            if k not in kw:
+                kw[k] = []
 
     if options := os.environ.get("PYODESYS_OPTIONS"):
         kw['options'] = options.split(',')
@@ -115,7 +118,7 @@ class _NativeCodeBase(Cpp_Code):
 
     namespace_default = {'p_anon': None}
     namespace = {
-        'p_includes': ['"odesys_anyode.hpp"'],
+        'p_includes': {'"odesys_anyode.hpp"'},
         'p_support_recoverable_error': False,
         'p_jacobian_set_to_zero_by_solver': False,
         'p_realtype': 'double',
@@ -160,7 +163,6 @@ class _NativeCodeBase(Cpp_Code):
         prebuild = {_wrapper_src: _wrapper_obj}
 
         self.build_files = self.build_files + tuple(prebuild.values())
-
         self.odesys = odesys
         for _src, _dest in prebuild.items():
             if not os.path.exists(_dest):
@@ -301,7 +303,12 @@ class _NativeCodeBase(Cpp_Code):
         ns.update(self.namespace)
         ns.update(self.namespace_override)
         for k, v in self.namespace_extend.items():
-            ns[k].extend(v)
+            if isinstance(ns[k], list):
+                ns[k] = ns[k] + v
+            elif isinstance(ns[k], set):
+                ns[k] = ns[k] | v
+            else:
+                raise NotImplementedError(f"Cannot extend {k} of type {type(k)}")
 
         return ns
 

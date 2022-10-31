@@ -46,7 +46,7 @@ class UnevaluatedRealPropagatingExpr(sympy.UnevaluatedExpr):
         return self.args[0].is_real
 
 class OperatorDot(Token):
-    __slots__ = ('lhs', 'rhs')
+    _fields = __slots__ = ('lhs', 'rhs')
     #_construct_lhs = String
     #_construct_rhs = String
 

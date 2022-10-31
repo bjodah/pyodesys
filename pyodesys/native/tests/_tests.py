@@ -253,10 +253,12 @@ def _test_NativeSys__first_step_cb_source_code(NativeSys, log10myconst, should_s
         native_code_kw=dict(
             save_temp=True,
             namespace_override={
-            'p_first_step': 'AnyODE::ignore(x); return good_const()*y[0];',
-            'p_anon': 'double good_const(){ return std::pow(10, %.5g); }' % log10myconst
-        },
-        namespace_extend={'p_includes': ['<cmath>']}
+                'p_first_step': 'AnyODE::ignore(x); return good_const()*y[0];',
+                'p_anon': 'double good_const(){ return std::pow(10, %.5g); }' % log10myconst
+            },
+            namespace_extend={
+                'p_includes': {'<cmath>'}
+            }
         ),
     )
     y0, k = [.7, 0, 0], [1e23, 2, 3.]

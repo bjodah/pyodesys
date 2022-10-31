@@ -26,7 +26,7 @@ class NativeCvodeCode(_NativeCodeBase):
         _indextype = '#error "indextype_failed-to-import-pycvodes-or-too-old-version"'
 
     namespace = {
-        'p_includes': ['"odesys_anyode_iterative.hpp"'],
+        'p_includes': {'"odesys_anyode_iterative.hpp"'},
         'p_support_recoverable_error': True,
         'p_jacobian_set_to_zero_by_solver': True,
         'p_baseclass': 'OdeSysIterativeBase',
@@ -37,15 +37,16 @@ class NativeCvodeCode(_NativeCodeBase):
 
     def __init__(self, *args, **kwargs):
         self.compile_kwargs = get_compile_kwargs(kwargs)
-        self.compile_kwargs['define'] = ['PYCVODES_NO_KLU={}'.format("0" if config.get('KLU', True) else "1"),
-                                         'PYCVODES_NO_LAPACK={}'.format("0" if config.get('LAPACK', True) else "1"),
-                                         'ANYODE_NO_LAPACK={}'.format("0" if config.get('LAPACK', True) else "1")]
+        self.compile_kwargs['define'].extend([
+            'PYCVODES_NO_KLU={}'.format("0" if config.get('KLU', True) else "1"),
+            'PYCVODES_NO_LAPACK={}'.format("0" if config.get('LAPACK', True) else "1"),
+            'ANYODE_NO_LAPACK={}'.format("0" if config.get('LAPACK', True) else "1")
+        ])
         self.compile_kwargs['include_dirs'].append(get_include())
-        self.compile_kwargs['libraries'].extend(_libs.get_libs().split(','))
-        self.compile_kwargs['libraries'].extend([l for l in os.environ.get(
+        self.compile_kwargs['libraries'].extend(_libs.get_libs().split(',') + [l for l in os.environ.get(
             'PYODESYS_LAPACK', "lapack,blas" if config["LAPACK"] else "").split(",") if l != ""])
-        self.compile_kwargs['flags'] = [f for f in os.environ.get("PYODESYS_CVODE_FLAGS", "").split() if f]
-        self.compile_kwargs['ldflags'] = [f for f in os.environ.get("PYODESYS_CVODE_LDFLAGS", "").split() if f]
+        self.compile_kwargs['flags'].extend([f for f in os.environ.get("PYODESYS_CVODE_FLAGS", "").split() if f])
+        self.compile_kwargs['ldflags'].extend([f for f in os.environ.get("PYODESYS_CVODE_LDFLAGS", "").split() if f])
         super(NativeCvodeCode, self).__init__(*args, **kwargs)
 
 
