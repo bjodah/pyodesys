@@ -1,3 +1,7 @@
+v0.14.2
+=======
+- Import Iterable from collection.abc (python 3.11 compat.)
+
 v0.14.1
 =======
 - Relax version requirement for notebook (to enable use in colab)
