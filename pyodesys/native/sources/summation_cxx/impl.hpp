@@ -27,7 +27,11 @@ struct Operators {
     {
         if constexpr (Derived::compensation_scheme == Compensation::KAHAN) {
             return ACCUM(const);
-        } else if constexpr (Derived::compensation_scheme == Compensation::NEUMAIER || Derived::compensation_scheme == Compensation::NEUMAIER_SWAP) {
+        } else if constexpr (Derived::compensation_scheme == Compensation::NEUMAIER
+                             || Derived::compensation_scheme == Compensation::NEUMAIER_SWAP
+                             || Derived::compensation_scheme == Compensation::TWO_SUM
+                             || Derived::compensation_scheme == Compensation::FAST_TWO_SUM
+            ) {
             if constexpr (sizeof(T) > sizeof(U)) {
                 return ACCUM(const) + CARRY(const);
             } else {
@@ -46,6 +50,10 @@ struct Operators {
             accum_neumaier(ACCUM(), CARRY(), arg);
         } else if constexpr (scheme == Compensation::NEUMAIER_SWAP) {
             accum_neumaier_swap(ACCUM(), CARRY(), arg);
+        } else if constexpr (scheme == Compensation::TWO_SUM) {
+            accum_two_sum(ACCUM(), CARRY(), arg);
+        } else if constexpr (scheme == Compensation::FAST_TWO_SUM) {
+            accum_fast_two_sum(ACCUM(), CARRY(), arg);
         } else {
             assert(false);
         }
@@ -72,8 +80,10 @@ struct Operators {
     }
     void operator*=(const T& arg)
     {
+        const T ori {ACCUM()};
         ACCUM() *= arg;
         CARRY() *= arg;
+        CARRY() += fma(ori, arg, -ACCUM()); // 2product
     }
     Derived& operator+=(const accumulator_type& other)
     {
@@ -91,7 +101,9 @@ struct Operators {
     }
     accumulator_type operator*(const T& arg) const
     {
-        return accumulator_type(ACCUM(const) * arg, CARRY(const) * arg);
+        Derived cpy = *(static_cast<const Derived*>(this));
+        cpy *= arg;
+        return cpy;
     }
     accumulator_type operator*(const accumulator_type& other) const
     {
@@ -107,6 +119,12 @@ struct Operators {
     {
         Derived cpy = *(static_cast<const Derived*>(this));
         cpy += other;
+        return cpy;
+    }
+    accumulator_type operator+(const T& arg) const
+    {
+        Derived cpy = *(static_cast<const Derived*>(this));
+        cpy += arg;
         return cpy;
     }
     accumulator_type operator-(const accumulator_type& other) const

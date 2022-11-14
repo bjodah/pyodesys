@@ -77,6 +77,9 @@ template <typename T>
 using AccumulatorNeumaier = Accumulator<T, Compensation::NEUMAIER>;
 template <typename T>
 using AccumulatorNeumaierSwap = Accumulator<T, Compensation::NEUMAIER_SWAP>;
+template <typename T>
+using AccumulatorTwoSum = Accumulator<T, Compensation::TWO_SUM>;
+
 
 template <typename T, Compensation scheme>
 T pow(const Accumulator<T, scheme>& base, T exponent)

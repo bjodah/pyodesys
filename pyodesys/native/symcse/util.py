@@ -157,7 +157,7 @@ def _cse_symengine(exprs, *, se2sympy, ignore=(), symbols=None, **kwargs):
     return repl, red
 
 
-class Backend:
+class SymbolicBackend:
     """Allow optional use of SymEngine."""
 
     def __init__(self, use_symengine=None, kw_cse=None, assume_real=True):
@@ -170,7 +170,7 @@ class Backend:
 
         """
         if use_symengine is None:
-            _req_backend = os.environ.get("SYMCSE_BACKEND", "").lower()
+            _req_backend = os.environ.get("SYMCSE_SYMBOLIC_BACKEND", "").lower()
             if _req_backend == "symengine":
                 use_symengine = True
             elif _req_backend == "sympy":
@@ -178,7 +178,7 @@ class Backend:
             elif _req_backend == "":
                 use_symengine = False  # se is not None
             else:
-                raise ValueError("Unknown SYMCXSE_BACKEND: %s" % _req_backend)
+                raise ValueError("Unknown SYMCSE_SYMBOLIC_BACKEND: %s" % _req_backend)
         if use_symengine and se is None:
             raise ValueError("symengine missing (pip install symengine)")
         self.use_symengine = use_symengine
@@ -265,7 +265,7 @@ class Backend:
             return sympy.lambdify(args, exprs)
 
 
-class BackendWithDisabledCSE(Backend):
+class SymbolicBackendWithDisabledCSE(SymbolicBackend):
     def cse(self, exprs, **kwargs):
         return [], exprs
 

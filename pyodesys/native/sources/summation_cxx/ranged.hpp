@@ -86,6 +86,10 @@ template <typename T, typename U = void>
 using RangedAccumulatorNeumaier = RangedAccumulator<T, Compensation::NEUMAIER, U>;
 template <typename T, typename U = void>
 using RangedAccumulatorNeumaierSwap = RangedAccumulator<T, Compensation::NEUMAIER_SWAP, U>;
+template <typename T, typename U = void>
+using RangedAccumulatorTwoSum = RangedAccumulator<T, Compensation::TWO_SUM, U>;
+template <typename T, typename U = void>
+using RangedAccumulatorFastTwoSum = RangedAccumulator<T, Compensation::FAST_TWO_SUM, U>;
 
 /// Simplifies writing generic code against ranged.hpp, no compensation:
 template <typename T, typename U = void>

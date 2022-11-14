@@ -11,7 +11,7 @@ from sympy.codegen.ast import Assignment, Variable, float64
 from sympy.codegen.rewriting import create_expand_pow_optimization
 
 from .core import NullTransformer
-from .util import CPrinter, Backend, ccode
+from .util import CPrinter, SymbolicBackend, ccode
 
 expand_up_to_3 = create_expand_pow_optimization(3)
 
@@ -64,7 +64,7 @@ class GroupwiseCSE:
         self._keys, _values = zip(*groups.items())
         self._spans = np.cumsum([0] + list(map(len, _values)))
         if backend is None:
-            backend = Backend()
+            backend = SymbolicBackend()
         self.backend = backend
         _all_values = reduce(add, map(list, _values))
         _all_exprs = list(map(pre_process, _all_values) if pre_process else _all_values)

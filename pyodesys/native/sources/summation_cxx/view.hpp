@@ -38,4 +38,8 @@ template <typename T>
 using AccuViewNeumaier = AccuView<T, Compensation::NEUMAIER>;
 template <typename T>
 using AccuViewNeumaierSwap = AccuView<T, Compensation::NEUMAIER_SWAP>;
+template <typename T>
+using AccuViewTwoSum = AccuView<T, Compensation::TWO_SUM>;
+template <typename T>
+using AccuViewFastTwoSum = AccuView<T, Compensation::FAST_TWO_SUM>;
 }

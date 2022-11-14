@@ -3,7 +3,8 @@
 
 Example usage:
 
-$ python3 compensated_cse.py demo1 | clang-format --style=Google | batcat -pl C
+$ python3 -m symcse demo-compensated-py
+$ python3 -m symcse demo-compensated-c --index 3 | clang-format --style=Google | batcat -pl C
 
 """
 from collections import defaultdict
@@ -34,8 +35,7 @@ from .ordered_add import ordered_add
 def If(cond, body):
     return While(cond, CodeBlock(*body, break_))
 
-
-class _NeumaierAdd(Token, Expr):
+class _CompensatedAdd(Token, Expr):
     """Represents KBN compensated summation."""
 
     _fields = __slots__ = ("terms", "accum", "carry", "temp")
@@ -45,7 +45,7 @@ class _NeumaierAdd(Token, Expr):
         terms = ", ".join(map(printer._print, self.terms))
         return f"NA({terms} /*{str(self.accum)[:-1]}*/)"
 
-    def to_statements(self, existing, expanded, *, transients, do_swap=False):
+    def to_statements(self, existing, expanded, *, transients, **kwargs):
         """Transform into statements."""
         neum, ordinary = [], []
         for term in self.terms:
@@ -100,7 +100,7 @@ class _NeumaierAdd(Token, Expr):
                 st.append(Assignment(tr, elem))
                 elem = tr
             st.extend(
-                _NeumaierAdd._impl_add(self.accum, self.carry, elem, self.temp, do_swap)
+                self._impl_add(self.accum, self.carry, elem, self.temp, **kwargs)
             )
         expanded.add(self)
         return st
@@ -108,6 +108,13 @@ class _NeumaierAdd(Token, Expr):
     def finalize(self):
         """Close the summation."""
         return self._impl_finalize(self.accum, self.carry)
+
+    @staticmethod
+    def _impl_finalize(accum, carry):
+        return Add(accum, carry)
+
+class _NeumaierAdd(_CompensatedAdd):
+    _impl_add_kws = ('do_swap',)
 
     @staticmethod
     def _impl_add(accum, carry, elem, temp, do_swap=False):
@@ -135,12 +142,40 @@ class _NeumaierAdd(Token, Expr):
         else:
             return statements
 
+
+class _TwoSumAdd(_CompensatedAdd):
+    _impl_add_kws = ()
+
     @staticmethod
-    def _impl_finalize(accum, carry):
-        return Add(accum, carry)
+    def _impl_add(accum, carry, elem, temp):
+        """Perform 2Sum addition."""
+        a_prim = ordered_add(temp, -elem)
+        b_prim = ordered_add(temp, -a_prim)
+        delta_a = ordered_add(accum, -a_prim)
+        delta_b = ordered_add(elem, -b_prim)
+        statements = [
+            Assignment(temp, accum + elem),
+            aug_assign(carry, "+", ordered_add(delta_a, delta_b)),
+            Assignment(accum, temp)
+        ]
+        return statements
 
 
-class NeumaierTransformer(NullTransformer):
+class _FastTwoSumAdd(_CompensatedAdd):
+    _impl_add_kws = ()
+
+    @staticmethod
+    def _impl_add(accum, carry, elem, temp):
+        """Perform Fast2Sum addition."""
+        statements = [
+            Assignment(temp, ordered_add(accum, elem)),
+            aug_assign(carry, "+", ordered_add(elem, -ordered_add(temp, -accum))),
+            Assignment(accum, temp),
+        ]
+        return statements
+
+
+class _CompensationTransformer(NullTransformer):
     """Transform Add instances in CSEs to use compensated sum.
 
     Parameters
@@ -150,6 +185,8 @@ class NeumaierTransformer(NullTransformer):
         and 100 (all passes).
     """
 
+    _CompAdd = None  # Token
+
     def __init__(
         self,
         repl,
@@ -157,12 +194,12 @@ class NeumaierTransformer(NullTransformer):
         *,
         tmp_pfx="t",
         trs_pfx="r",
-        neu_pfx="n",
+        csum_pfx="n",
         up_to_debug=100,
         limit=3,
         parent=None,
         ignore=None,
-        do_swap=False,
+        kw_to_statements=None
     ):
         self.repl = repl
         self.red = red
@@ -178,7 +215,7 @@ class NeumaierTransformer(NullTransformer):
         self._analysis = defaultdict(int)
         self._tmp_var = numbered_symbols(tmp_pfx)
         self._trs_var = numbered_symbols(trs_pfx)
-        self._neu_var = numbered_symbols(neu_pfx)
+        self._csum_var = numbered_symbols(csum_pfx)
         self.passes = []
         for p in filter(lambda n: n.startswith("_pass_"), dir(self)):
             null, rest = p.split("_pass_")
@@ -189,7 +226,7 @@ class NeumaierTransformer(NullTransformer):
             if int(num) <= up_to_debug:
                 self.passes.append(getattr(self, p))
 
-        self.do_swap = do_swap
+        self.kw_to_statements = kw_to_statements or {}
         self.statements, self.final_exprs = self._pipeline()
 
     def remapping_for_arrayification(self, template="m_glob[{0}]"):
@@ -203,20 +240,20 @@ class NeumaierTransformer(NullTransformer):
             i = i + 1
         return remapping
 
-    def _mk_Neu(self, terms, lhs):
+    def _mk_Comp(self, terms, lhs):
         pfx = str(next(self._tmp_var)) if lhs is None else str(lhs)
         accum = Symbol(pfx + "a", real=True)
         carry = Symbol(pfx + "c", real=True)
         tempv = Symbol(pfx + "t", real=True)
-        na = _NeumaierAdd(terms, accum, carry, tempv)
+        na = self._CompAdd(terms, accum, carry, tempv)
         self._all_accum[accum] = na
         self._all_carry[carry] = na
         self._all_tempv[tempv] = na
         return na
 
-    @staticmethod
-    def _is_Neu(x):
-        return isinstance(x, _NeumaierAdd)
+    @classmethod
+    def _is_Comp(cls, x):
+        return isinstance(x, cls._CompAdd)
 
     def _single_pass(self, statements, pass_):
         new_stmts = []
@@ -265,13 +302,13 @@ class NeumaierTransformer(NullTransformer):
                 score = self._analysis.get(lhs, 0) + reduce(
                     add, [self._analysis.get(k, 1) for k in _add.args]
                 )
-                if score >= self.limit or any(self._is_Neu(arg) for arg in _add.args):
-                    na = self._mk_Neu(_add.args, lhs)
+                if score >= self.limit or any(self._is_Comp(arg) for arg in _add.args):
+                    na = self._mk_Comp(_add.args, lhs)
                     if _add is rhs and lhs is not None:
                         key = lhs
 
                     else:
-                        key = next(self._neu_var)
+                        key = next(self._csum_var)
                     self.created[key] = na
                     new_rhs = new_rhs.xreplace({_add: key})
                     break
@@ -281,17 +318,17 @@ class NeumaierTransformer(NullTransformer):
         assert False
 
     def _pass_50_to_stmnts(self, lhs, rhs, *, statements):
-        for neu in map(self.created.get, postorder_traversal(rhs)):
-            if neu is None:
+        for csum in map(self.created.get, postorder_traversal(rhs)):
+            if csum is None:
                 continue
-            self._pass_50_to_stmnts(lhs, neu.terms, statements=statements)
-            if neu not in self.expanded:
+            self._pass_50_to_stmnts(lhs, csum.terms, statements=statements)
+            if csum not in self.expanded:
                 statements.extend(
-                    neu.to_statements(
+                    csum.to_statements(
                         self.created,
                         self.expanded,
-                        do_swap=self.do_swap,
                         transients=self._trs_var,
+                        **self.kw_to_statements
                     )
                 )
         return rhs
@@ -333,4 +370,27 @@ class NeumaierTransformer(NullTransformer):
         return new_rhs
 
     def _pass_90_fin(self, lhs, rhs, *, statements):
-        return rhs.replace(lambda x: self._is_Neu(x), lambda x: x.finalize())
+        return rhs.replace(lambda x: self._is_Comp(x), lambda x: x.finalize())
+
+
+class NeumaierTransformer(_CompensationTransformer):
+    _CompAdd = _NeumaierAdd
+
+    def __init__(self, *args, do_swap=False, **kwargs):
+        #kw_to_statements = kwargs.pop(kw_to_statements, {})
+        # ...
+        super().__init__(*args, kw_to_statements=dict(do_swap=do_swap), **kwargs)
+
+class TwoSumTransformer(_CompensationTransformer):
+    _CompAdd = _TwoSumAdd
+
+class FastTwoSumTransformer(_CompensationTransformer):
+    _CompAdd = _FastTwoSumAdd
+
+
+compensated_transformers = {
+    'nocomp': NullTransformer,
+    'kbn': NeumaierTransformer,
+    '2sum': TwoSumTransformer,
+    'fast2sum': FastTwoSumTransformer,
+}
