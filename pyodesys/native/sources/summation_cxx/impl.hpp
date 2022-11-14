@@ -141,7 +141,16 @@ struct Operators {
     {
         return accumulator_type(-ACCUM(const), -CARRY(const));
     }
+#define SXX_COMP(OPER_)                                                 \
+    bool operator OPER_(const T& arg) const                             \
+    {                                                                   \
+        const Derived& self = *(static_cast<const Derived*>(this));     \
+        return self.template to<T>() OPER_ arg;                         \
+    }
+    SXX_COMP(<)
+    SXX_COMP(>)
 };
+#undef SXX_COMP
 #define SXX_COMMUTATIVE_OP(OP)                                           \
     template <typename Derived>                                               \
     typename Derived::accumulator_type operator OP(                           \
