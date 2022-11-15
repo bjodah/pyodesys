@@ -13,7 +13,7 @@ from pyodesys.tests.test_core import (
 )
 from pyodesys.tests.bateman import bateman_full  # analytic, never mind the details
 from pyodesys.tests.test_symbolic import decay_rhs, decay_dydt_factory, _get_decay3
-from pyodesys.native.symcse.util import BackendWithDisabledCSE
+from pyodesys.native.symcse.util import SymbolicBackendWithDisabledCSE
 
 sp = import_('sympy')
 
@@ -101,7 +101,7 @@ def _test_symmetricsys_nativesys(NativeSys, nsteps=800, forgive=150):
 def _test_Decay_nonnegative(NativeSys, use_cse, compensated):
     odesys = NativeSys.from_other(
         _get_decay3(lower_bounds=[0]*3),
-        native_code_kw=dict(groupwise_kw=None if use_cse else {'backend': BackendWithDisabledCSE()}, compensated_summation=compensated),
+        native_code_kw=dict(groupwise_kw=None if use_cse else {'backend': SymbolicBackendWithDisabledCSE()}, compensated_summation=compensated),
     )
     y0, k = [3., 2., 1.], [3.5, 2.5, 0]
     xout, yout, info = odesys.integrate([1e-10, 1], y0, k, integrator='native')
