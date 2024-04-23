@@ -6,7 +6,8 @@ steps:
   - name: restore-cache
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
-      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar x || mkdir ./cache-ci
+      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar -C / x || mkdir -p /cache-ci/pip_cache
+      - python3 -m pip install --cache-dir /cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     when:
      - event: push
@@ -56,8 +57,8 @@ steps:
   - name: rebuild-cache
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
-      - find ./cache-ci/ -type f -mtime +90 -exec rm {} \;
-      - tar cf cache-ci.tar ./cache-ci/
+      - find /cache-ci/ -type f -mtime +90 -exec rm {} \;
+      - tar cf cache-ci.tar /cache-ci/
       - curl -T cache-ci.tar ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     depends_on:
