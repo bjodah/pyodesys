@@ -67,7 +67,7 @@ def _get_ny_nparams_from_kw(ny, nparams, kwargs):
 
 
 def _get_lin_invar_mtx(lin_invar, be, ny, names=None):
-    if lin_invar is None or lin_invar.shape[0] == 0:
+    if lin_invar is None or len(lin_invar) == 0:
         return None
     else:
         if isinstance(lin_invar[0], dict) and names:
