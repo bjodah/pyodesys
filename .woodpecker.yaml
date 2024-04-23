@@ -6,7 +6,7 @@ steps:
   - name: restore-cache
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
-      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar x
+      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar x || mkdir ./cache-ci
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     when:
      - event: push
