@@ -1,6 +1,6 @@
-#!/bin/bash -xe
+#!/bin/bash
 
-set -u
+set -eux
 export PKG_NAME=$1
 SUNDBASE=$2
 set +u
@@ -10,6 +10,11 @@ if [ ! -e "$SUNDBASE/include/sundials/sundials_config.h" ]; then
     exit 1
 fi
 
+# REPO_TEMP_DIR="$(mktemp -d)"
+# trap 'rm -rf -- "$REPO_TEMP_DIR"' EXIT
+# cp -ra . "$REPO_TEMP_DIR/."
+# cd "$REPO_TEMP_DIR"
+
 mkdir -p $HOME/.config/pip/
 echo -e "[global]\nno-cache-dir = false\ndownload-cache = $(pwd)/ci_cache/pip_cache" >$HOME/.config/pip/pip.conf
 python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
@@ -18,11 +23,7 @@ python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested 
 SUND_CFLAGS="-isystem $SUNDBASE/include $CFLAGS"
 SUND_LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $LDFLAGS"
 CFLAGS=$SUND_CFLAGS LDFLAGS=$SUND_LDFLAGS python3 -m pip install pycvodes
-git clean -xfd # -e tmp/
 
-# export CPATH=$SUNDBASE/include
-# export LIBRARY_PATH=$SUNDBASE/lib
-# export LD_LIBRARY_PATH=$SUNDBASE/lib
 
 python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)

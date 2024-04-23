@@ -1,0 +1,74 @@
+when:
+  - event: [push]
+
+steps:
+
+  - name: restore-cache
+    image: bjodah/bjodahimg20dot:21.8.a
+    commands:
+      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar x
+    secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
+    when:
+     - event: push
+       repo: bjodah/pyodesys
+
+  - name: test-sund-5.7.0-rel
+    depends_on: restore-cache
+    image: bjodah/bjodahimg20dot:21.8.a
+    environment:
+      - CC=gcc-11
+      - CXX=g++-11
+      - OMP_NUM_THREADS=1
+      - ANYODE_NUM_THREADS=2
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.77.0/include
+      - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - SUNDBASE=/opt/sundials-5.7.0-release
+    commands:
+      - cp -ra ./ /tmp/test-sund-5.7.0-rel
+      - cd /tmp/test-sund-5.7.0-rel
+      - python3 -m pip install https://github.com/bjodah/pycompilation/archive/master.tar.gz
+      - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
+      - ./scripts/prepare_deploy.sh
+      - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
+      
+  - name: test-sund-5.7.0-extended
+    depends_on: restore-cache
+    image: bjodah/bjodahimg20dot:21.8.a
+    environment:
+      - CC=gcc-11
+      - CXX=g++-11
+      - OMP_NUM_THREADS=1
+      - ANYODE_NUM_THREADS=2
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.77.0/include
+      - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+      - SUNDBASE=/opt/sundials-5.7.0-extended
+      - PYCVODES_NO_LAPACK=1
+      - PYCVODES_NO_KLU=1
+    commands:
+      - cp -ra ./ /tmp/test-sund-5.7.0-extended
+      - cd /tmp/test-sund-5.7.0-extended
+      - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
+      - ./scripts/grep-for-merge-blocking-token.sh
+      - ./scripts/grep-for-binary-data.sh
+
+  - name: rebuild-cache
+    image: bjodah/bjodahimg20dot:21.8.a
+    commands:
+      - find ./cache-ci/ -type f -mtime +90 -exec rm {} \;
+      - tar cf cache-ci.tar ./cache-ci/
+      - curl -T cache-ci.tar ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/
+    secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
+    depends_on:
+      - test-sund-5.7.0-rel
+
+  - name: deploy-public-html
+    image: bjodah/bjodahimg20dot:21.8.a
+    commands:
+      - tar -C /tmp/test-sund-5.7.0-rel/deploy/public_html czf ${CI_REPO_NAME}-${CI_COMMIT_BRANCH}.tar.gz .
+      - curl -T ${CI_REPO_NAME}-${CI_COMMIT_BRANCH}.tar.gz ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/public_html/
+    secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
+    depends_on:
+      - test-sund-5.7.0-rel
+
