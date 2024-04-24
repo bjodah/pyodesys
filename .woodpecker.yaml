@@ -67,7 +67,7 @@ steps:
   - name: deploy-public-html
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
-      - tar -C /tmp/test-sund-5.7.0-rel/deploy/public_html czf ${CI_REPO_NAME}-${CI_COMMIT_BRANCH}.tar.gz .
+      - tar -C /tmp/test-sund-5.7.0-rel/deploy/public_html -czf ${CI_REPO_NAME}-${CI_COMMIT_BRANCH}.tar.gz .
       - curl -T ${CI_REPO_NAME}-${CI_COMMIT_BRANCH}.tar.gz ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/public_html/
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     depends_on:
