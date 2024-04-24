@@ -19,7 +19,6 @@ steps:
     depends_on: restore-cache
     image: bjodah/bjodahimg20dot:21.8.a
     environment:
-      - ls -l | grep foo; exit 1
       - CC=gcc-11
       - CXX=g++-11
       - OMP_NUM_THREADS=1
@@ -29,6 +28,7 @@ steps:
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.7.0-release
     commands:
+      - ls -l | grep foo; exit 1
       - cp -ra ./ /tmp/test-sund-5.7.0-rel
       - cd /tmp/test-sund-5.7.0-rel
       - python3 -m pip install --cache-dir ./cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython https://github.com/bjodah/pycompilation/archive/master.tar.gz
