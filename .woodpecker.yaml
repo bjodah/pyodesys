@@ -7,7 +7,8 @@ steps:
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
       - pwd
-      - exit 1
+      - echo $CI_WORKSPACE
+      - touch foo
       - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar -C / x || mkdir -p ./cache-ci/pip_cache
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     when:
@@ -18,6 +19,7 @@ steps:
     depends_on: restore-cache
     image: bjodah/bjodahimg20dot:21.8.a
     environment:
+      - ls -l | grep foo; exit 1
       - CC=gcc-11
       - CXX=g++-11
       - OMP_NUM_THREADS=1
