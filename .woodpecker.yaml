@@ -6,11 +6,7 @@ steps:
   - name: restore-cache
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
-      - pwd
-      - echo $CI_WORKSPACE
-      - touch foo
-      - mkdir /bar
-      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar -C / x || mkdir -p ./cache-ci/pip_cache
+      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar -C / x || mkdir -p $CI_WORKSPACE/cache-ci/pip_cache
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     when:
      - event: push
@@ -29,11 +25,9 @@ steps:
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.7.0-release
     commands:
-      - ls -l | grep foo
-      - ls -l / | grep bar; exit 1
-      - cp -ra ./ /tmp/test-sund-5.7.0-rel
+      - cp -ra $CI_WORKSPACE /tmp/test-sund-5.7.0-rel
       - cd /tmp/test-sund-5.7.0-rel
-      - python3 -m pip install --cache-dir ./cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython https://github.com/bjodah/pycompilation/archive/master.tar.gz
+      - python3 -m pip install --cache-dir $CI_WORKSPACE/cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython https://github.com/bjodah/pycompilation/archive/master.tar.gz
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
       - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
@@ -53,9 +47,9 @@ steps:
       - PYCVODES_NO_LAPACK=1
       - PYCVODES_NO_KLU=1
     commands:
-      - cp -ra ./ /tmp/test-sund-5.7.0-extended
+      - cp -ra $CI_WORKSPACE/ /tmp/test-sund-5.7.0-extended
       - cd /tmp/test-sund-5.7.0-extended
-      - python3 -m pip install --cache-dir ./cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython
+      - python3 -m pip install --cache-dir $CI_WORKSPACE/cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/grep-for-merge-blocking-token.sh
       - ./scripts/grep-for-binary-data.sh
@@ -63,8 +57,8 @@ steps:
   - name: rebuild-cache
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
-      - find ./cache-ci/ -type f -mtime +90 -exec rm {} \;
-      - tar cf cache-ci.tar ./cache-ci/
+      - find $CI_WORKSPACE/cache-ci/ -type f -mtime +90 -exec rm {} \;
+      - tar cf cache-ci.tar $CI_WORKSPACE/cache-ci/
       - curl -T cache-ci.tar ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     depends_on:
