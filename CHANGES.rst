@@ -1,3 +1,7 @@
+v0.14.4
+=======
+- Update to latest syntax for Cython's nogil declaration (must be last)
+
 v0.14.3
 =======
 - More robust handling of comparison between numpy and sympy matrices.
