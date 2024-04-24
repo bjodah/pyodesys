@@ -16,7 +16,7 @@ fi
 # cd "$REPO_TEMP_DIR"
 
 mkdir -p $HOME/.config/pip/
-echo -e "[global]\nno-cache-dir = false\ndownload-cache = /cache-ci/pip_cache" >$HOME/.config/pip/pip.conf
+echo -e "[global]\nno-cache-dir = false\ndownload-cache = ./cache-ci/pip_cache" >$HOME/.config/pip/pip.conf
 python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
 
 # (cd ./tmp/pycvodes;

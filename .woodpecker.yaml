@@ -6,7 +6,9 @@ steps:
   - name: restore-cache
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
-      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar -C / x || mkdir -p /cache-ci/pip_cache
+      - pwd
+      - exit 1
+      - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar -C / x || mkdir -p ./cache-ci/pip_cache
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     when:
      - event: push
@@ -27,7 +29,7 @@ steps:
     commands:
       - cp -ra ./ /tmp/test-sund-5.7.0-rel
       - cd /tmp/test-sund-5.7.0-rel
-      - python3 -m pip install --cache-dir /cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython https://github.com/bjodah/pycompilation/archive/master.tar.gz
+      - python3 -m pip install --cache-dir ./cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython https://github.com/bjodah/pycompilation/archive/master.tar.gz
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/prepare_deploy.sh
       - bash -c '[[ $(python3 setup.py --version) =~ ^[0-9]+.* ]]'
@@ -49,7 +51,7 @@ steps:
     commands:
       - cp -ra ./ /tmp/test-sund-5.7.0-extended
       - cd /tmp/test-sund-5.7.0-extended
-      - python3 -m pip install --cache-dir /cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython
+      - python3 -m pip install --cache-dir ./cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython
       - bash -c "ulimit -v 2048000; .ci/run_ci.sh pyodesys $SUNDBASE"
       - ./scripts/grep-for-merge-blocking-token.sh
       - ./scripts/grep-for-binary-data.sh
@@ -57,8 +59,8 @@ steps:
   - name: rebuild-cache
     image: bjodah/bjodahimg20dot:21.8.a
     commands:
-      - find /cache-ci/ -type f -mtime +90 -exec rm {} \;
-      - tar cf cache-ci.tar /cache-ci/
+      - find ./cache-ci/ -type f -mtime +90 -exec rm {} \;
+      - tar cf cache-ci.tar ./cache-ci/
       - curl -T cache-ci.tar ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     depends_on:
