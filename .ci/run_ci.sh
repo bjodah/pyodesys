@@ -27,7 +27,7 @@ CFLAGS=$SUND_CFLAGS LDFLAGS=$SUND_LDFLAGS python3 -m pip install pycvodes
 
 python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)
-(cd dist/; python3 -m pip install $PKG_NAME-$PKG_VERSION.tar.gz)
+(cd dist/; python3 -m pip install $PKG_NAME-$PKG_VERSION.tar.gz; python3 -m pytest --pyargs $PKG_NAME)
 python3 -m pip install -e .[all]
 export PYODESYS_CVODE_FLAGS=$SUND_CFLAGS
 export PYODESYS_CVODE_LDFLAGS=$SUND_LDFLAGS
