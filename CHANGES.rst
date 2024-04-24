@@ -1,3 +1,7 @@
+v0.14.3
+=======
+- More robust handling of comparison between numpy and sympy matrices.
+
 v0.14.2
 =======
 - Import Iterable from collection.abc (python 3.11 compat.)
