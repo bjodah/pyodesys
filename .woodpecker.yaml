@@ -9,6 +9,7 @@ steps:
       - pwd
       - echo $CI_WORKSPACE
       - touch foo
+      - mkdir /bar
       - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar -C / x || mkdir -p ./cache-ci/pip_cache
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
     when:
@@ -28,7 +29,8 @@ steps:
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt/sundials-5.7.0-release
     commands:
-      - ls -l | grep foo; exit 1
+      - ls -l | grep foo
+      - ls -l / | grep bar; exit 1
       - cp -ra ./ /tmp/test-sund-5.7.0-rel
       - cd /tmp/test-sund-5.7.0-rel
       - python3 -m pip install --cache-dir ./cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython https://github.com/bjodah/pycompilation/archive/master.tar.gz
