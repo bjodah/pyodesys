@@ -18,7 +18,7 @@ class Result(object):
         self.params = params
         self.info = info
         self.odesys = odesys
-        self.names = getattr(self.odesys,'names')
+        self.names = self.odesys.names
 
     def copy(self):
         return Result(self.xout.copy(), self.yout.copy(), self.params.copy(),
