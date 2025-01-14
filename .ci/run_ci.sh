@@ -9,7 +9,12 @@ if [ ! -e "$SUNDBASE/include/sundials/sundials_config.h" ]; then
     >&2 echo "Not a valid prefix for sundials: $SUNDBASE"
     exit 1
 fi
-
+if [ -e /etc/profile.d/boost.sh ]; then
+    source /etc/profile.d/boost.sh
+    export CPATH=$BOOST_ROOT/include
+fi
+source $(compgen -G "/opt-3/cpython-v3.*-apt-deb/bin/activate")
+python3 -m pip install --cache-dir $CI_WORKSPACE/cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython "git+https://github.com/bjodah/pycompilation@use-importlib-rather-than-imp#egg=pycompilation"
 # REPO_TEMP_DIR="$(mktemp -d)"
 # trap 'rm -rf -- "$REPO_TEMP_DIR"' EXIT
 # cp -ra . "$REPO_TEMP_DIR/."
@@ -17,13 +22,15 @@ fi
 
 mkdir -p $HOME/.config/pip/
 echo -e "[global]\nno-cache-dir = false\ndownload-cache = $CI_WORKSPACE/cache-ci/pip_cache" >$HOME/.config/pip/pip.conf
-python3 -m pip install symcxx pysym  # unofficial backends, symengine is tested in the conda build
+python3 -m pip install mako cython
+python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/symcxx#egg=symcxx" "git+https://github.com/bjodah/pysym#egg=pysym"  # unofficial backends, symengine is tested in the conda build
 
 # (cd ./tmp/pycvodes;
 SUND_CFLAGS="-isystem $SUNDBASE/include $CFLAGS"
 SUND_LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $LDFLAGS"
-CFLAGS=$SUND_CFLAGS LDFLAGS=$SUND_LDFLAGS python3 -m pip install pycvodes
-
+CFLAGS=$SUND_CFLAGS CXXFLAGS=$SUND_CFLAGS LDFLAGS=$SUND_LDFLAGS python3 -m pip install --no-build-isolation pycvodes
+python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/pyodeint#egg=pyodeint"
+python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/pygslodeiv2#egg=pygslodeiv2"
 
 python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)
