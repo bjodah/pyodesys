@@ -11,7 +11,7 @@ from anyode cimport Info
 cdef extern from "odesys_anyode_iterative.hpp" namespace "odesys_anyode":
     cdef cppclass OdeSys[Real_t, Index_t]:
         OdeSys(const Real_t * const, vector[Real_t], Real_t, Real_t,
-               bool, Real_t, vector[Real_t]) except + nogil
+               bool, Real_t, vector[Real_t]) nogil except +
         Info current_info
         bool autonomous_exprs
         bool record_rhs_xvals
