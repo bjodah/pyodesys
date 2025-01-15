@@ -20,7 +20,7 @@ You will submit your suggested changes (e.g. new feature/bugfix/documentation/ty
 as a pull request. The new version of the code is automatically tested in isolation on
 CI servers (remember to add your own tests in case you add new funcionality). In addition
 to the automatic tests, the code will be reviewed with respect to documentation & clarity
-(docstrings follow the `numpy convention <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_ and coding style follows `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_).
+(docstrings follow the `numpy convention <https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard>`_ and coding style follows `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_).
 
 If you want to contribute a major feature you may want to discuss this first by opening
 an issue (in order to avoid unneccessary work in case someone else is already working on

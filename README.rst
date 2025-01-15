@@ -1,26 +1,17 @@
 pyodesys
 ========
 
-.. image:: http://hera.physchem.kth.se:8090/api/badges/bjodah/pyodesys/status.svg
-   :target: http://hera.physchem.kth.se:8090/bjodah/pyodesys
-   :alt: Build status on Drone
-.. image:: https://circleci.com/gh/bjodah/pyodesys.svg?style=svg
-   :target: https://circleci.com/gh/bjodah/pyodesys
-   :alt: Build status on CircleCI
+.. image:: http://hackspett.bjodah.se/api/badges/8/status.svg
+   :target: http://hackspett.bjodah.se/repos/8
+   :alt: Build status on Woodpecker CI
 .. image:: https://img.shields.io/pypi/v/pyodesys.svg
    :target: https://pypi.python.org/pypi/pyodesys
    :alt: PyPI version
-.. image:: https://img.shields.io/badge/python-3.7,3.8-blue.svg
-   :target: https://www.python.org/
-   :alt: Python version
 .. image:: https://img.shields.io/pypi/l/pyodesys.svg
    :target: https://github.com/bjodah/pyodesys/blob/master/LICENSE
    :alt: License
-.. image:: http://img.shields.io/badge/benchmarked%20by-asv-green.svg?style=flat
-   :target: http://hera.physchem.kth.se/~pyodesys/benchmarks
-   :alt: airspeedvelocity
-.. image:: http://hera.physchem.kth.se/~pyodesys/branches/master/htmlcov/coverage.svg
-   :target: http://hera.physchem.kth.se/~pyodesys/branches/master/htmlcov
+.. image:: http://artifacts.bjodah.se/pyodesys/branches/master/htmlcov/coverage.svg
+   :target: http://artifacts.bjodah.se/pyodesys/branches/master/htmlcov
    :alt: coverage
 .. image:: http://joss.theoj.org/papers/10.21105/joss.00490/status.svg
    :target: https://doi.org/10.21105/joss.00490
@@ -63,7 +54,7 @@ Documentation
 Auto-generated API documentation for latest stable release is found here:
 `<https://bjodah.github.io/pyodesys/latest>`_
 (and the development version for the current master branch is found here:
-`<http://hera.physchem.kth.se/~pyodesys/branches/master/html>`_).
+`<http://artifacts.bjodah.se/pyodesys/branches/master/html>`_).
 
 
 Installation
@@ -227,7 +218,7 @@ further reduced by a factor equal to the number of cores of your CPU (number of 
 the environment variable ``ANYODE_NUM_THREADS``).
 
 For further examples, see `examples/ <https://github.com/bjodah/pyodesys/tree/master/examples>`_, and rendered
-jupyter notebooks here: `<http://hera.physchem.kth.se/~pyodesys/branches/master/examples>`_
+jupyter notebooks here: `<http://artifacts.bjodah.se/pyodesys/branches/master/examples>`_
 
 Run notebooks using binder
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

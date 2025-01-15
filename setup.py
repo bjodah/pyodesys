@@ -97,7 +97,7 @@ setup_kwargs = dict(
     packages=[pkg_name] + submodules + tests,
     include_package_data=True,
     install_requires=['numpy>=1.16.4', 'scipy>=1.2.3', 'sym>=0.3.4',
-                      'sympy>=1.5.1', 'matplotlib>=2.2.5', 'notebook>=5.7.8'],
+                      'sympy>=1.5.1', 'matplotlib>=2.2.5', 'notebook' + ('>=5.7.8' if 'CI' in os.environ else '')],
     tests_require=['pytest>=5.4.1'],
     extras_require=extras_req,
     python_requires='>=3.7',

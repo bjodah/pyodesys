@@ -44,8 +44,8 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 _compile_kwargs = {
-    'options': ['warn', 'pic', 'debug', 'openmp'],  # DO-NOT-MERGE!!! debug/fast
-    'std': 'c++17',
+    'options': ['warn', 'pic', 'fast', 'openmp'],
+    'std': 'c++20',
     'include_dirs': [np.get_include(), pkg_resources.resource_filename(__name__, 'sources')],
     'libraries': [],
     'cplus': True,

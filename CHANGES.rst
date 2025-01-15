@@ -1,3 +1,19 @@
+v0.14.4
+=======
+- Update to latest syntax for Cython's nogil declaration (must be last)
+
+v0.14.3
+=======
+- More robust handling of comparison between numpy and sympy matrices.
+
+v0.14.2
+=======
+- Import Iterable from collection.abc (python 3.11 compat.)
+
+v0.14.1
+=======
+- Relax version requirement for notebook (to enable use in colab)
+
 v0.14.0
 =======
 - Update AnyODE to new upstream version.
