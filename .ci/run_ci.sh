@@ -28,7 +28,7 @@ python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/symcx
 # (cd ./tmp/pycvodes;
 SUND_CFLAGS="-isystem $SUNDBASE/include $CFLAGS"
 SUND_LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $LDFLAGS"
-CFLAGS=$SUND_CFLAGS CXXFLAGS=$SUND_CFLAGS LDFLAGS=$SUND_LDFLAGS python3 -m pip install --no-build-isolation pycvodes
+CFLAGS="$SUND_CFLAGS $CXXFLAGS" CXXFLAGS="$SUND_CFLAGS $CXXFLAGS" LDFLAGS=$SUND_LDFLAGS python3 -m pip install --no-build-isolation pycvodes
 python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/pyodeint#egg=pyodeint"
 python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/pygslodeiv2#egg=pygslodeiv2"
 
@@ -36,7 +36,7 @@ python3 setup.py sdist
 PKG_VERSION=$(python3 setup.py --version)
 export PYODESYS_CVODE_FLAGS=$SUND_CFLAGS
 export PYODESYS_CVODE_LDFLAGS=$SUND_LDFLAGS
-(cd dist/; python3 -m pip install "$PKG_NAME-$PKG_VERSION.tar.gz[all]"; python3 -m pytest --pyargs $PKG_NAME)
+(cd dist/; python3 -m pip install "$PKG_NAME-$PKG_VERSION.tar.gz[all]"; python3 -m pytest -v -x --pyargs $PKG_NAME)
 python3 -m pip uninstall --yes $PKG_NAME
 python3 -m pip install -e .[all]
 python3 -m pytest -xv -k test_integrate_chained_robertson pyodesys/tests/test_robertson.py
