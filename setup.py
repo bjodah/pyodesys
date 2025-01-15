@@ -60,7 +60,6 @@ classifiers = [
 
 submodules = [
     'pyodesys.native',
-    'pyodesys.native.symcse',
 ]
 
 tests = [
