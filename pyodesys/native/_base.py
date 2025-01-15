@@ -10,6 +10,7 @@ import copy
 import os
 import shutil
 import sys
+import sysconfig
 import tempfile
 
 import sympy
@@ -69,7 +70,7 @@ def get_compile_kwargs(kwargs):
     return kw
 
 
-_ext_suffix = '.so'  # sysconfig.get_config_var('EXT_SUFFIX')
+_ext_suffix = sysconfig.get_config_var('EXT_SUFFIX')
 _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
 
 
@@ -149,7 +150,7 @@ class _NativeCodeBase(Cpp_Code):
             ''.join(filter(lambda x: str.isalnum(x) or x in '_-', str(odesys.description).replace(' ', '_')))
         )
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
-        self.so_file = '%s%s' % (self.wrapper_name, '.so')
+        self.so_file = '%s%s' % (self.wrapper_name, _ext_suffix)
         _wrapper_src = pkg_resources.resource_filename(
             __name__, 'sources/%s.pyx' % self.wrapper_name)
         if cachedir is None:
