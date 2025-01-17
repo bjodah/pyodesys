@@ -18,7 +18,8 @@ class Result(object):
         self.params = params
         self.info = info
         self.odesys = odesys
-        self.names = self.odesys.names
+        # names not always present:
+        self.names = getattr(self.odesys, 'names', None)
 
     def copy(self):
         return Result(self.xout.copy(), self.yout.copy(), self.params.copy(),
