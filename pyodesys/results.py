@@ -288,11 +288,12 @@ class Result(object):
         val = invar(*(xyp or self._internals()))
         return val - val[0, :]
 
-    def plot_invariant_violations(self, **kwargs):
+    def plot_invariant_violations(self, *, apply_abs: bool=True, **kwargs):
         viol = self.calc_invariant_violations()
-        abs_viol = np.abs(viol)
+        if apply_abs:
+            viol = np.abs(viol)
         invar_names = self.odesys.all_invariant_names()
-        return self._plot(plot_result, x=self._internal('xout'), y=abs_viol, names=invar_names,
+        return self._plot(plot_result, x=self._internal('xout'), y=viol, names=invar_names,
                           latex_names=kwargs.pop('latex_names', invar_names), indices=None, **kwargs)
 
     def extend_by_integration(self, xend, params=None, odesys=None, autonomous=None, npoints=1, **kwargs):

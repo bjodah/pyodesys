@@ -117,7 +117,11 @@ class _NativeCodeBase(Cpp_Code):
     obj_files = ('odesys_anyode.o',)
     _save_temp = False
 
-    namespace_default = {'p_anon': None}
+    namespace_default = {
+        'p_anon': None,
+        'p_error_on_inf': True,
+        'p_error_on_nan': True,
+    }
     namespace = {
         'p_includes': {'"odesys_anyode.hpp"'},
         'p_support_recoverable_error': False,

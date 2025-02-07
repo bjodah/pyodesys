@@ -5,6 +5,18 @@ This is file is a mako template for a C++ source file defining the ODE system.
 </%doc>
 <%!
 import sympy
+
+%>
+<%
+def _inf_or_nan(s):
+    isinf_isnan = {'isinf(%s)': p_error_on_inf, 'isnan(%s)': p_error_on_nan}
+    return ' || '.join([func % s for func, pred in isinf_isnan.items()])
+
+def _err_code():
+    return 'AnyODE::Status::recoverable_error' if p_support_recoverable_error else 'AnyODE::Status::unrecoverable_error'
+
+assert p_error_on_nan in (False, True)
+assert p_error_on_inf in (False, True)
 %>
 // User provided system description: ${p_odesys.description}
 // Names of dependent variables: ${p_odesys.names}
@@ -157,21 +169,28 @@ namespace odesys_anyode {
     AnyODE::Status OdeSys<realtype, indextype>::rhs(realtype x,
                                const realtype * const ANYODE_RESTRICT y,
                                realtype * const ANYODE_RESTRICT out) {
-    %if p_compensated_summation:
+      %if getattr(p_odesys, "_nonnegative", False) and p_support_recoverable_error:
+        for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
+      %endif
+      %if p_error_on_inf or p_error_on_nan:
+        for (int i=0; i<${p_odesys.ny}; ++i) { if (${_inf_or_nan('y[i]')}) { return ${_err_code()}; } }
+
+      %endif
+      %if p_compensated_summation:
         summation_cxx::RangedAccumulatorNeumaier<realtype> f(${p_odesys.ny});
         f.init(out);
-    %else:
+      %else:
         realtype * const f = out;
-    %endif
-    %if isinstance(p_rhs, str):
+      %endif
+      %if isinstance(p_rhs, str):
         ${p_rhs}
-    %else:
+      %else:
         ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
         ${p_rhs["cses"]}
         ${p_rhs["assign"].all(assign_to=lambda i: sympy.Symbol("f[%d]" % i))}
-    %if p_compensated_summation:
+      %if p_compensated_summation:
         f.commit();
-    %endif
+      %endif
 
         this->nfev++;
       %if p_support_recoverable_error:
@@ -212,8 +231,8 @@ namespace odesys_anyode {
         }
         %endif
       %endif
-      %if getattr(p_odesys, "_nonnegative", False) and p_support_recoverable_error:
-        for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
+      %if p_error_on_inf or p_error_on_nan:
+        for (int i=0; i<${p_odesys.ny}; ++i) { if (${_inf_or_nan('out[i]')}) { return ${_err_code()}; } }
       %endif
         return AnyODE::Status::success;
     %endif
@@ -270,11 +289,12 @@ namespace odesys_anyode {
         ${"AnyODE::ignore(y);" if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
                                    not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ""}
 
+      %if p_error_on_inf or p_error_on_nan:
+        for (int i=0; i<${p_odesys.ny}; ++i) { if (${_inf_or_nan('y[i]')}) { return ${_err_code()}; } }
+      %endif
         ${p_jac_dense["cses"]}
-
       %for i_major in range(p_odesys.ny):
        %for i_minor in range(p_odesys.ny):
-
 
     <%
         if order == "cmaj":
@@ -292,6 +312,10 @@ namespace odesys_anyode {
             ${p_jac_dense["assign"](idx, assign_to=lambda _: "dfdt[%d]" % (idx - p_odesys.ny**2))}
           %endfor
         }
+      %if p_error_on_inf or p_error_on_nan:
+        for (int i = 0; i < ${p_odesys.ny}; ++i) { if (${_inf_or_nan('y[i]')}) { return ${_err_code()}; } }
+      %endif
+
         this->njev++;
         return AnyODE::Status::success;
     %endif
@@ -382,17 +406,26 @@ namespace odesys_anyode {
     }
 
     AnyODE::Status OdeSys<realtype, indextype>::roots(realtype x, const realtype * const y, realtype * const out) {
+
+    %if p_error_on_inf or p_error_on_nan:
+      if (${_inf_or_nan('x')}) { return ${_err_code()}; }
+      for (int i=0; i<${p_odesys.ny}; ++i) { if (${_inf_or_nan('y[i]')}) { return ${_err_code()}; } }
+    %endif
+
     %if p_roots is None:
         AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
-        return AnyODE::Status::success;
     %elif isinstance(p_roots, str):
         ${p_roots}
     %else:
         ${"" if any(p_odesys.indep in expr.free_symbols for expr in p_odesys.roots) else "AnyODE::ignore(x);"}
         ${p_roots["cses"]}
         ${p_roots["assign"].all()}
+    %endif
+
+      %if p_error_on_inf or p_error_on_nan:
+            for (int i=0; i<get_nroots(); ++i) if (${_inf_or_nan('out[i]')}) return AnyODE::Status::unrecoverable_error;
+      %endif
         this->nrev++;
         return AnyODE::Status::success;
-    %endif
     }
 }
