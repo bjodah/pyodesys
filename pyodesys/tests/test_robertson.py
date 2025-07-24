@@ -28,7 +28,7 @@ def test_run_integration():
 @pycvodes_double
 def test_run_integration__atol_dict():
     xout, yout, info = run_integration(
-        integrator='cvode', atol={'A': 1e-9, 'B': 1e-10, 'C': 1e-5}, nsteps=2500)[:3]
+        integrator='cvode', atol={'A': 1e-9, 'B': 1e-10, 'C': 1e-5}, nsteps=1173*3)[:3]
     assert info['success'] is True
 
 
