@@ -24,8 +24,7 @@ steps:
       - CXXFLAGS=-std=c++20
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse
-#:/opt-3/boost-1.88.0/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt-3/boost-1.88.0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt-3/sundials-6.7.0-release
@@ -46,8 +45,7 @@ steps:
       - CXXFLAGS=-std=c++20
       - OMP_NUM_THREADS=1
       - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse
-#:/opt-3/boost-1.88.0/include
+      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt-3/boost-1.88.0/include
       - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
       - SUNDBASE=/opt-3/sundials-6.7.0-extended
