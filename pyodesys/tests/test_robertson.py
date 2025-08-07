@@ -139,20 +139,42 @@ def test_get_ode_exprs_ODESys():
               atol=1e-8, rtol=1e-12, extra_forgive=2)
     _test_goe(symbolic=False, logc=False, logt=True, zero_conc=0, zero_time=1e-12,
               atol=1e-8, rtol=1e-12, extra_forgive=0.4)
-    for reduced in range(4):
-        _test_goe(symbolic=False, reduced=reduced, extra_forgive=6)
-        if reduced != 2:
-            _test_goe(symbolic=False, reduced=reduced, logc=True, logt=False, zero_conc=1e-18,
-                      atol=1e-10, rtol=1e-10, extra_forgive=20, first_step=1e-14, nsteps=17000)
-        if reduced == 3:
-            _test_goe(symbolic=False, reduced=reduced, logc=True, logt=True, zero_conc=1e-18, zero_time=1e-12,
-                      atol=1e-12, rtol=5e-13, extra_forgive=1e-3, first_step=1e-13)  # note extra_forgive
 
-        _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
-                  atol=1e-9, rtol=1e-10, extra_forgive=8, nonnegative=True)  # tests RecoverableError
+@requires('sym', 'sympy', 'pycvodes')
+@pycvodes_double
+@pytest.mark.parametrize("reduced", [0,1,2,3])
+def test_get_ode_exprs_ODESys__reduced__1(reduced):
+    _test_goe(symbolic=False, reduced=reduced, extra_forgive=6)
 
-        _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-9,
-                  atol=1e-13, rtol=1e-14, first_step=1e-14, extra_forgive=3)
+@requires('sym', 'sympy', 'pycvodes')
+@pycvodes_double
+@pytest.mark.parametrize("reduced", [0,1,3])
+def test_get_ode_exprs_ODESys__reduced__2(reduced):
+    _test_goe(symbolic=False, reduced=reduced, logc=True, logt=False, zero_conc=1e-18,
+              atol=1e-10, rtol=1e-10, extra_forgive=20, first_step=1e-14, nsteps=17000)
+
+
+@requires('sym', 'sympy', 'pycvodes')
+@pycvodes_double
+def test_get_ode_exprs_ODESys__reduced__3():
+    reduced = 3
+    _test_goe(symbolic=False, reduced=reduced, logc=True, logt=True, zero_conc=1e-18, zero_time=1e-12,
+              atol=1e-12, rtol=5e-13, extra_forgive=1e-3, first_step=1e-13)  # note extra_forgive
+
+
+@requires('sym', 'sympy', 'pycvodes')
+@pycvodes_double
+@pytest.mark.parametrize("reduced", [0,1,2,3])
+def test_get_ode_exprs_ODESys__reduced__4(reduced):
+    _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-9,
+              atol=1e-13, rtol=1e-14, first_step=1e-14, extra_forgive=3)
+
+@requires('sym', 'sympy', 'pycvodes')
+@pycvodes_double
+@pytest.mark.parametrize("reduced", [0,1,2,3])
+def test_get_ode_exprs_ODESys__reduced__5(reduced):
+    _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
+              atol=1e-9, rtol=1e-10, extra_forgive=8, nonnegative=True)  # tests RecoverableError
 
 
 @requires('sym', 'sympy', 'pycvodes')
