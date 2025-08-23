@@ -10,7 +10,7 @@ CubicSpline = import_('scipy.interpolate', 'CubicSpline')
 interp1d = import_('scipy.interpolate', 'interp1d')
 
 
-class Result(object):
+class Result:
 
     def __init__(self, xout, yout, params, info, odesys):
         self.xout = xout
