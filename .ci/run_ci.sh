@@ -43,8 +43,7 @@ python -m pytest -xv -k test_integrate_chained_robertson pyodesys/tests/test_rob
 export PYTHONHASHSEED=$(python3 -c "import random; print(random.randint(1,2**32-1))")
 PYTHON="python -R" ./scripts/run_tests.sh --cov $PKG_NAME --cov-report html
 
-env PYTHONPATH=$(pwd) ./scripts/render_notebooks.sh
-(cd $PKG_NAME/tests; jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=600 *.ipynb)
+( export PYTHONPATH=$(pwd); ./scripts/render_notebooks.sh; cd $PKG_NAME/tests; jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=600 *.ipynb )
 ./scripts/generate_docs.sh
 
 # Test package without any 3rd party libraries that are in extras_require:
