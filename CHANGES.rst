@@ -1,3 +1,7 @@
+v0.14.5
+=======
+- Update setup.yp
+
 v0.14.4
 =======
 - Update to latest syntax for Cython's nogil declaration (must be last)
