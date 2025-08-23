@@ -17,7 +17,7 @@ function quiet_unless_fail {
 
 cd examples/
 
-PREC=`python3 -c "from pycvodes import config; print(config.get('SUNDIALS_PRECISION', 'double'))"`
+PREC=$(python -c "from pycvodes import config; print(config.get('SUNDIALS_PRECISION', 'double'))")
 set -x
 for ipynb in *.ipynb; do
     if [[ $ipynb == "_native_standalone.ipynb" ]]; then
@@ -30,7 +30,12 @@ for ipynb in *.ipynb; do
         continue
     fi
     #quiet_unless_fail
-    jupyter nbconvert --log-level=INFO --to=html --ExecutePreprocessor.enabled=True --ExecutePreprocessor.timeout=900 "${ipynb}"
+    python -m jupyter nbconvert \
+           --log-level=INFO \
+           --to=html \
+           --ExecutePreprocessor.enabled=True \
+           --ExecutePreprocessor.timeout=900 \
+           "${ipynb}"
     #if [ ${QUIET_EXIT_CODE} -ne 0 ]; then
     #    exit ${QUIET_EXIT_CODE}
     #fi

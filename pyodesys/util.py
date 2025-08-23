@@ -113,7 +113,7 @@ def transform_exprs_indep(fw, bw, dep_exprs, indep, check=True):
     return [(e/fw.diff(indep)).subs(indep, bw) for e in exprs]
 
 
-class _Blessed(object):
+class _Blessed:
     pass
 
 
@@ -190,7 +190,7 @@ class _Callback(_Blessed):
         return result
 
 
-class requires(object):
+class requires:
     """ Conditional skipping (on requirements) of tests in pytest
 
     Examples
@@ -263,7 +263,7 @@ def pycvodes_klu(cb):
                               reason="Sparse jacobian tests require pycvodes and sundials with KLU enabled.")(cb)
 
 
-class MissingImport(object):
+class MissingImport:
 
     def __init__(self, modname, exc):
         self._modname = modname

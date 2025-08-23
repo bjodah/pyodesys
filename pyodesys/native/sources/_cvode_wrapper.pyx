@@ -1,7 +1,7 @@
 # -*- mode: cython -*-
 # -*- coding: utf-8 -*-
 # distutils: language = c++
-# distutils: extra_compile_args = -std=c++11 -fopenmp
+# distutils: extra_compile_args = -std=c++20 -fopenmp
 # distutils: extra_link_args = -fopenmp
 # cython: language_level=3str
 

@@ -8,6 +8,7 @@ from operator import add
 import os
 import shutil
 import sys
+import sysconfig
 import tempfile
 
 import numpy as np
@@ -39,13 +40,13 @@ logger = logging.getLogger(__name__)
 
 _compile_kwargs = {
     'options': ['warn', 'pic', 'fast', 'openmp'],
-    'std': 'c++11',
+    'std': 'c++20',
     'include_dirs': [np.get_include(), pkg_resources.resource_filename(__name__, 'sources')],
     'libraries': [],
     'cplus': True,
 }
 
-_ext_suffix = '.so'  # sysconfig.get_config_var('EXT_SUFFIX')
+_ext_suffix = sysconfig.get_config_var('EXT_SUFFIX')
 _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
 
 
@@ -90,7 +91,7 @@ class _NativeCodeBase(Cpp_Code):
         self.namespace_extend = kwargs.pop('namespace_extend', {})
         self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
-        self.so_file = '%s%s' % (self.wrapper_name, '.so')
+        self.so_file = '%s%s' % (self.wrapper_name, _ext_suffix)
         _wrapper_src = pkg_resources.resource_filename(
             __name__, 'sources/%s.pyx' % self.wrapper_name)
         if cachedir is None:

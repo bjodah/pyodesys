@@ -78,7 +78,7 @@ _author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().spl
 
 extras_req = {
     'integrators': ['pyodeint>=0.10.3', 'pycvodes>=0.13.1', 'pygslodeiv2>=0.9.3'],
-    'native': ['pycompilation>=0.4.9', 'pycodeexport>=0.1.2', 'appdirs'],
+    'native': ['pycompilation>=0.4.9', 'pycodeexport>=0.1.2'],
     'docs': ['Sphinx', 'sphinx_rtd_theme', 'numpydoc'],
     'testing': ['pytest', 'pytest-cov', 'pytest-flakes', 'pytest-pep8', 'rstcheck']
 }
@@ -96,7 +96,7 @@ setup_kwargs = dict(
     license=license,
     packages=[pkg_name] + submodules + tests,
     include_package_data=True,
-    install_requires=['numpy>=1.16.4', 'scipy>=1.2.3', 'sym>=0.3.4',
+    install_requires=['numpy>=1.16.4', 'scipy>=1.2.3', 'sym>=0.3.4', 'appdirs',
                       'sympy>=1.5.1', 'matplotlib>=2.2.5', 'notebook' + ('>=5.7.8' if 'CI' in os.environ else '')],
     tests_require=['pytest>=5.4.1'],
     extras_require=extras_req,
