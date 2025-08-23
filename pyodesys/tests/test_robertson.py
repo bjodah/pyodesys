@@ -174,8 +174,8 @@ def test_get_ode_exprs_ODESys__reduced__4(reduced):
 @pycvodes_double
 @pytest.mark.parametrize("reduced", [
     0,
-    1,
-    pytest.param(2, marks=pytest.mark.xfail(reason="flaky, CV_REPTD_RHSFUNC_ERR on CI-server")),
+    pytest.param(1, marks=pytest.mark.xfail(reason="flaky, CV_REPTD_RHSFUNC_ERR on CI-server")),
+    2,
     3
 ])
 def test_get_ode_exprs_ODESys__reduced__5(reduced):
