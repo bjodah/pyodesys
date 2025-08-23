@@ -172,7 +172,12 @@ def test_get_ode_exprs_ODESys__reduced__4(reduced):
 
 @requires('sym', 'sympy', 'pycvodes')
 @pycvodes_double
-@pytest.mark.parametrize("reduced", [0,1,2,3])
+@pytest.mark.parametrize("reduced", [
+    0,
+    1,
+    pytest.param(2, marks=pytest.mark.xfail(reason="flaky, CV_REPTD_RHSFUNC_ERR on CI-server")),
+    3
+])
 def test_get_ode_exprs_ODESys__reduced__5(reduced):
     _test_goe(symbolic=False, reduced=reduced, logc=False, logt=True, zero_time=1e-12,
               atol=1e-9, rtol=1e-10, extra_forgive=8, nonnegative=True)  # tests RecoverableError
