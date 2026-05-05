@@ -4,7 +4,7 @@ when:
 steps:
 
   - name: restore-cache
-    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:24
+    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:41
     commands:
       - curl ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/cache/cache-ci.tar | tar -C / x || mkdir -p $CI_WORKSPACE/cache-ci/pip_cache
     secrets: [ ARTIFACTS_PASS, FTP_SERVER ]
@@ -14,17 +14,17 @@ steps:
 
   - name: test-sund-6.7.0-rel
     depends_on: restore-cache
-    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:24
+    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:41
     environment:
-      - CC=gcc-14
-      - CXX=g++-14
-      - CXXFLAGS=-std=c++20
-      - OMP_NUM_THREADS=1
-      - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt-3/boost-1.87.0/include
-      - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - SUNDBASE=/opt-3/sundials-6.7.0-release
+      CC: gcc-14
+      CXX: g++-14
+      CXXFLAGS: -std: c++20
+      OMP_NUM_THREADS: 1
+      ANYODE_NUM_THREADS: 2
+      CPLUS_INCLUDE_PATH: /usr/include/suitesparse:/opt-3/boost-1.87.0/include
+      LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+      LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+      SUNDBASE: /opt-3/sundials-6.7.0-release
     commands:
       - cp -ra $CI_WORKSPACE /tmp/test-sund-6.7.0-rel
       - cd /tmp/test-sund-6.7.0-rel
@@ -35,19 +35,19 @@ steps:
       
   - name: test-sund-6.7.0-extended
     depends_on: restore-cache
-    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:24
+    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:41
     environment:
-      - CC=gcc-14
-      - CXX=g++-14
-      - CXXFLAGS=-std=c++20
-      - OMP_NUM_THREADS=1
-      - ANYODE_NUM_THREADS=2
-      - CPLUS_INCLUDE_PATH=/usr/include/suitesparse:/opt/boost-1.87.0/include
-      - LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-      - SUNDBASE=/opt-3/sundials-6.7.0-extended
-      - PYCVODES_NO_LAPACK=1
-      - PYCVODES_NO_KLU=1
+      CC: gcc-14
+      CXX: g++-14
+      CXXFLAGS: -std: c++20
+      OMP_NUM_THREADS: 1
+      ANYODE_NUM_THREADS: 2
+      CPLUS_INCLUDE_PATH: /usr/include/suitesparse:/opt/boost-1.87.0/include
+      LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+      LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+      SUNDBASE: /opt-3/sundials-6.7.0-extended
+      PYCVODES_NO_LAPACK: 1
+      PYCVODES_NO_KLU: 1
     commands:
       - cp -ra $CI_WORKSPACE/ /tmp/test-sund-6.7.0-extended
       - cd /tmp/test-sund-6.7.0-extended
@@ -56,7 +56,7 @@ steps:
       - ./scripts/grep-for-binary-data.sh
 
   - name: rebuild-cache
-    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:24
+    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:41
     commands:
       - find $CI_WORKSPACE/cache-ci/ -type f -mtime +90 -exec rm {} \;
       - tar cf cache-ci.tar $CI_WORKSPACE/cache-ci/
@@ -66,7 +66,7 @@ steps:
       - test-sund-6.7.0-rel
 
   - name: deploy-public-html
-    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:24
+    image: cont-reg.bjodah.se:443/bjodah/triceratops-3:41
     commands:
       - tar -C deploy/public_html -czf ${CI_REPO_NAME}-${CI_COMMIT_BRANCH}.tar.gz .
       - curl -T ${CI_REPO_NAME}-${CI_COMMIT_BRANCH}.tar.gz ftp://${CI_REPO_NAME}:$${ARTIFACTS_PASS}@$${FTP_SERVER}/public_html/
