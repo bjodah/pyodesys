@@ -14,7 +14,7 @@ if [ -e /etc/profile.d/boost.sh ]; then
     export CPATH=$BOOST_ROOT/include
 fi
 source $(compgen -G "/opt-3/cpython-v3.*-apt-deb/bin/activate")
-python3 -m pip install --cache-dir $CI_WORKSPACE/cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython "git+https://github.com/bjodah/pycompilation@use-importlib-rather-than-imp#egg=pycompilation"
+python3 -m pip install --cache-dir $CI_WORKSPACE/cache-ci/pip_cache --upgrade-strategy=eager --upgrade cython "git+https://github.com/bjodah/pycompilation@master#egg=pycompilation"
 # REPO_TEMP_DIR="$(mktemp -d)"
 # trap 'rm -rf -- "$REPO_TEMP_DIR"' EXIT
 # cp -ra . "$REPO_TEMP_DIR/."
