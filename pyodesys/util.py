@@ -4,10 +4,8 @@ from __future__ import (absolute_import, division, print_function)
 from functools import reduce
 import inspect
 import math
-import operator
+from operator import lt, le, eq, ne, ge, gt
 import sys
-
-from pkg_resources import parse_requirements, parse_version
 
 import numpy as np
 import pytest
@@ -15,6 +13,63 @@ import pytest
 if sys.version_info < (3, 6, 0):
     class ModuleNotFoundError(ImportError):
         pass
+
+_relop = dict(zip("<= == != >= > <".split(), (le, eq, ne, ge, gt, lt)))
+
+
+def _parse_version(vs: str, /):
+    return tuple(map(int, vs.split('.')))
+
+class requires(object):
+    """Conditional skipping (on requirements) of tests in pytest
+
+    Examples
+    --------
+    >>> @requires('numpy', 'scipy')
+    ... def test_sqrt():
+    ...     import numpy as np
+    ...     assert np.sqrt(4) == 2
+    ...     from scipy.special import zeta
+    ...     assert zeta(2) < 2
+    ...
+    >>> @requires('numpy>=1.9.0')
+    ... def test_nanmedian():
+    ...     import numpy as np
+    ...     a = np.array([[10.0, 7, 4], [3, 2, 1]])
+    ...     a[0, 1] = np.nan
+    ...     assert np.nanmedian(a) == 3
+    ...
+
+    """
+
+    def __init__(self, *reqs):
+        self.missing = []
+        self.incomp = []
+        for req in reqs:
+            for rs, ro in _relop.items():
+                if rs in req:
+                    name, version = req.split(rs)
+                    version = _parse_version(version)
+            else:
+                name, version = req, None
+            
+            try:
+                mod = __import__(name)
+            except ImportError:
+                self.missing.append(name)
+            else:
+                if version is not None:
+                    found_version = _parse_version(mod.__version__)
+                    if not (fulfilled := ro(version, found_version)):
+                        self.incomp.append("%s %s %s" % (found_version, rs, version))
+
+    def __call__(self, cb):
+        r = "Unfulfilled requirements."
+        if self.missing:
+            r += " Missing modules: %s." % ", ".join(self.missing)
+        if self.incomp:
+            r += " Incomp versions: %s." % ", ".join(self.incomp)
+        return pytest.mark.skipif(self.missing or self.incomp, reason=r)(cb)
 
 
 def stack_1d_on_left(x, y):
@@ -188,59 +243,6 @@ class _Callback(_Blessed):
         inp[..., (nx+self.ny):] = _p
         result = self.callback(inp)
         return result
-
-
-class requires(object):
-    """ Conditional skipping (on requirements) of tests in pytest
-
-    Examples
-    --------
-    >>> @requires('numpy', 'scipy')
-    ... def test_sqrt():
-    ...     import numpy as np
-    ...     assert np.sqrt(4) == 2
-    ...     from scipy.special import zeta
-    ...     assert zeta(2) < 2
-    ...
-    >>> @requires('numpy>=1.9.0')
-    ... def test_nanmedian():
-    ...     import numpy as np
-    ...     a = np.array([[10.0, 7, 4], [3, 2, 1]])
-    ...     a[0, 1] = np.nan
-    ...     assert np.nanmedian(a) == 3
-    ...
-
-    """
-    from operator import lt, le, eq, ne, ge, gt
-    _relop = dict(zip('< <= == != >= >'.split(), [getattr(operator, attr) for attr in
-                                                  'lt le eq ne ge gt'.split()]))
-
-    def __init__(self, *reqs):
-        self.missing = []
-        self.incomp = []
-        self.requirements = list(parse_requirements(reqs))
-        for req in self.requirements:
-            try:
-                mod = __import__(req.project_name)
-            except ImportError:
-                self.missing.append(req.project_name)
-            else:
-                try:
-                    ver = parse_version(mod.__version__)
-                except AttributeError:
-                    pass
-                else:
-                    for rel, vstr in req.specs:
-                        if not self._relop[rel](ver, parse_version(vstr)):
-                            self.incomp.append(str(req))
-
-    def __call__(self, cb):
-        r = 'Unfulfilled requirements.'
-        if self.missing:
-            r += " Missing modules: %s." % ', '.join(self.missing)
-        if self.incomp:
-            r += " Incomp versions: %s." % ', '.join(self.incomp)
-        return pytest.mark.skipif(self.missing or self.incomp, reason=r)(cb)
 
 
 def pycvodes_double(cb):
