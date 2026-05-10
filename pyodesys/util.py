@@ -4,10 +4,9 @@ from __future__ import (absolute_import, division, print_function)
 from functools import reduce
 import inspect
 import math
-import operator
+from operator import lt, le, eq, ne, ge, gt
+import re
 import sys
-
-from pkg_resources import parse_requirements, parse_version
 
 import numpy as np
 import pytest
@@ -15,6 +14,78 @@ import pytest
 if sys.version_info < (3, 6, 0):
     class ModuleNotFoundError(ImportError):
         pass
+
+_relop = dict(zip("<= == != >= > <".split(), (le, eq, ne, ge, gt, lt)))
+
+
+def _parse_version(vs):
+    parts = []
+    for part in re.split(r'[.\-+_]', vs):
+        match = re.match(r'(\d+)', part)
+        if match:
+            parts.append(int(match.group(1)))
+        elif part:
+            break
+    return tuple(parts)
+
+
+def _parse_requirement(req):
+    for rel in sorted(_relop, key=len, reverse=True):
+        if rel in req:
+            name, version = req.split(rel, 1)
+            return name.strip(), rel, _parse_version(version.strip())
+    return req.strip(), None, None
+
+
+class requires:
+    """Conditional skipping (on requirements) of tests in pytest
+
+    Examples
+    --------
+    >>> @requires('numpy', 'scipy')
+    ... def test_sqrt():
+    ...     import numpy as np
+    ...     assert np.sqrt(4) == 2
+    ...     from scipy.special import zeta
+    ...     assert zeta(2) < 2
+    ...
+    >>> @requires('numpy>=1.9.0')
+    ... def test_nanmedian():
+    ...     import numpy as np
+    ...     a = np.array([[10.0, 7, 4], [3, 2, 1]])
+    ...     a[0, 1] = np.nan
+    ...     assert np.nanmedian(a) == 3
+    ...
+
+    """
+
+    def __init__(self, *reqs):
+        self.missing = []
+        self.incomp = []
+        for req in reqs:
+            name, rel, version = _parse_requirement(req)
+
+            try:
+                mod = __import__(name)
+            except ImportError:
+                self.missing.append(name)
+            else:
+                if version is not None:
+                    try:
+                        found_version = _parse_version(mod.__version__)
+                    except AttributeError:
+                        pass
+                    else:
+                        if not _relop[rel](found_version, version):
+                            self.incomp.append(req)
+
+    def __call__(self, cb):
+        r = "Unfulfilled requirements."
+        if self.missing:
+            r += " Missing modules: %s." % ", ".join(self.missing)
+        if self.incomp:
+            r += " Incomp versions: %s." % ", ".join(self.incomp)
+        return pytest.mark.skipif(self.missing or self.incomp, reason=r)(cb)
 
 
 def stack_1d_on_left(x, y):
@@ -160,7 +231,7 @@ def _concat(*args):
 
 class _Callback(_Blessed):
 
-    def __init__(self, indep, dep, params, exprs, Lambdify=None):
+    def __init__(self, indep, dep, params, exprs, Lambdify=None, Lambdify_kw=None):
         self.indep, self.dep, self.params = indep, dep, params
         if indep is None:
             self.args = _concat(self.dep, self.params)
@@ -168,7 +239,7 @@ class _Callback(_Blessed):
             self.args = _concat(self.indep, self.dep, self.params)
         self.input_width = len(self.args)
         self.exprs = exprs
-        self.callback = Lambdify(self.args, self.exprs)
+        self.callback = Lambdify(self.args, self.exprs, **(Lambdify_kw or {}))
         self.ny = len(dep)
         self.take_params = len(params)
 
@@ -188,59 +259,6 @@ class _Callback(_Blessed):
         inp[..., (nx+self.ny):] = _p
         result = self.callback(inp)
         return result
-
-
-class requires:
-    """ Conditional skipping (on requirements) of tests in pytest
-
-    Examples
-    --------
-    >>> @requires('numpy', 'scipy')
-    ... def test_sqrt():
-    ...     import numpy as np
-    ...     assert np.sqrt(4) == 2
-    ...     from scipy.special import zeta
-    ...     assert zeta(2) < 2
-    ...
-    >>> @requires('numpy>=1.9.0')
-    ... def test_nanmedian():
-    ...     import numpy as np
-    ...     a = np.array([[10.0, 7, 4], [3, 2, 1]])
-    ...     a[0, 1] = np.nan
-    ...     assert np.nanmedian(a) == 3
-    ...
-
-    """
-    from operator import lt, le, eq, ne, ge, gt
-    _relop = dict(zip('< <= == != >= >'.split(), [getattr(operator, attr) for attr in
-                                                  'lt le eq ne ge gt'.split()]))
-
-    def __init__(self, *reqs):
-        self.missing = []
-        self.incomp = []
-        self.requirements = list(parse_requirements(reqs))
-        for req in self.requirements:
-            try:
-                mod = __import__(req.project_name)
-            except ImportError:
-                self.missing.append(req.project_name)
-            else:
-                try:
-                    ver = parse_version(mod.__version__)
-                except AttributeError:
-                    pass
-                else:
-                    for rel, vstr in req.specs:
-                        if not self._relop[rel](ver, parse_version(vstr)):
-                            self.incomp.append(str(req))
-
-    def __call__(self, cb):
-        r = 'Unfulfilled requirements.'
-        if self.missing:
-            r += " Missing modules: %s." % ', '.join(self.missing)
-        if self.incomp:
-            r += " Incomp versions: %s." % ', '.join(self.incomp)
-        return pytest.mark.skipif(self.missing or self.incomp, reason=r)(cb)
 
 
 def pycvodes_double(cb):
