@@ -34,7 +34,7 @@ SUND_LDFLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SUNDBASE/lib -L$SUNDBASE/lib $
 git clean -xfd # -e tmp/
 
 CFLAGS="$SUND_CFLAGS $CXXFLAGS" CXXFLAGS="$SUND_CFLAGS $CXXFLAGS" LDFLAGS=$SUND_LDFLAGS python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/pycvodes@may21#egg=pycvodes"
-python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/pyodeint@cython-except-plus#egg=pyodeint"
+python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/pyodeint@sep21#egg=pyodeint"
 python3 -m pip install --no-build-isolation "git+https://github.com/bjodah/pygslodeiv2#egg=pygslodeiv2"
 
 python3 setup.py sdist
