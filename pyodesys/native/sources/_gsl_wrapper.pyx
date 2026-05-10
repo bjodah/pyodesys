@@ -137,6 +137,7 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _atol
         double atol_scalar
 
+
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
     _atol = np.ascontiguousarray(np.atleast_1d(atol), dtype=np.float64)
