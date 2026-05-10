@@ -38,7 +38,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] x0,
                        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] xend,
                        cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
-                       double atol, double rtol,
+                       atol, double rtol,
                        dx0, dx_max=None,
                        long int mxsteps=0, str method='rosenbrock4',
                        int autorestart=0,
@@ -51,10 +51,17 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         vector[pair[vector[double], vector[double]]] result
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx0
         cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _dx_max
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _atol
+        double atol_scalar
         bool success
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
+    _atol = np.ascontiguousarray(np.atleast_1d(atol), dtype=np.float64)
+    if _atol.size != 1:
+        raise ValueError('odeint native backend only supports scalar atol')
+    atol_scalar = _atol[0]
+
 
     if dx0 is None:
         _dx0 = np.zeros(y0.shape[0])
@@ -77,7 +84,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeintOdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     [atol], rtol, 1.0, False, 0.0, special_settings))
+                                     [atol_scalar], rtol, 1.0, False, 0.0, special_settings))
 
     result = multi_adaptive[OdeintOdeSys](
         systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
@@ -104,7 +111,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] xout,
                          cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] params,
-                         double atol, double rtol,
+                         atol, double rtol,
                          dx0, dx_max=None,
                          long int mxsteps=0, str method='rosenbrock4',
                          int autorestart=0,
@@ -120,9 +127,15 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         vector[int] result
         int nreached
         bool success
+        cnp.ndarray[cnp.float64_t, ndim=1, mode='c'] _atol
+        double atol_scalar
 
     if np.isnan(y0).any():
         raise ValueError("NaN found in y0")
+    _atol = np.ascontiguousarray(np.atleast_1d(atol), dtype=np.float64)
+    if _atol.size != 1:
+        raise ValueError('odeint native backend only supports scalar atol')
+    atol_scalar = _atol[0]
 
     if dx0 is None:
         _dx0 = np.zeros(y0.shape[0])
@@ -144,11 +157,11 @@ def integrate_predefined(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
 
     for idx in range(y0.shape[0]):
         systems.push_back(new OdeintOdeSys(<double *>(NULL) if params.shape[1] == 0 else &params[idx, 0],
-                                     [atol], rtol, 1.0, False, 0.0, special_settings))
+                                     [atol_scalar], rtol, 1.0, False, 0.0, special_settings))
 
     yout = np.empty((y0.shape[0], xout.shape[1], y0.shape[1]))
     result = multi_predefined[OdeintOdeSys](
-        systems, atol, rtol, styp_from_name(_styp), <double *>y0.data, xout.shape[1],
+        systems, atol_scalar, rtol, styp_from_name(_styp), <double *>y0.data, xout.shape[1],
         <double *>xout.data, <double *>yout.data,
         mxsteps, &_dx0[0], &_dx_max[0], autorestart, return_on_error)
 

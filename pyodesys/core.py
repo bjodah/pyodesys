@@ -627,9 +627,13 @@ class ODESys:
             if self.first_step_cb is not None:
                 def _first_step(x, y):
                     if len(_p) > 0:
-                        return self.first_step_cb(x, y, _p)
+                        result = self.first_step_cb(x, y, _p)
                     else:
-                        return self.first_step_cb(x, y)
+                        result = self.first_step_cb(x, y)
+                    result = np.asarray(result)
+                    if result.size != 1:
+                        raise ValueError("first_step_cb must return a scalar")
+                    return float(result.reshape(-1)[0])
                 if 'dx0cb' in new_kwargs:
                     raise ValueError("cannot override dx0cb")
                 else:
