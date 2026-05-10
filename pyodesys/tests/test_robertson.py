@@ -150,7 +150,7 @@ def test_get_ode_exprs_ODESys():
                   atol=1e-13, rtol=1e-14, first_step=1e-14, extra_forgive=3)
 
 
-@pytets.mark.xfail(reason="flaky due to rounding errors")
+@pytest.mark.xfail(reason="flaky due to rounding errors")
 @requires('sym', 'sympy', 'pycvodes')
 @pycvodes_double
 def test_get_ode_exprs_ODESys__flaky():
