@@ -5,6 +5,7 @@ from functools import reduce
 import inspect
 import math
 from operator import lt, le, eq, ne, ge, gt
+import re
 import sys
 
 import numpy as np
@@ -17,8 +18,24 @@ if sys.version_info < (3, 6, 0):
 _relop = dict(zip("<= == != >= > <".split(), (le, eq, ne, ge, gt, lt)))
 
 
-def _parse_version(vs: str, /):
-    return tuple(map(int, vs.split('.')))
+def _parse_version(vs):
+    parts = []
+    for part in re.split(r'[.\-+_]', vs):
+        match = re.match(r'(\d+)', part)
+        if match:
+            parts.append(int(match.group(1)))
+        elif part:
+            break
+    return tuple(parts)
+
+
+def _parse_requirement(req):
+    for rel in sorted(_relop, key=len, reverse=True):
+        if rel in req:
+            name, version = req.split(rel, 1)
+            return name.strip(), rel, _parse_version(version.strip())
+    return req.strip(), None, None
+
 
 class requires(object):
     """Conditional skipping (on requirements) of tests in pytest
@@ -46,22 +63,21 @@ class requires(object):
         self.missing = []
         self.incomp = []
         for req in reqs:
-            for rs, ro in _relop.items():
-                if rs in req:
-                    name, version = req.split(rs)
-                    version = _parse_version(version)
-            else:
-                name, version = req, None
-            
+            name, rel, version = _parse_requirement(req)
+
             try:
                 mod = __import__(name)
             except ImportError:
                 self.missing.append(name)
             else:
                 if version is not None:
-                    found_version = _parse_version(mod.__version__)
-                    if not (fulfilled := ro(version, found_version)):
-                        self.incomp.append("%s %s %s" % (found_version, rs, version))
+                    try:
+                        found_version = _parse_version(mod.__version__)
+                    except AttributeError:
+                        pass
+                    else:
+                        if not _relop[rel](found_version, version):
+                            self.incomp.append(req)
 
     def __call__(self, cb):
         r = "Unfulfilled requirements."

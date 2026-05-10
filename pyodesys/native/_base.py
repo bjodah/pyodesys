@@ -45,10 +45,12 @@ else:
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+_native_sources_dir = Path(__file__).resolve().parent / 'sources'
+
 _compile_kwargs = {
     'options': ['warn', 'pic', 'fast', 'openmp'],
     'std': 'c++20',
-    'include_dirs': [np.get_include(), Path(__name__).parent / 'sources'],
+    'include_dirs': [np.get_include(), str(_native_sources_dir)],
     'libraries': [],
     'cplus': True,
 }
@@ -156,7 +158,7 @@ class _NativeCodeBase(Cpp_Code):
         )
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
         self.so_file = '%s%s' % (self.wrapper_name, _ext_suffix)
-        _wrapper_src0 = Path(__name__).parent / ('sources/%s.pyx' % self.wrapper_name)
+        _wrapper_src0 = _native_sources_dir / ('%s.pyx' % self.wrapper_name)
         if cachedir is None:
             raise ImportError("No module named appdirs (needed for caching). Install 'appdirs' using e.g. pip/conda.")
         if not os.path.exists(cachedir):
