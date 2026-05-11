@@ -3,9 +3,25 @@
 <%doc>
 This is file is a mako template for a C++ source file defining the ODE system.
 </%doc>
+<%!
+import sympy
+
+%>
+<%
+def _inf_or_nan(s):
+    isinf_isnan = {'isinf(%s)': p_error_on_inf, 'isnan(%s)': p_error_on_nan}
+    return ' || '.join([func % s for func, pred in isinf_isnan.items()])
+
+def _err_code():
+    return 'AnyODE::Status::recoverable_error' if p_support_recoverable_error else 'AnyODE::Status::unrecoverable_error'
+
+assert p_error_on_nan in (False, True)
+assert p_error_on_inf in (False, True)
+%>
 // User provided system description: ${p_odesys.description}
 // Names of dependent variables: ${p_odesys.names}
 // Names of parameters: ${p_odesys.param_names}
+// Code-generation details: ${p_info_comment_codegen}
 
 #include <algorithm>
 #include <iostream>
@@ -16,8 +32,15 @@ This is file is a mako template for a C++ source file defining the ODE system.
 #include ${inc}
 %endfor
 
+%if p_compensated_summation:
+#include "summation_cxx/ranged.hpp"
+%endif
+
+// sympy wraps real around symbols which actually are real:
+#define re(x) (x)
+
 namespace {  // anonymous namespace for user-defined helper functions
-    std::vector<std::string> p_odesys_names ${'' if p_odesys.names is None else '= {"%s"}' % '", "'.join(p_odesys.names)};
+    std::vector<std::string> p_odesys_names ${"" if p_odesys.names is None else '= {"%s"}' % '", "'.join(p_odesys.names)};
 %if p_anon is not None:
     ${p_anon}
 %endif
@@ -32,10 +55,11 @@ namespace odesys_anyode {
     template <>
     struct OdeSys<realtype, indextype>: public AnyODE::${p_baseclass}<realtype, indextype> {
         std::vector<realtype> m_p;
-        std::vector<realtype> m_p_cse;
+        std::vector<realtype> m_cse;
         std::vector<realtype> m_atol;
         std::vector<realtype> m_upper_bounds;
         std::vector<realtype> m_lower_bounds;
+        std::vector<realtype> m_invar;
         std::vector<realtype> m_invar0;
         realtype m_rtol;
         realtype m_get_dx_max_factor;
@@ -95,33 +119,31 @@ namespace odesys_anyode {
                                         realtype get_dx_max_factor,
                                         bool error_outside_bounds,
                                         realtype max_invariant_violation,
-                                        std::vector<realtype> special_settings) :
-        m_p_cse(${p_common['nsubs']}), m_atol(atol), m_rtol(rtol), m_get_dx_max_factor(get_dx_max_factor),
-        m_error_outside_bounds(error_outside_bounds), m_max_invariant_violation(max_invariant_violation),
-        m_special_settings(special_settings) {
-        m_p.assign(params, params + ${len(p_odesys.params) + p_odesys.ny if p_odesys.append_iv else 0});
-        <% idx = 0 %>
-      %for cse_token, cse_expr in p_common['cses']:
-       %if cse_token.startswith('m_p_cse'):
-        ${cse_token} = ${cse_expr}; <% assert cse_token == 'm_p_cse[{0}]'.format(idx); idx += 1 %>
-       %else:
-        const auto ${cse_token} = ${cse_expr};
-       %endif
-      %endfor
-        use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${'true' if p_get_dx_max else 'false'} : false;
+                                        std::vector<realtype> special_settings)
+        : m_p(params, params + ${len(p_odesys.params) + p_odesys.ny if p_odesys.append_iv else 0})
+        , m_cse(${p_common["n_cses"]})
+        , m_atol(atol)
+        , m_invar(${0 if p_invariants is None else p_invariants["n_invar"]})
+        , m_invar0(${0 if p_invariants is None else p_invariants["n_invar"]})
+        , m_rtol(rtol)
+        , m_get_dx_max_factor(get_dx_max_factor)
+        , m_error_outside_bounds(error_outside_bounds)
+        , m_max_invariant_violation(max_invariant_violation)
+        , m_special_settings(special_settings)
+    {
+        ${p_common["cses"]}
+        use_get_dx_max = (m_get_dx_max_factor > 0.0) ? ${"true" if p_get_dx_max else "false"} : false;
       %if p_invariants is not None and p_support_recoverable_error:
         if (m_max_invariant_violation != 0.0){
-            ${'' if p_odesys.append_iv else 'throw std::runtime_error("append_iv not set to True")'}
+            ${"" if p_odesys.append_iv else 'throw std::runtime_error("append_iv not set to True")'}
             const realtype * const y = params + ${len(p_odesys.params)};
-          %for cse_token, cse_expr in p_invariants['cses']:
-            const auto ${cse_token} = ${cse_expr};
-          %endfor
-          %for expr in p_invariants['exprs']:
-            m_invar0.push_back(${expr});
-          %endfor
-       }
+            m_invar0.resize(${p_invariants["n_invar"]});
+            //realtype * const out = m_invar0.data();
+            ${p_invariants["cses"]}
+            ${p_invariants["assign"].all(assign_to=lambda i: "m_invar0[%d]" % i)}
+        }
       %endif
-        ${'\n    '.join(p_constructor)}
+        ${"\n    ".join(p_constructor)}
     }
 
     indextype OdeSys<realtype, indextype>::get_ny() const {
@@ -146,18 +168,30 @@ namespace odesys_anyode {
 
     AnyODE::Status OdeSys<realtype, indextype>::rhs(realtype x,
                                const realtype * const ANYODE_RESTRICT y,
-                               realtype * const ANYODE_RESTRICT f) {
-    %if isinstance(p_rhs, str):
-        ${p_rhs}
-    %else:
-        ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
-      %for cse_token, cse_expr in p_rhs['cses']:
-        const auto ${cse_token} = ${cse_expr};
-      %endfor
+                               realtype * const ANYODE_RESTRICT out) {
+      %if getattr(p_odesys, "_nonnegative", False) and p_support_recoverable_error:
+        for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
+      %endif
+      %if p_error_on_inf or p_error_on_nan:
+        for (int i=0; i<${p_odesys.ny}; ++i) { if (${_inf_or_nan('y[i]')}) { return ${_err_code()}; } }
 
-      %for i, expr in enumerate(p_rhs['exprs']):
-        f[${i}] = ${expr};
-      %endfor
+      %endif
+      %if p_compensated_summation:
+        summation_cxx::RangedAccumulatorNeumaier<realtype> f(${p_odesys.ny});
+        f.init(out);
+      %else:
+        realtype * const f = out;
+      %endif
+      %if isinstance(p_rhs, str):
+        ${p_rhs}
+      %else:
+        ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
+        ${p_rhs["cses"]}
+        ${p_rhs["assign"].all(assign_to=lambda i: sympy.Symbol("f[%d]" % i))}
+      %if p_compensated_summation:
+        f.commit();
+      %endif
+
         this->nfev++;
       %if p_support_recoverable_error:
         if (m_error_outside_bounds){
@@ -166,7 +200,7 @@ namespace odesys_anyode {
                     if (y[i] < m_lower_bounds[i]) {
                         std::cerr << "Lower bound (" << m_lower_bounds[0] << ") for "
                                   << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
-                                  << " exceeded (" << y[i] << ") at x="<< x << "\n";
+                                  << " violated (" << y[i] << ") at x="<< x << "\n";
                         return AnyODE::Status::recoverable_error;
                     }
                 }
@@ -176,28 +210,29 @@ namespace odesys_anyode {
                     if (y[i] > m_upper_bounds[i]) {
                         std::cerr << "Upper bound (" << m_upper_bounds[0] << ") for "
                                   << (p_odesys_names.size() ? p_odesys_names[i] : std::to_string(i))
-                                  << " exceeded (" << y[i] << ") at x="<< x << "\n";
+                                  << " violates (" << y[i] << ") at x="<< x << "\n";
                         return AnyODE::Status::recoverable_error;
                     }
                 }
             }
         }
-       %if p_invariants is not None:
+        %if p_invariants is not None:
         if (m_max_invariant_violation != 0.0){
-          %for cse_token, cse_expr in p_invariants['cses']:
-            const auto ${cse_token} = ${cse_expr};
-          %endfor
-          %for idx, invar_expr in enumerate(p_invariants['exprs']):
-            if (std::abs(${invar_expr} - m_invar0[${idx}]) > ((m_max_invariant_violation > 0) ? m_max_invariant_violation : std::abs(m_max_invariant_violation*m_invar0[${idx}]) - m_max_invariant_violation)) {
-                std::cerr << "Invariant (${idx}) violation at x=" << x << "\n";
-                return AnyODE::Status::recoverable_error;
+            ${p_invariants["cses"]}
+            ${p_invariants["assign"].all(assign_to=lambda i: "m_invar[%d]" % i)}
+            for (int idx=0; idx<${p_invariants["n_invar"]}; ++idx) {
+                if (std::abs(m_invar[idx] - m_invar0[idx]) > ((m_max_invariant_violation > 0)
+                                                              ? m_max_invariant_violation
+                                                              : std::abs(m_max_invariant_violation*m_invar0[idx]) /*- m_max_invariant_violation*/)) {
+                    std::clog << "Invariant (" << idx << ") violation at x=" << x << "\n";
+                    return AnyODE::Status::recoverable_error;
+                }
             }
-          %endfor
         }
-       %endif
+        %endif
       %endif
-      %if getattr(p_odesys, '_nonnegative', False) and p_support_recoverable_error:
-        for (int i=0; i<${p_odesys.ny}; ++i) if (y[i] < 0) return AnyODE::Status::recoverable_error;
+      %if p_error_on_inf or p_error_on_nan:
+        for (int i=0; i<${p_odesys.ny}; ++i) { if (${_inf_or_nan('out[i]')}) { return ${_err_code()}; } }
       %endif
         return AnyODE::Status::success;
     %endif
@@ -212,38 +247,32 @@ namespace odesys_anyode {
     }
 
     AnyODE::Status OdeSys<realtype, indextype>::jtimes(
-                                  const realtype * const ANYODE_RESTRICT v,
-                                  realtype * const ANYODE_RESTRICT Jv,
-                                  realtype x,
-                                  const realtype * const ANYODE_RESTRICT y,
-                                  const realtype * const ANYODE_RESTRICT fy) {
+        const realtype * const ANYODE_RESTRICT v,
+        realtype * const ANYODE_RESTRICT out,
+        realtype x,
+        const realtype * const ANYODE_RESTRICT y,
+        const realtype * const ANYODE_RESTRICT fy)
+    {
     %if p_jtimes is not None:
     %if isinstance(p_jtimes, str):
         ${p_jtimes}
     %else:
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
-        ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
-
-        %for cse_token, cse_expr in p_jtimes['cses']:
-            const auto ${cse_token} = ${cse_expr};
-        %endfor
-
-        %for i in range(p_odesys.ny):
-            <% curr_expr = p_jtimes['exprs'][i] %>
-            Jv[${i}] = ${curr_expr};
-        %endfor
+        ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
+        ${p_jtimes["cses"]}
+        ${p_jtimes["assign"].all()}
     %endif
         this->njvev++;
         return AnyODE::Status::success;
     %else:
-        AnyODE::ignore(v); AnyODE::ignore(Jv); AnyODE::ignore(x);
+        AnyODE::ignore(v); AnyODE::ignore(out); AnyODE::ignore(x);
         AnyODE::ignore(y); AnyODE::ignore(fy);
         return AnyODE::Status::unrecoverable_error;
     %endif
     }
 
 
-    %for order in ('cmaj', 'rmaj'):
+    %for order in ("cmaj", "rmaj"):
     AnyODE::Status OdeSys<realtype, indextype>::dense_jac_${order}(realtype x,
                                           const realtype * const ANYODE_RESTRICT y,
                                           const realtype * const ANYODE_RESTRICT fy,
@@ -256,29 +285,37 @@ namespace odesys_anyode {
     %else:
         // The AnyODE::ignore(...) calls below are used to generate code free from false compiler warnings.
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
-        ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
-        ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
-                                   not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
+        ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
+        ${"AnyODE::ignore(y);" if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
+                                   not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ""}
 
-      %for cse_token, cse_expr in p_jac_dense['cses']:
-        const auto ${cse_token} = ${cse_expr};
-      %endfor
-
+      %if p_error_on_inf or p_error_on_nan:
+        for (int i=0; i<${p_odesys.ny}; ++i) { if (${_inf_or_nan('y[i]')}) { return ${_err_code()}; } }
+      %endif
+        ${p_jac_dense["cses"]}
       %for i_major in range(p_odesys.ny):
        %for i_minor in range(p_odesys.ny):
-    <%
-          curr_expr = p_jac_dense['exprs'][i_minor, i_major] if order == 'cmaj' else p_jac_dense['exprs'][i_major, i_minor]
-          if curr_expr == '0' and p_jacobian_set_to_zero_by_solver:
-              continue
-    %>    jac[ldim*${i_major} + ${i_minor}] = ${curr_expr};
-       %endfor
 
+    <%
+        if order == "cmaj":
+            i = i_minor*p_odesys.ny + i_major
+        else:
+            i = i_major*p_odesys.ny + i_minor
+        if p_jac_dense["assign"].expr_is_zero(i) and p_jacobian_set_to_zero_by_solver:
+            continue
+    %>
+          ${p_jac_dense["assign"](i, assign_to=lambda _: "jac[ldim*%d + %d]" % (i_major, i_minor))}
+       %endfor
       %endfor
         if (dfdt){
-          %for idx, expr in enumerate(p_jac_dense['dfdt_exprs']):
-            dfdt[${idx}] = ${expr};
+          %for idx in range(p_odesys.ny**2, p_jac_dense["assign"].n):
+            ${p_jac_dense["assign"](idx, assign_to=lambda _: "dfdt[%d]" % (idx - p_odesys.ny**2))}
           %endfor
         }
+      %if p_error_on_inf or p_error_on_nan:
+        for (int i = 0; i < ${p_odesys.ny}; ++i) { if (${_inf_or_nan('y[i]')}) { return ${_err_code()}; } }
+      %endif
+
         this->njev++;
         return AnyODE::Status::success;
     %endif
@@ -299,46 +336,40 @@ namespace odesys_anyode {
     %elif isinstance(p_first_step, str):
         ${p_first_step}
     %else:
-      %for cse_token, cse_expr in p_first_step['cses']:
-        const realtype ${cse_token} = ${cse_expr};
-      %endfor
-        ${'' if p_odesys.indep in p_odesys.first_step_expr.free_symbols else 'AnyODE::ignore(x);'}
-        ${'' if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else 'AnyODE::ignore(y);'}
-        return ${p_first_step['expr']};
+        ${p_first_step["cses"]}
+        ${"" if p_odesys.indep in p_odesys.first_step_expr.free_symbols else "AnyODE::ignore(x);"}
+        ${"" if any([yi in p_odesys.first_step_expr.free_symbols for yi in p_odesys.dep]) else "AnyODE::ignore(y);"}
+        const auto ${p_first_step["assign"](0, assign_to=lambda _: "result")}
+        return result;
     %endif
     }
 
     AnyODE::Status OdeSys<realtype, indextype>::sparse_jac_csc(realtype x,
                                                                const realtype * const ANYODE_RESTRICT y,
                                                                const realtype * const ANYODE_RESTRICT fy,
-                                                               realtype * const ANYODE_RESTRICT data,
+                                                               realtype * const ANYODE_RESTRICT out,
                                                                indextype * const ANYODE_RESTRICT colptrs,
                                                                indextype * const ANYODE_RESTRICT rowvals) {
     %if p_jac_sparse is not None:
         AnyODE::ignore(fy);  // Currently we are not using fy (could be done through extensive pattern matching)
-        ${'AnyODE::ignore(x);' if p_odesys.autonomous_exprs else ''}
-        ${'AnyODE::ignore(y);' if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
-                                   not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ''}
-        %for cse_token, cse_expr in p_jac_sparse['cses']:
-            const auto ${cse_token} = ${cse_expr};
-        %endfor
+        ${"AnyODE::ignore(x);" if p_odesys.autonomous_exprs else ""}
+        ${"AnyODE::ignore(y);" if (not any([yi in p_odesys.get_jac().free_symbols for yi in p_odesys.dep]) and
+                                   not any([yi in p_odesys.get_dfdx().free_symbols for yi in p_odesys.dep])) else ""}
+        ${p_jac_sparse["cses"]}
+        ${p_jac_sparse["assign"].all()}
 
         %for i in range(p_odesys.nnz):
-          data[${i}] = ${p_jac_sparse['exprs'][i]};
-        %endfor
-
-        %for i in range(p_odesys.nnz):
-          rowvals[${i}] = ${p_jac_sparse['rowvals'][i]};
+          rowvals[${i}] = ${p_jac_sparse["rowvals"][i]};
         %endfor
 
         %for i in range(p_odesys.ny + 1):
-          colptrs[${i}] = ${p_jac_sparse['colptrs'][i]};
+          colptrs[${i}] = ${p_jac_sparse["colptrs"][i]};
         %endfor
         this->njev++;
         return AnyODE::Status::success;
     %else:
         AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(fy);
-         AnyODE::ignore(data); AnyODE::ignore(colptrs); AnyODE::ignore(rowvals);
+         AnyODE::ignore(out); AnyODE::ignore(colptrs); AnyODE::ignore(rowvals);
         return AnyODE::Status::unrecoverable_error;
     %endif
     }
@@ -375,23 +406,26 @@ namespace odesys_anyode {
     }
 
     AnyODE::Status OdeSys<realtype, indextype>::roots(realtype x, const realtype * const y, realtype * const out) {
+
+    %if p_error_on_inf or p_error_on_nan:
+      if (${_inf_or_nan('x')}) { return ${_err_code()}; }
+      for (int i=0; i<${p_odesys.ny}; ++i) { if (${_inf_or_nan('y[i]')}) { return ${_err_code()}; } }
+    %endif
+
     %if p_roots is None:
         AnyODE::ignore(x); AnyODE::ignore(y); AnyODE::ignore(out);
-        return AnyODE::Status::success;
     %elif isinstance(p_roots, str):
         ${p_roots}
     %else:
-        ${'' if any(p_odesys.indep in expr.free_symbols for expr in p_odesys.roots) else 'AnyODE::ignore(x);'}
+        ${"" if any(p_odesys.indep in expr.free_symbols for expr in p_odesys.roots) else "AnyODE::ignore(x);"}
+        ${p_roots["cses"]}
+        ${p_roots["assign"].all()}
+    %endif
 
-      %for cse_token, cse_expr in p_roots['cses']:
-        const auto ${cse_token} = ${cse_expr};
-      %endfor
-
-      %for i, expr in enumerate(p_roots['exprs']):
-        out[${i}] = ${expr};
-      %endfor
+      %if p_error_on_inf or p_error_on_nan:
+            for (int i=0; i<get_nroots(); ++i) if (${_inf_or_nan('out[i]')}) return AnyODE::Status::unrecoverable_error;
+      %endif
         this->nrev++;
         return AnyODE::Status::success;
-    %endif
     }
 }

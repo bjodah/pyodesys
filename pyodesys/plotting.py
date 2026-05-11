@@ -6,6 +6,12 @@ from math import log
 
 import numpy as np
 
+DEFAULT_C = tuple(
+    f'#{c}' for c in (
+        '2ca02c', 'c49c94', 'f7b6d2', '7f7f7f', '9edae5', '98df8a', 'bcbd22', '9467bd', 'c5b0d5', 'd62728',
+        '8c564b', 'c7c7c7', '1f77b4', 'e377c2', 'dbdb8d', 'ff9896', '17becf', 'aec7e8', 'ffbb78', 'ff7f0e'
+    )
+)
 
 def _set_scale(cb, argstr):
     if argstr.count(';') == 0:
@@ -23,8 +29,7 @@ def _latex_from_dimensionality(dim):
 
 def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
                 ls=('-', '--', ':', '-.'),
-                c=('tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
-                   'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan', 'black'),
+                c=DEFAULT_C,
                 m=('o', 'v', '8', 's', 'p', 'x', '+', 'd', 's'),
                 m_lim=-1, lines=None, interpolate=None, interp_from_deriv=None,
                 names=None, latex_names=None, xlabel=None, ylabel=None,
@@ -119,6 +124,7 @@ def plot_result(x, y, indices=None, plot_kwargs_cb=None, ax=None,
             ax.fill_between(x, _y[:, idx] - yerr[:, idx], _y[:, idx] + yerr[:, idx], facecolor=clr, alpha=.3)
 
     if isinstance(yscale, str) and 'linthresh' in yscale:
+        yscale = yscale.replace('linthreshy', 'linthresh')
         arg, kw = yscale.split(';')
         thresh = eval('dict(%s)' % kw)['linthresh']
         ax.axhline(thresh, linewidth=.5, linestyle='--', color='k', alpha=.5)

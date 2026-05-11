@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+from itertools import product
 import pytest
 
 from pyodesys.util import requires
@@ -74,8 +75,9 @@ def test_chained_multi_native(reduced):
 
 
 @requires('pygslodeiv2')
-def test_Decay_nonnegative():
-    _test_Decay_nonnegative(NativeSys)
+@pytest.mark.parametrize('use_cse,compensated', product([False, True], [False, True]))
+def test_Decay_nonnegative(use_cse, compensated):
+    _test_Decay_nonnegative(NativeSys, use_cse=use_cse, compensated=compensated)
 
 
 @requires('pygslodeiv2')

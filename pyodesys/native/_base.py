@@ -1,21 +1,28 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+from collections import defaultdict
 from datetime import datetime as dt
 from functools import reduce
 import logging
 from operator import add
 from pathlib import Path
+import copy
 import os
 import shutil
 import sys
 import sysconfig
 import tempfile
 
+import sympy
+from sympy.codegen.ast import CodeBlock, Assignment, float64
 import numpy as np
+
 
 from ..symbolic import SymbolicSys
 from .. import __version__
+
+from .symcse.groupwise import GroupwiseCSE
 
 try:
     import appdirs
@@ -48,12 +55,57 @@ _compile_kwargs = {
     'cplus': True,
 }
 
+
+def get_compile_kwargs(kwargs):
+    kw = copy.deepcopy(_compile_kwargs)
+    for k in "define include_dirs libraries flags ldflags".split():
+        if k in kwargs:
+            if k in kw:
+                kw[k].extend(kwargs.pop(k))
+            else:
+                kw[k] = kwargs.pop(k)
+        else:
+            if k not in kw:
+                kw[k] = []
+
+    if options := os.environ.get("PYODESYS_OPTIONS"):
+        kw['options'] = options.split(',')
+    return kw
+
+
 _ext_suffix = sysconfig.get_config_var('EXT_SUFFIX')
 _obj_suffix = '.o'  # os.path.splitext(_ext_suffix)[0] + '.o'  # '.obj'
 
 
+
+
+def _r(s):
+    if isinstance(s, sympy.Symbol):
+        return s
+    else:
+        return sympy.Symbol(s, real=True)
+
+
+class _AssignerGW:
+    def __init__(self, k, gw, wrap_out=lambda x: x):
+        self.k = k
+        self.gw = gw
+        self.n = len(gw.exprs(k))
+        self.wrap_out = wrap_out
+
+    def all(self, **kwargs):
+        return "\n".join(self(i, **kwargs) for i in range(self.n))
+
+    def expr_is_zero(self, i):
+        return self.gw.exprs(self.k)[i] == 0
+
+    def __call__(self, i, assign_to=lambda i: _r("out[%s]" % i)):
+        out = self.wrap_out(self.gw.exprs(self.k)[i])
+        return self.gw.render(Assignment(_r(assign_to(i)), out))
+
+
 class _NativeCodeBase(Cpp_Code):
-    """ Base class for generated code.
+    """Base class for generated code.
 
     Note kwargs ``namespace_override`` which allows the user to customize
     the variables used when rendering the template.
@@ -68,9 +120,13 @@ class _NativeCodeBase(Cpp_Code):
     obj_files = ('odesys_anyode.o',)
     _save_temp = False
 
-    namespace_default = {'p_anon': None}
+    namespace_default = {
+        'p_anon': None,
+        'p_error_on_inf': True,
+        'p_error_on_nan': True,
+    }
     namespace = {
-        'p_includes': ['"odesys_anyode.hpp"'],
+        'p_includes': {'"odesys_anyode.hpp"'},
         'p_support_recoverable_error': False,
         'p_jacobian_set_to_zero_by_solver': False,
         'p_realtype': 'double',
@@ -82,16 +138,24 @@ class _NativeCodeBase(Cpp_Code):
     # `namespace_override` is set in init
     # `namespace_extend` is set in init
 
-    def __init__(self, odesys, *args, **kwargs):
+    def __init__(self, odesys, *args, groupwise_kw=None, assigner_kws=None,
+                 types=None, **kwargs):
+        self.groupwise_kw = groupwise_kw
+        self.types = types
+        self.assigner_kws = assigner_kws or defaultdict(dict)
         if Cpp_Code is object:
             raise ModuleNotFoundError("failed to import Cpp_Code from pycodeexport")
         if compile_sources is None:
             raise ModuleNotFoundError("failed to import compile_sources from pycompilation")
         if odesys.nroots > 0 and not self._support_roots:
             raise ValueError("%s does not support nroots > 0" % self.__class__.__name__)
+
         self.namespace_override = kwargs.pop('namespace_override', {})
         self.namespace_extend = kwargs.pop('namespace_extend', {})
-        self.tempdir_basename = '_pycodeexport_pyodesys_%s' % self.__class__.__name__
+        self.tempdir_basename = '_pycodeexport_pyodesys_%s_%s' % (
+            self.__class__.__name__,
+            ''.join(filter(lambda x: str.isalnum(x) or x in '_-', str(odesys.description).replace(' ', '_')))
+        )
         self.obj_files = self.obj_files + ('%s%s' % (self.wrapper_name, _obj_suffix),)
         self.so_file = '%s%s' % (self.wrapper_name, _ext_suffix)
         _wrapper_src0 = _native_sources_dir / ('%s.pyx' % self.wrapper_name)
@@ -106,7 +170,6 @@ class _NativeCodeBase(Cpp_Code):
         prebuild = {_wrapper_src: _wrapper_obj}
 
         self.build_files = self.build_files + tuple(prebuild.values())
-
         self.odesys = odesys
         for _src, _dest in prebuild.items():
             if not os.path.exists(_dest):
@@ -121,109 +184,79 @@ class _NativeCodeBase(Cpp_Code):
                         shutil.rmtree(tmpdir)
                 if not os.path.exists(_dest):
                     raise OSError("Failed to place prebuilt file at: %s" % _dest)
-        super(_NativeCodeBase, self).__init__(*args, logger=logger, **kwargs)
+        self.compensated_summation = kwargs.pop("compensated_summation", os.environ.get(
+            "PYODESYS_COMPENSATED_SUMMATION", "0") == "1")
+        super().__init__(*args, logger=logger, **kwargs)
+
+    # def _ccode(self, expr, subsd):
+    #     expr_x = expr.xreplace(subsd)
+    #     return self.odesys.be.ccode(expr_x)
 
     def variables(self):
-        ny = self.odesys.ny
         if self.odesys.band is not None:
             raise NotImplementedError("Banded jacobian not yet implemented.")
 
         all_invar = tuple(self.odesys.all_invariants())
-        ninvar = len(all_invar)
         jac = self.odesys.get_jac()
         nnz = self.odesys.nnz
-        all_exprs = self.odesys.exprs + all_invar
+        all_exprs = dict(
+            rhs=self.odesys.exprs,
+            invar=all_invar
+        )
         if jac is not False and nnz < 0:
             jac_dfdx = list(reduce(add, jac.tolist() + self.odesys.get_dfdx().tolist()))
-            all_exprs += tuple(jac_dfdx)
-            nj = len(jac_dfdx)
+            all_exprs["jac_dfdt"] = jac_dfdx
         elif jac is not False and nnz >= 0:
             jac_dfdx = list(reduce(add, jac.tolist()))
-            all_exprs += tuple(jac_dfdx)
-            nj = len(jac_dfdx)
-        else:
-            nj = 0
+            all_exprs["jac_dfdt"] = jac_dfdx
 
         jtimes = self.odesys.get_jtimes()
         if jtimes is not False:
             v, jtimes_exprs = jtimes
-            all_exprs += tuple(jtimes_exprs)
-            njtimes = len(jtimes_exprs)
+            all_exprs["jtimes"] = jtimes_exprs
         else:
             v = ()
             jtimes_exprs = ()
-            njtimes = 0
-
-        subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for
-                 idx, k in enumerate(self.odesys.dep)}
-        subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
-        if jtimes is not False:
-            subsd.update({k: self.odesys.be.Symbol('v[%d]' % idx) for
-                         idx, k in enumerate(v)})
-        subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
-                      idx, k in enumerate(self.odesys.params)})
-
-        def common_cse_symbols():
-            idx = 0
-            while True:
-                yield self.odesys.be.Symbol('m_p_cse[%d]' % idx)
-                idx += 1
-
-        def _ccode(expr):
-            return self.odesys.be.ccode(expr.xreplace(subsd))
-
-        if os.getenv('PYODESYS_NATIVE_CSE', '1') == '1':
-            cse_cb = self.odesys.be.cse
-        else:
-            logger.info("Not using common subexpression elimination (disabled by PYODESYS_NATIVE_CSE)")
-            cse_cb = lambda exprs, **kwargs: ([], exprs)
-
-        common_cses, common_exprs = cse_cb(
-            all_exprs, symbols=self.odesys.be.numbered_symbols('cse_temporary'),
-            ignore=(self.odesys.indep,) + self.odesys.dep + v)
-
-        common_cse_subs = {}
-        comm_cse_symbs = common_cse_symbols()
-
-        for symb, subexpr in common_cses:
-            for expr in common_exprs:
-                if symb in expr.free_symbols:
-                    common_cse_subs[symb] = next(comm_cse_symbs)
-                    break
-        common_cses = [(x.xreplace(common_cse_subs), expr.xreplace(common_cse_subs))
-                       for x, expr in common_cses]
-        common_exprs = [expr.xreplace(common_cse_subs) for expr in common_exprs]
-
-        rhs_cses, rhs_exprs = cse_cb(
-            common_exprs[:ny],
-            symbols=self.odesys.be.numbered_symbols('cse'))
-
-        if all_invar:
-            invar_cses, invar_exprs = cse_cb(
-                common_exprs[ny:(ny + ninvar)],
-                symbols=self.odesys.be.numbered_symbols('cse')
-            )
-
-        if jac is not False:
-            jac_cses, jac_exprs = cse_cb(
-                common_exprs[(ny + ninvar):(ny + ninvar + nj)],
-                symbols=self.odesys.be.numbered_symbols('cse'))
-
-        if jtimes is not False:
-            jtimes_cses, jtimes_exprs = cse_cb(
-                common_exprs[(ny + ninvar + nj):(ny + ninvar + nj + njtimes)],
-                symbols=self.odesys.be.numbered_symbols('cse'))
 
         first_step = self.odesys.first_step_expr
         if first_step is not None:
-            first_step_cses, first_step_exprs = cse_cb(
-                [first_step],
-                symbols=self.odesys.be.numbered_symbols('cse'))
+            all_exprs["first_step"] = [first_step]
 
         if self.odesys.roots is not None:
-            roots_cses, roots_exprs = cse_cb(
-                self.odesys.roots,
-                symbols=self.odesys.be.numbered_symbols('cse'))
+            all_exprs["roots"] = self.odesys.roots
+
+        subsd = {k: self.odesys.be.Symbol('y[%d]' % idx) for
+                 idx, k in enumerate(self.odesys.dep)}
+        if self.odesys.indep is not None:
+            subsd[self.odesys.indep] = self.odesys.be.Symbol('x')
+
+        subsd.update({k: self.odesys.be.Symbol('m_p[%d]' % idx) for
+                      idx, k in enumerate(self.odesys.params)})
+
+        if jtimes is not False:
+            subsd.update({k: self.odesys.be.Symbol('v[%d]' % idx) for
+                         idx, k in enumerate(v)})
+
+        common_ignore = (() if self.odesys.indep is None else (self.odesys.indep,)) + self.odesys.dep + v
+        gw = GroupwiseCSE(
+            all_exprs,
+            common_cse_template="m_cse[{}]",
+            common_ignore=common_ignore,
+            subsd=subsd,
+            # Transformer=Transformer,
+            # transformer_kw=transformer_kw,
+            **(self.groupwise_kw or {})
+        )
+
+        def not_arr(s):
+            return '[' not in s.name
+        types = self.types or defaultdict(lambda: (lambda lhs, rhs: (float64, rhs)))
+        def _cses(k):
+            return CodeBlock(*gw.statements(k, declare=not_arr, type_=types[k]))
+        cses = {k: gw.render(_cses(k)) for k in gw.keys}
+        n_common_cses = gw.n_remapped
+        common_cses = gw.render(CodeBlock(*gw.common_statements(declare=not_arr, type_=types[None])))
+        assigners = {k: _AssignerGW(k, gw, **self.assigner_kws[k]) for k in gw.keys}
 
         ns = dict(
             _message_for_rendered=[
@@ -231,52 +264,58 @@ class _NativeCodeBase(Cpp_Code):
                 "This file was generated using pyodesys-%s at %s" % (
                     __version__, dt.now().isoformat())
             ],
-            p_odesys=self.odesys,
             p_common={
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in common_cses],
-                'nsubs': len(common_cse_subs)
+                'cses': common_cses,
+                'n_cses': n_common_cses
             },
+            p_odesys=self.odesys,
             p_rhs={
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in rhs_cses],
-                'exprs': list(map(_ccode, rhs_exprs))
+                'cses': cses["rhs"],
+                'assign': assigners["rhs"]
             },
             p_jtimes=None if jtimes is False else{
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in jtimes_cses],
-                'exprs': list(map(_ccode, jtimes_exprs))
+                'cses': cses["jtimes"],
+                'assign': assigners["jtimes"]
             },
             p_jac_dense=None if jac is False or nnz >= 0 else {
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
-                'exprs': {(idx//ny, idx % ny): _ccode(expr)
-                          for idx, expr in enumerate(jac_exprs[:ny*ny])},
-                'dfdt_exprs': list(map(_ccode, jac_exprs[ny*ny:]))
+                'cses': cses["jac_dfdt"],
+                'assign': assigners["jac_dfdt"]
             },
             p_jac_sparse=None if jac is False or nnz < 0 else {
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in jac_cses],
-                'exprs': list(map(_ccode, jac_exprs[:nj])),
+                'cses': cses["jac_dfdt"],
+                'assign': assigners["jac_dfdt"],
                 'colptrs': self.odesys._colptrs,
                 'rowvals': self.odesys._rowvals
             },
             p_first_step=None if first_step is None else {
-                'cses': first_step_cses,
-                'expr': _ccode(first_step_exprs[0]),
+                'cses': cses["first_step"],
+                'assign': assigners["first_step"]
             },
             p_roots=None if self.odesys.roots is None else {
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in roots_cses],
-                'exprs': list(map(_ccode, roots_exprs))
+                'cses': cses["roots"],
+                'assign': assigners["roots"]
             },
             p_invariants=None if all_invar == () else {
-                'cses': [(symb.name, _ccode(expr)) for symb, expr in invar_cses],
-                'exprs': list(map(_ccode, invar_exprs))
+                'cses': cses["invar"],
+                'assign': assigners["invar"],
+                'n_invar': len(all_invar)
             },
             p_nroots=self.odesys.nroots,
             p_constructor=[],
-            p_get_dx_max=False
+            p_get_dx_max=False,
+            p_info_comment_codegen=f"{self.groupwise_kw=}",
+            p_compensated_summation=self.compensated_summation
         )
         ns.update(self.namespace_default)
         ns.update(self.namespace)
         ns.update(self.namespace_override)
         for k, v in self.namespace_extend.items():
-            ns[k].extend(v)
+            if isinstance(ns[k], list):
+                ns[k] = ns[k] + v
+            elif isinstance(ns[k], set):
+                ns[k] = ns[k] | v
+            else:
+                raise NotImplementedError(f"Cannot extend {k} of type {type(k)}")
 
         return ns
 
@@ -286,17 +325,14 @@ class _NativeSysBase(SymbolicSys):
     _NativeCode = None
     _native_name = None
 
-    def __init__(self, *args, **kwargs):
-        namespace_override = kwargs.pop('namespace_override', {})
-        namespace_extend = kwargs.pop('namespace_extend', {})
-        save_temp = kwargs.pop('save_temp', False)
+    def __init__(self, *args, native_code_kw=None, **kwargs):
         if 'init_indep' not in kwargs:  # we need to trigger append_iv for when invariants are used
             kwargs['init_indep'] = True
             kwargs['init_dep'] = True
         super(_NativeSysBase, self).__init__(*args, **kwargs)
-        self._native = self._NativeCode(self, save_temp=save_temp,
-                                        namespace_override=namespace_override,
-                                        namespace_extend=namespace_extend)
+        self._native = self._NativeCode(
+            self,
+            **(native_code_kw or {}))
 
     def integrate(self, *args, **kwargs):
         integrator = kwargs.pop('integrator', 'native')
@@ -305,7 +341,13 @@ class _NativeSysBase(SymbolicSys):
         else:
             kwargs['integrator'] = 'native'
 
-        return super(_NativeSysBase, self).integrate(*args, **kwargs)
+        return super().integrate(*args, **kwargs)
+
+    def rhs(self, intern_t, intern_y, intern_p):
+        return self._native.mod.rhs(intern_t, intern_y, intern_p)
+
+    def jac(self, intern_t, intern_y, intern_p):
+        return self._native.mod.dense_jac_cmaj(intern_t, intern_y, intern_p)
 
     def _integrate_native(self, intern_x, intern_y0, intern_p, force_predefined=False,
                           atol=1e-8, rtol=1e-8, nsteps=500, first_step=0.0, **kwargs):

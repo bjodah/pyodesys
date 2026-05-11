@@ -18,7 +18,8 @@ class Result:
         self.params = params
         self.info = info
         self.odesys = odesys
-        self.names = self.odesys.names
+        # names not always present:
+        self.names = getattr(self.odesys, 'names', None)
 
     def copy(self):
         return Result(self.xout.copy(), self.yout.copy(), self.params.copy(),
@@ -179,7 +180,7 @@ class Result:
         return (np.abs(singular_values).max(axis=-1) /
                 np.abs(singular_values).min(axis=-1))
 
-    def _plot(self, cb, x=None, y=None, legend=None, **kwargs):
+    def _plot(self, cb, x=None, y=None, legend=None, sort_legend=False, **kwargs):
         if x is None:
             x = self.xout
         if y is None:
@@ -199,9 +200,26 @@ class Result:
         if legend is None:
             if (kwargs.get('latex_names') or None) is not None or (kwargs['names'] or None) is not None:
                 legend = True
-        return cb(x, y, legend=legend, **kwargs)
+        ax = cb(x, y, legend=legend, **kwargs)
+        if sort_legend:
+            handles, labels = ax.get_legend_handles_labels()
+            # sort both labels and handles by labels
+            # if kwargs.get('names', None) is None:
+            #     sel = slice(None)
+            # else:
+            #     sel = [n in kwargs['names'] for n in self.odesys.names]
+            reorder = np.argsort(y[-1, kwargs.get('indices', slice(None))])[::-1]
+            if isinstance(legend, dict):
+                legend_kw = legend
+            elif not legend:
+                return ax
+            else:
+                legend_kw = dict()
+            ax.legend([handles[i] for i in reorder], [labels[i] for i in reorder], **legend_kw)
+        return ax
 
-    def plot(self, info_vlines_kw=None, between=None, deriv=False, title_info=0, **kwargs):
+    def plot(self, info_vlines_kw=None, between=None, deriv=False, title_info=0,
+             **kwargs):
         """ Plots the integrated dependent variables from last integration.
 
         Parameters
@@ -217,6 +235,7 @@ class Result:
         \\*\\*kwargs:
             See :func:`pyodesys.plotting.plot_result`
         """
+
         if between is not None:
             if 'x' in kwargs or 'y' in kwargs:
                 raise ValueError("x/y & between given.")
@@ -231,10 +250,12 @@ class Result:
             if 'y' in kwargs:
                 raise ValueError("Cannot give both deriv=True and y.")
             kwargs['y'] = self.odesys.f_cb(*self._internals())
+
         ax = self._plot(plot_result, **kwargs)
+
         if title_info:
             ax.set_title(
-                (self.odesys.description or '') +
+                (getattr(self.odesys, 'description', None) or '') +
                 ', '.join(
                     (['%d steps' % self.info['n_steps']] if self.info.get('n_steps', -1) >= 0 else []) +
                     [
@@ -267,11 +288,12 @@ class Result:
         val = invar(*(xyp or self._internals()))
         return val - val[0, :]
 
-    def plot_invariant_violations(self, **kwargs):
+    def plot_invariant_violations(self, *, apply_abs: bool=True, **kwargs):
         viol = self.calc_invariant_violations()
-        abs_viol = np.abs(viol)
+        if apply_abs:
+            viol = np.abs(viol)
         invar_names = self.odesys.all_invariant_names()
-        return self._plot(plot_result, x=self._internal('xout'), y=abs_viol, names=invar_names,
+        return self._plot(plot_result, x=self._internal('xout'), y=viol, names=invar_names,
                           latex_names=kwargs.pop('latex_names', invar_names), indices=None, **kwargs)
 
     def extend_by_integration(self, xend, params=None, odesys=None, autonomous=None, npoints=1, **kwargs):
@@ -309,6 +331,9 @@ class Result:
                     new_info[k] = [new_info[k]]
                 new_info[k].append(v)
             else:
-                new_info[k] += v
+                try:
+                    new_info[k] += v
+                except TypeError:
+                    new_info[k] = v
         self.info = new_info
         return self

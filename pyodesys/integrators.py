@@ -170,3 +170,67 @@ class Trapezoidal_example_integrator:
             yout.append((ynew + y + euler_fw_dy)/2)
             x_old = x
         return np.array(yout), {'nfev': (len(xout)-1)}
+
+
+class BDF2FVC_example_integrator(EulerBackward_example_integrator):
+
+    @staticmethod
+    def integrate_predefined(rhs, jac, y0, tout, tol_iter=1e-12, iter_max=20,
+                             predictor=None,
+                             **kwargs):
+        if kwargs:
+            warnings.warn("Ignoring keyword-argumtents: %s" % ', '.join(kwargs.keys()))
+        yout = [y0[:], Trapezoidal_example_integrator.integrate_predefined(
+            rhs, jac, y0, tout[:2], **kwargs
+        )[0][1,:]]
+        ny = len(y0)
+        assert len(yout) == 2 and yout[1].shape == (ny,)
+        t_old = tout[1]
+        h_old = tout[1] - tout[0]
+        f = np.empty(ny)
+        J = np.empty((ny, ny))
+        I = np.eye(ny)
+        for i, t in enumerate(tout[2:], 2):
+            jac(t_old, yout[-1], J)
+            h = t - t_old
+            rho = h/h_old
+            # https://computing.llnl.gov/projects/parallel-time-integration-multigrid/2017_BDF_Paper_v1.pdf
+            # Page 9, Table 2, FVC (see "Experiments on Temporal Variable Step BDF 2 Algorithms,
+            #    Anja Katrin Denner (MSc thesis)" for derivation):
+            beta0 = (rho+1)/(2*rho+1)
+            alpha1 = -(rho+1)**2/(2*rho+1)
+            alpha2 = rho**2/(2*rho+1)
+            gamma = beta0*h
+            # α₀y₀ + α₁y₁ + α₂y₂ = hβ₀f(t,y₀)
+            # α₀ = 1, γ=hβ₀ =>
+            # g = y₀ + α₁y₁ + α₂y₂ - γf(t, y₀) = 0
+            # Find find a root of g(y₀)
+            #  1. y₀ ← y₁ + hf  (predictor)
+            #  2. loop: y₀ ← y₀ - J⁻¹g (corrector)
+
+            lu_piv = lu_factor(I - gamma*J)
+            #print(i, t, yout[-1]) # ,f)
+            if predictor is None:
+                ynew = yout[-1]
+            else:
+                pred = predictor.integrate_predefined(rhs, jac, yout[-1], tout[i-1:i+1], **kwargs)[0]
+                assert len(pred) == 2 and pred[1].shape == (ny,)
+                ynew = pred[1]  # predictor
+            #print(f"   rho={rho}, a1={alpha1}, a2={alpha2}, gamma={gamma}, ynew={ynew}")
+            norm_delta_ynew = float('inf')
+            for iiter in range(iter_max):
+                rhs(t, ynew, f)
+                g = ynew + alpha1*yout[-1] + alpha2*yout[-2] - gamma*f
+                delta_ynew = lu_solve(lu_piv, g)
+                ynew -= delta_ynew
+                norm_delta_ynew = np.sqrt(np.sum(np.square(delta_ynew))/ny)
+                #print(f"    {iiter:4d} g={g} d={delta_ynew} |d|={norm_delta_ynew}")
+                if norm_delta_ynew < tol_iter:
+                    break
+            else:
+                print("FAILURE")
+                return np.array(yout), dict(success=False)
+            yout.append(ynew)
+            t_old = t
+            h_old = h
+        return np.array(yout), {'nfev': (len(tout)-1), 'success': True}

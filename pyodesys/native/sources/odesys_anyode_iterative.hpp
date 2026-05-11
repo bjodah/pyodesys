@@ -5,10 +5,11 @@ namespace odesys_anyode {
     template<typename Real_t=double, typename Index_t=int>
     struct OdeSys : public AnyODE::OdeSysIterativeBase<Real_t, Index_t> {
         std::vector<Real_t> m_p;
-        std::vector<Real_t> m_p_cse;
+        std::vector<Real_t> m_cse;
         std::vector<Real_t> m_atol;
         std::vector<Real_t> m_upper_bounds;
         std::vector<Real_t> m_lower_bounds;
+        std::vector<Real_t> m_invar;
         std::vector<Real_t> m_invar0;
         Real_t m_rtol;
         Real_t m_get_dx_max_factor;

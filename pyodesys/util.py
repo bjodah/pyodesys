@@ -37,7 +37,7 @@ def _parse_requirement(req):
     return req.strip(), None, None
 
 
-class requires:
+class requires(object):
     """Conditional skipping (on requirements) of tests in pytest
 
     Examples
@@ -184,7 +184,7 @@ def transform_exprs_indep(fw, bw, dep_exprs, indep, check=True):
     return [(e/fw.diff(indep)).subs(indep, bw) for e in exprs]
 
 
-class _Blessed:
+class _Blessed(object):
     pass
 
 
@@ -281,7 +281,7 @@ def pycvodes_klu(cb):
                               reason="Sparse jacobian tests require pycvodes and sundials with KLU enabled.")(cb)
 
 
-class MissingImport:
+class MissingImport(object):
 
     def __init__(self, modname, exc):
         self._modname = modname

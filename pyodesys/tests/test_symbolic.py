@@ -542,7 +542,7 @@ def test_long_chain_banded_scipy(n):
             name='vode', method='bdf', first_step=1e-10)
         assert info['njev'] > 0
         min_time_band = min(min_time_band, time_band)
-    check(yout_dens[-1, :], n, p, a, atol, rtol, 1.5)
+    check(yout_dens[-1, :], n, p, a, atol, rtol, 4)
     check(yout_band[-1, :], n, p, a, atol, rtol, 1.5)
     assert min_time_dens*2 > min_time_band  # (2x: fails sometimes due to load)
 

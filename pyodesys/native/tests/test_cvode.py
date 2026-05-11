@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 
+from itertools import product
 import numpy as np
 import pytest
 
@@ -88,8 +89,9 @@ def test_chained_multi_native_nonnegative():
 
 
 @requires('pycvodes')
-def test_Decay_nonnegative():
-    _test_Decay_nonnegative(NativeSys)
+@pytest.mark.parametrize('use_cse,compensated', product([False, True], [False, True]))
+def test_Decay_nonnegative(use_cse, compensated):
+    _test_Decay_nonnegative(NativeSys, use_cse=use_cse, compensated=compensated)
 
 
 @requires('pycvodes')
@@ -147,6 +149,9 @@ def test_NativeSys__roots():
         assert len(result.info['root_indices']) == 1
         assert result.info['success'] == True  # noqa
         assert np.min(np.abs(result.xout - 1)) < 1e-11
+
+    f_out = odesys.rhs(np.array(0.0, dtype=np.float64), np.array([2.0]), np.array([], dtype=np.float64))
+    assert f_out.size == 1 and np.all(f_out == 2.0)
 
 
 @requires('sym', 'pycvodes')
@@ -238,8 +243,9 @@ def test_sparse_jac_native_cvode(nu=0.01, k=1.0, m=1.0, x0=1.0, atol=1.0e-12, rt
 
 
 @requires('pycvodes', 'sympy')
-def test_render_native_cse_regression():
-    _test_render_native_code_cse(NativeSys)
+@pytest.mark.parametrize('compensated', [False, True])
+def test_render_native_cse_regression(compensated):
+    _test_render_native_code_cse(NativeSys, compensated=compensated)
 
 
 @requires('sym', 'pycvodes')
