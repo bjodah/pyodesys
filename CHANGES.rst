@@ -1,3 +1,11 @@
+v0.14.7
+=======
+- Corrected release
+
+v0.14.6
+=======
+- Inadvertent release based on a dev branch (do not use)
+
 v0.14.5
 =======
 - Update setup.yp
