@@ -25,7 +25,7 @@ class RecoverableError(Exception):
     pass
 
 
-class ODESys(object):
+class ODESys:
     """ Object representing an ODE system.
 
     ``ODESys`` provides unified interface to:

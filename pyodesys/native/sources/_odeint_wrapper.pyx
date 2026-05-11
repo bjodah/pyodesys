@@ -62,6 +62,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
         raise ValueError('odeint native backend only supports scalar atol')
     atol_scalar = _atol[0]
 
+
     if dx0 is None:
         _dx0 = np.zeros(y0.shape[0])
     else:
