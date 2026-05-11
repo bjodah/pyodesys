@@ -87,7 +87,7 @@ def integrate_adaptive(cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] y0,
                                      [atol_scalar], rtol, 1.0, False, 0.0, special_settings))
 
     result = multi_adaptive[OdeintOdeSys](
-        systems, atol, rtol, styp_from_name(_styp), <double *>y0.data,
+        systems, atol_scalar, rtol, styp_from_name(_styp), <double *>y0.data,
         <double *>x0.data, <double *>xend.data, mxsteps,
         &_dx0[0], &_dx_max[0], autorestart, return_on_error)
 
