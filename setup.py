@@ -34,7 +34,7 @@ if len(RELEASE_VERSION) > 0:
 else:
     TAGGED_RELEASE = False
     # read __version__ attribute from _release.py:
-    exec(open(release_py_path).read())
+    exec(open(release_py_path, encoding="utf-8").read())
     if __version__.endswith('git'):
         try:
             _git_version = subprocess.check_output(
@@ -67,14 +67,14 @@ tests = [
     'pyodesys.native.tests',
 ]
 
-with open(_path_under_setup(pkg_name, '__init__.py'), 'rt') as f:
+with open(_path_under_setup(pkg_name, '__init__.py'), 'rt', encoding='utf-8') as f:
     short_description = f.read().split('"""')[1].split('\n')[1]
 if not 10 < len(short_description) < 255:
     warnings.warn("Short description from __init__.py proably not read correctly")
 long_descr = io.open(_path_under_setup('README.rst'), encoding='utf-8').read()
 if not len(long_descr) > 100:
     warnings.warn("Long description from README.rst probably not read correctly.")
-_author, _author_email = open(_path_under_setup('AUTHORS'), 'rt').readline().split('<')
+_author, _author_email = open(_path_under_setup('AUTHORS'), 'rt', encoding='utf-8').readline().split('<')
 
 extras_req = {
     'integrators': ['pyodeint>=0.10.3', 'pycvodes>=0.13.1', 'pygslodeiv2>=0.9.3'],
@@ -111,7 +111,7 @@ if __name__ == '__main__':
             # e.g.:  $ PYODESYS_RELEASE_VERSION=v1.2.3 python setup.py sdist
             # this will ensure source distributions contain the correct version
             shutil.move(release_py_path, release_py_path+'__temp__')
-            open(release_py_path, 'wt').write(
+            open(release_py_path, 'wt', encoding='utf-8').write(
                 "__version__ = '{}'\n".format(__version__))
         setup(**setup_kwargs)
     finally:
